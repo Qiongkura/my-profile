@@ -13,7 +13,9 @@ my-profile/
 │   ├── avatar.jpg             # ABOUT 头像
 │   ├── racing-frame.webp      # BeamNG 车载视角（首页 / 作品预览）
 │   ├── racing-perception.webp # BeamNG 前视感知画面（RACING）
-│   ├── hifi-visualizer.webp   # 音频可视化界面（HI-FI / 作品预览）
+│   ├── hifi-visualizer.webp   # 音频可视化界面（作品预览）
+│   ├── hifi-gear-01.webp      # 我的设备照片 1（HI-FI 主视觉）
+│   ├── hifi-gear-02.webp      # 我的设备照片 2（HI-FI 主视觉）
 │   ├── focus-home.webp        # Focus-time-tracker 主界面
 │   └── focus-stats.webp       # Focus-time-tracker 统计报告
 └── README.md
@@ -49,6 +51,12 @@ RACING 章节的主图是自动轮播，共 9 张：
 - 支持 `prefers-reduced-motion`：关闭视差、声波与所有循环动画。
 - 脚本失效时页面仍可通过锚点和原生滚动正常浏览。
 
+## HI-FI 章节的图片
+
+主视觉是两张设备照片并排（`.frame--gear` + `.gear-pair`），每张约 332×173。图片用 `object-fit: cover`，会裁掉上下部分，换图时注意主体是否落在中间，必要时用内联 `object-position` 调整取景。
+
+音频可视化界面截图不再放在这一章，它仍然出现在 PROJECTS 的轮播里。
+
 ## 中英双语
 
 顶部导航右侧有 `中文 / EN` 切换按钮：
@@ -65,7 +73,8 @@ RACING 章节的主图是自动轮播，共 9 张：
 - 姓名与身份：`QIONGKURA`、`电子信息工程专业学生`
 - 项目与链接：`work-row` 列表项，以及 `work-panel` 里的预览图
 - 联系方式：`.contact-row` 里的 `Personal`、`Academic / Work`、`GitHub` 三行
-- 听音偏好与设备：`.listen-list`（常听类型）和 `.gear-line`（我的设备：DX1ii、JT9、TitanX）
+- 听音偏好：`.listen-list`（常听类型）
+- 设备：`.frame--gear` 里的两张照片与图注（DX1ii · JT9 · TitanX）
 - 技术栈：`stack-list`
 
 替换图片时保持文件名不变，或同步修改 `index.html` 中的 `src`。新增图片建议先转成 WebP 以控制体积。
