@@ -811,12 +811,26 @@ html[data-lang='en'] .zh { display: none !important; }
 }
 
 .about-contact { border-top: 1px solid var(--line); padding-top: 14px; }
-.contact-link {
-  display: block;
+
+.contact-row {
+  display: grid;
+  grid-template-columns: var(--contact-key, 92px) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 12px;
   padding: 7px 0;
   border-bottom: 1px solid var(--line-2);
+}
+.contact-key {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: .06em;
+  color: var(--ink-3);
+}
+.contact-link {
+  display: block;
   font-size: 12px;
   letter-spacing: .04em;
+  overflow-wrap: anywhere;
   transition: color .25s var(--ease);
 }
 .contact-link:hover { color: var(--red); }
