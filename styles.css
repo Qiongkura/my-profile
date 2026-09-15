@@ -922,10 +922,10 @@ html[data-lang='en'] .zh { display: none !important; }
   /* 矮窗口：字号有可读性下限不会再缩，这里把图片高度让出一部分，保证一节仍是一屏 */
   html { scroll-snap-type: y proximity; }
   .frame { --frame-h: clamp(90px, min(22vh, 26vw), 600px); }
-  .frame--hero { --frame-h: clamp(100px, min(46vh, 42vw), 760px); }
+  .frame--hero { --frame-h: clamp(100px, min(50vh, 44vw), 800px); }
   .frame--slides { --frame-h: clamp(110px, min(34vh, 46vw), 700px); }
-  .frame--portrait img { height: clamp(150px, min(44vh, 30vw), 950px); }
-  .frame--landscape img { height: clamp(80px, min(26vh, 34vw), 620px); }
+  .frame--portrait img { height: clamp(150px, min(38vh, 28vw), 900px); }
+  .frame--landscape img { height: clamp(80px, min(22vh, 30vw), 560px); }
   .work-stage { min-height: clamp(140px, min(34vh, 40vw), 700px); }
   .keyword { padding: calc(1.1 * var(--u)) 0; }
   .contact-row { padding: calc(0.75 * var(--u)) 0; }
