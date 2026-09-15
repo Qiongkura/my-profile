@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-lang="zh">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -17,39 +17,57 @@
     />
     <link rel="preload" as="image" href="assets/racing-frame.webp" />
     <link rel="stylesheet" href="styles.css" />
-    <script>document.documentElement.classList.add('js');</script>
+    <script>
+      /* 在样式生效前确定语言，避免切换时闪烁 */
+      (function () {
+        var root = document.documentElement;
+        root.classList.add('js');
+        try {
+          var saved = localStorage.getItem('qiongkura-lang');
+          if (saved === 'en' || saved === 'zh') root.setAttribute('data-lang', saved);
+        } catch (e) {}
+        if (!root.getAttribute('data-lang')) root.setAttribute('data-lang', 'zh');
+      })();
+    </script>
   </head>
   <body>
-    <a class="skip-link" href="#home">跳到主要内容</a>
+    <a class="skip-link" href="#home"><span class="zh">跳到主要内容</span><span class="en" lang="en">Skip to main content</span></a>
 
     <header class="topbar">
       <div class="topbar-inner">
-        <a class="logo" href="#home">
+        <a class="logo" href="#home" data-aria-zh="回到首页" data-aria-en="Back to top">
           <span class="logo-mark" aria-hidden="true"></span>
           <span class="logo-text">QIONGKURA</span>
         </a>
 
-        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav">
-          <span class="menu-label">菜单</span>
-        </button>
+        <div class="topbar-end">
+          <nav class="nav" id="primary-nav" data-aria-zh="主导航" data-aria-en="Main navigation">
+            <a class="nav-link is-active" href="#home"><span class="zh">首页</span><span class="en" lang="en">Home</span></a>
+            <a class="nav-link" href="#racing"><span class="zh">赛车</span><span class="en" lang="en">Racing</span></a>
+            <a class="nav-link" href="#projects"><span class="zh">项目</span><span class="en" lang="en">Projects</span></a>
+            <a class="nav-link" href="#hifi"><span class="zh">音频</span><span class="en" lang="en">Hi-Fi</span></a>
+            <a class="nav-link" href="#about"><span class="zh">关于</span><span class="en" lang="en">About</span></a>
+            <a class="nav-link nav-link--out" href="https://github.com/Qiongkura" target="_blank" rel="noreferrer">GitHub ↗</a>
+          </nav>
 
-        <nav class="nav" id="primary-nav" aria-label="主导航">
-          <a class="nav-link is-active" href="#home">首页</a>
-          <a class="nav-link" href="#racing">赛车</a>
-          <a class="nav-link" href="#projects">项目</a>
-          <a class="nav-link" href="#hifi">音频</a>
-          <a class="nav-link" href="#about">关于</a>
-          <a class="nav-link nav-link--out" href="https://github.com/Qiongkura" target="_blank" rel="noreferrer">GitHub ↗</a>
-        </nav>
+          <div class="lang-switch" role="group" data-aria-zh="语言选择" data-aria-en="Language selection">
+            <button class="lang-btn is-active" type="button" data-lang-set="zh" aria-pressed="true">中文</button>
+            <button class="lang-btn" type="button" data-lang-set="en" aria-pressed="false">EN</button>
+          </div>
+
+          <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" data-aria-zh="打开导航菜单" data-aria-en="Open navigation menu">
+            <span class="menu-label"><span class="zh">菜单</span><span class="en" lang="en">Menu</span></span>
+          </button>
+        </div>
       </div>
     </header>
 
-    <nav class="section-index" id="section-index" aria-label="章节导航">
-      <a class="index-item is-active" href="#home" aria-current="true"><span class="index-num">01</span><span class="index-line" aria-hidden="true"></span><span class="index-name">首页</span></a>
-      <a class="index-item" href="#racing"><span class="index-num">02</span><span class="index-line" aria-hidden="true"></span><span class="index-name">赛车</span></a>
-      <a class="index-item" href="#projects"><span class="index-num">03</span><span class="index-line" aria-hidden="true"></span><span class="index-name">项目</span></a>
-      <a class="index-item" href="#hifi"><span class="index-num">04</span><span class="index-line" aria-hidden="true"></span><span class="index-name">音频</span></a>
-      <a class="index-item" href="#about"><span class="index-num">05</span><span class="index-line" aria-hidden="true"></span><span class="index-name">关于</span></a>
+    <nav class="section-index" id="section-index" data-aria-zh="章节导航" data-aria-en="Section navigation">
+      <a class="index-item is-active" href="#home" aria-current="true"><span class="index-num">01</span><span class="index-line" aria-hidden="true"></span><span class="index-name"><span class="zh">首页</span><span class="en" lang="en">Home</span></span></a>
+      <a class="index-item" href="#racing"><span class="index-num">02</span><span class="index-line" aria-hidden="true"></span><span class="index-name"><span class="zh">赛车</span><span class="en" lang="en">Racing</span></span></a>
+      <a class="index-item" href="#projects"><span class="index-num">03</span><span class="index-line" aria-hidden="true"></span><span class="index-name"><span class="zh">项目</span><span class="en" lang="en">Projects</span></span></a>
+      <a class="index-item" href="#hifi"><span class="index-num">04</span><span class="index-line" aria-hidden="true"></span><span class="index-name"><span class="zh">音频</span><span class="en" lang="en">Hi-Fi</span></span></a>
+      <a class="index-item" href="#about"><span class="index-num">05</span><span class="index-line" aria-hidden="true"></span><span class="index-name"><span class="zh">关于</span><span class="en" lang="en">About</span></span></a>
     </nav>
 
     <main id="main-content">
@@ -58,12 +76,25 @@
         <div class="wrap panel-body">
           <div class="home-grid">
             <div class="home-copy reveal">
-              <p class="kicker">01 / 首页</p>
+              <p class="kicker">01 / <span class="zh">首页</span><span class="en" lang="en">Home</span></p>
               <h1 class="wordmark" id="home-title">QIONGKURA</h1>
-              <p class="subtitle">电子信息工程专业学生</p>
-              <p class="tagline">人工智能 / 编程 / 模拟赛车 / 音频</p>
-              <p class="lede">把想法，快速做成能跑的作品。</p>
-              <p class="theme-words"><span>构建</span><span>驾驶</span><span>聆听</span></p>
+              <p class="subtitle">
+                <span class="zh">电子信息工程专业学生</span>
+                <span class="en" lang="en">Electronic Information Engineering Student</span>
+              </p>
+              <p class="tagline">
+                <span class="zh">人工智能 / 编程 / 模拟赛车 / 音频</span>
+                <span class="en" lang="en">AI / Coding / Sim Racing / Hi-Fi</span>
+              </p>
+              <p class="lede">
+                <span class="zh">把想法，快速做成能跑的作品。</span>
+                <span class="en" lang="en">Turning ideas into things that actually run.</span>
+              </p>
+              <p class="theme-words">
+                <span class="zh">构建</span><span class="en" lang="en">BUILD</span>
+                <span class="zh">驾驶</span><span class="en" lang="en">DRIVE</span>
+                <span class="zh">聆听</span><span class="en" lang="en">LISTEN</span>
+              </p>
             </div>
 
             <div class="home-visual reveal" data-parallax="0.06">
@@ -71,14 +102,16 @@
                 <img
                   src="assets/racing-frame.webp"
                   alt="BeamNG 自动驾驶项目的车载视角运行画面"
+                  data-alt-zh="BeamNG 自动驾驶项目的车载视角运行画面"
+                  data-alt-en="Onboard view from the BeamNG autonomous driving project"
                   width="960"
                   height="540"
                   fetchpriority="high"
                   decoding="async"
                 />
                 <figcaption>
-                  <span>车载视角</span>
-                  <span>BeamNG 自动驾驶</span>
+                  <span class="zh">车载视角</span><span class="en" lang="en">Onboard view</span>
+                  <span class="zh">BeamNG 自动驾驶</span><span class="en" lang="en">BeamNG Autopilot</span>
                 </figcaption>
               </figure>
               <div class="speedlines" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -88,8 +121,11 @@
 
         <div class="panel-foot">
           <div class="wrap panel-foot-inner">
-            <span class="scroll-cue"><span class="scroll-line" aria-hidden="true"></span>向下滚动</span>
-            <span class="meta-note">华南农业大学 · 电子信息工程 · 广州</span>
+            <span class="scroll-cue"><span class="scroll-line" aria-hidden="true"></span><span class="zh">向下滚动</span><span class="en" lang="en">SCROLL</span></span>
+            <span class="meta-note">
+              <span class="zh">华南农业大学 · 电子信息工程 · 广州</span>
+              <span class="en" lang="en">SCAU · Electronic Information Engineering · Guangzhou</span>
+            </span>
           </div>
         </div>
       </section>
@@ -98,9 +134,12 @@
       <section class="panel panel--racing" id="racing" data-section="racing" aria-labelledby="racing-title">
         <div class="wrap panel-body">
           <header class="panel-head reveal">
-            <p class="kicker">02 / 赛车</p>
-            <h2 class="display" id="racing-title">赛车</h2>
-            <p class="subtitle">模拟赛车 / 自动驾驶</p>
+            <p class="kicker">02 / <span class="zh">赛车</span><span class="en" lang="en">Racing</span></p>
+            <h2 class="display" id="racing-title"><span class="zh">赛车</span><span class="en" lang="en">RACING</span></h2>
+            <p class="subtitle">
+              <span class="zh">模拟赛车 / 自动驾驶</span>
+              <span class="en" lang="en">Sim Racing / Autonomous Driving</span>
+            </p>
           </header>
 
           <div class="racing-grid">
@@ -109,46 +148,89 @@
                 <img
                   src="assets/racing-perception.webp"
                   alt="BeamNG 自动驾驶项目的前视感知检查画面"
+                  data-alt-zh="BeamNG 自动驾驶项目的前视感知检查画面"
+                  data-alt-en="Front-camera perception check from the BeamNG autopilot project"
                   width="1058"
                   height="755"
                   loading="lazy"
                   decoding="async"
                 />
                 <figcaption>
-                  <span>M2 视觉感知</span>
-                  <span>前视相机检查</span>
+                  <span class="zh">M2 视觉感知</span><span class="en" lang="en">M2 Vision perception</span>
+                  <span class="zh">前视相机检查</span><span class="en" lang="en">Front camera check</span>
                 </figcaption>
               </figure>
 
               <div class="project-head">
-                <h3>BeamNG 自动驾驶</h3>
-                <a class="ghost-link" href="https://github.com/Qiongkura/BeamNG-autopilot" target="_blank" rel="noreferrer">查看源码 ↗</a>
+                <h3><span class="zh">BeamNG 自动驾驶</span><span class="en" lang="en">BeamNG Autopilot</span></h3>
+                <a class="ghost-link" href="https://github.com/Qiongkura/BeamNG-autopilot" target="_blank" rel="noreferrer">
+                  <span class="zh">查看源码</span><span class="en" lang="en">View source</span> ↗
+                </a>
               </div>
-              <p class="project-zh">基于 BeamNG 的自动驾驶实验项目，采用感知 / 决策 / 控制的分层架构，逐步演进到端到端模仿学习与图像强化学习。</p>
-              <p class="project-en">从屏幕前的驾驶兴趣，到能自己跑完一圈的车辆控制代码。</p>
-              <p class="tech-line">Python · 计算机视觉 · 车辆控制 · BeamNG</p>
+              <p class="project-desc">
+                <span class="zh">基于 BeamNG 的自动驾驶实验项目，采用感知 / 决策 / 控制的分层架构，逐步演进到端到端模仿学习与图像强化学习。</span>
+                <span class="en" lang="en">An autonomous driving experiment on BeamNG, with a layered perception–decision–control architecture moving toward imitation learning.</span>
+              </p>
+              <p class="project-quote">
+                <span class="zh">从屏幕前的驾驶兴趣，到能自己跑完一圈的车辆控制代码。</span>
+                <span class="en" lang="en">From a racing interest in front of the screen to control code that can finish a lap.</span>
+              </p>
+              <p class="tech-line">
+                <span class="zh">Python · 计算机视觉 · 车辆控制 · BeamNG</span>
+                <span class="en" lang="en">Python · Computer Vision · Vehicle Control · BeamNG</span>
+              </p>
             </div>
 
-            <aside class="hud reveal" aria-label="项目技术结构">
-              <p class="hud-title">系统结构 / 真实模块</p>
+            <aside class="hud reveal" data-aria-zh="项目技术结构" data-aria-en="Project technical structure">
+              <p class="hud-title"><span class="zh">系统结构 / 真实模块</span><span class="en" lang="en">SYSTEM / REAL MODULES</span></p>
               <dl class="hud-rows">
-                <div class="hud-row"><dt>M1 循迹</dt><dd>纯跟踪 + PID</dd></div>
-                <div class="hud-row"><dt>M2 感知</dt><dd>胎痕条带 + 路径投影</dd></div>
-                <div class="hud-row"><dt>M3 模仿学习</dt><dd>DAVE-2 风格 CNN</dd></div>
-                <div class="hud-row"><dt>M4 决策</dt><dd>DQN / Stable-Baselines3</dd></div>
-                <div class="hud-row"><dt>M5 辅助驾驶</dt><dd>游戏内自动行驶 + HUD</dd></div>
-                <div class="hud-row"><dt>M5 视觉避障</dt><dd>YOLOv8n + 地面反投影</dd></div>
-                <div class="hud-row"><dt>路面分割</dt><dd>轻量 UNet</dd></div>
-                <div class="hud-row hud-row--accent"><dt>M6</dt><dd>FSD 结构栈</dd></div>
+                <div class="hud-row">
+                  <dt><span class="zh">M1 循迹</span><span class="en" lang="en">M1 TRACKING</span></dt>
+                  <dd><span class="zh">纯跟踪 + PID</span><span class="en" lang="en">Pure Pursuit + PID</span></dd>
+                </div>
+                <div class="hud-row">
+                  <dt><span class="zh">M2 感知</span><span class="en" lang="en">M2 PERCEPTION</span></dt>
+                  <dd><span class="zh">胎痕条带 + 路径投影</span><span class="en" lang="en">Tire marks + path projection</span></dd>
+                </div>
+                <div class="hud-row">
+                  <dt><span class="zh">M3 模仿学习</span><span class="en" lang="en">M3 IMITATION</span></dt>
+                  <dd><span class="zh">DAVE-2 风格 CNN</span><span class="en" lang="en">DAVE-2 style CNN</span></dd>
+                </div>
+                <div class="hud-row">
+                  <dt><span class="zh">M4 决策</span><span class="en" lang="en">M4 DECISION</span></dt>
+                  <dd>DQN / Stable-Baselines3</dd>
+                </div>
+                <div class="hud-row">
+                  <dt><span class="zh">M5 辅助驾驶</span><span class="en" lang="en">M5 ASSIST</span></dt>
+                  <dd><span class="zh">游戏内自动行驶 + HUD</span><span class="en" lang="en">In-game autopilot + HUD</span></dd>
+                </div>
+                <div class="hud-row">
+                  <dt><span class="zh">M5 视觉避障</span><span class="en" lang="en">M5 AVOIDANCE</span></dt>
+                  <dd><span class="zh">YOLOv8n + 地面反投影</span><span class="en" lang="en">YOLOv8n + ground reprojection</span></dd>
+                </div>
+                <div class="hud-row">
+                  <dt><span class="zh">路面分割</span><span class="en" lang="en">SEGMENTATION</span></dt>
+                  <dd><span class="zh">轻量 UNet</span><span class="en" lang="en">Lightweight UNet</span></dd>
+                </div>
+                <div class="hud-row hud-row--accent">
+                  <dt>M6</dt>
+                  <dd><span class="zh">FSD 结构栈</span><span class="en" lang="en">FSD structure stack</span></dd>
+                </div>
               </dl>
-              <p class="hud-foot">运行环境：BeamNG.tech / Steam · BeamNGpy</p>
+              <p class="hud-foot">
+                <span class="zh">运行环境：BeamNG.tech / Steam · BeamNGpy</span>
+                <span class="en" lang="en">Runtime: BeamNG.tech / Steam · BeamNGpy</span>
+              </p>
             </aside>
           </div>
         </div>
 
         <div class="panel-foot">
           <div class="wrap panel-foot-inner">
-            <span class="meta-note">速度 · 机械 · 控制 · 人工智能</span>
+            <span class="meta-note">
+              <span class="zh">速度 · 机械 · 控制 · 人工智能</span>
+              <span class="en" lang="en">Speed · Mechanical · Control · AI</span>
+            </span>
             <span class="meta-note">02 / 05</span>
           </div>
         </div>
@@ -159,46 +241,64 @@
         <div class="wrap panel-body">
           <header class="panel-head panel-head--row reveal">
             <div>
-              <p class="kicker">03 / 项目</p>
-              <h2 class="display" id="projects-title">精选项目</h2>
+              <p class="kicker">03 / <span class="zh">项目</span><span class="en" lang="en">Projects</span></p>
+              <h2 class="display" id="projects-title"><span class="zh">精选项目</span><span class="en" lang="en">SELECTED WORKS</span></h2>
             </div>
-            <p class="head-note">文字目录 + 项目实拍<br />悬停或聚焦查看对应画面</p>
+            <p class="head-note">
+              <span class="zh">文字目录 + 项目实拍<br />悬停或聚焦查看对应画面</span>
+              <span class="en" lang="en">Text index + captures<br />Hover or focus to preview</span>
+            </p>
           </header>
 
           <div class="works">
             <ol class="work-list" id="work-list">
               <li>
-                <a class="work-row" href="https://github.com/Qiongkura/DQN-Reinforcement-Learning-Snake" target="_blank" rel="noreferrer" data-work="0" aria-label="打开 DQN 贪吃蛇仓库">
+                <a class="work-row" href="https://github.com/Qiongkura/DQN-Reinforcement-Learning-Snake" target="_blank" rel="noreferrer" data-work="0" data-aria-zh="打开 DQN 贪吃蛇仓库" data-aria-en="Open the DQN Snake repository">
                   <span class="work-num">01</span>
-                  <span class="work-name">DQN 贪吃蛇<em>强化学习 · Python / PyTorch / Java / Socket</em></span>
+                  <span class="work-name">
+                    <span class="work-title"><span class="zh">DQN 贪吃蛇</span><span class="en" lang="en">DQN Snake</span></span>
+                    <em><span class="zh">强化学习 · Python / PyTorch / Java / Socket</span><span class="en" lang="en">Reinforcement Learning · Python / PyTorch / Java / Socket</span></em>
+                  </span>
                   <span class="work-arrow" aria-hidden="true">↗</span>
                 </a>
               </li>
               <li>
-                <a class="work-row" href="https://github.com/Qiongkura/BeamNG-autopilot" target="_blank" rel="noreferrer" data-work="1" aria-label="打开 BeamNG 自动驾驶仓库">
+                <a class="work-row" href="https://github.com/Qiongkura/BeamNG-autopilot" target="_blank" rel="noreferrer" data-work="1" data-aria-zh="打开 BeamNG 自动驾驶仓库" data-aria-en="Open the BeamNG Autopilot repository">
                   <span class="work-num">02</span>
-                  <span class="work-name">BeamNG 自动驾驶<em>自动驾驶 · 计算机视觉 / 车辆控制</em></span>
+                  <span class="work-name">
+                    <span class="work-title"><span class="zh">BeamNG 自动驾驶</span><span class="en" lang="en">BeamNG Autopilot</span></span>
+                    <em><span class="zh">自动驾驶 · 计算机视觉 / 车辆控制</span><span class="en" lang="en">Autonomous Driving · Computer Vision / Vehicle Control</span></em>
+                  </span>
                   <span class="work-arrow" aria-hidden="true">↗</span>
                 </a>
               </li>
               <li>
-                <a class="work-row" href="https://github.com/Qiongkura/audio-visualizer" target="_blank" rel="noreferrer" data-work="2" aria-label="打开音频可视化仓库">
+                <a class="work-row" href="https://github.com/Qiongkura/audio-visualizer" target="_blank" rel="noreferrer" data-work="2" data-aria-zh="打开音频可视化仓库" data-aria-en="Open the Audio Visualizer repository">
                   <span class="work-num">03</span>
-                  <span class="work-name">音频可视化监听器<em>音频分析 · WASAPI 环回采集 / FFT</em></span>
+                  <span class="work-name">
+                    <span class="work-title"><span class="zh">音频可视化监听器</span><span class="en" lang="en">Audio Visualizer</span></span>
+                    <em><span class="zh">音频分析 · WASAPI 环回采集 / FFT</span><span class="en" lang="en">Audio Analysis · WASAPI loopback / FFT</span></em>
+                  </span>
                   <span class="work-arrow" aria-hidden="true">↗</span>
                 </a>
               </li>
               <li>
-                <a class="work-row" href="https://github.com/Qiongkura/dsh-usage-plugin" target="_blank" rel="noreferrer" data-work="3" aria-label="打开 DSH 用量插件仓库">
+                <a class="work-row" href="https://github.com/Qiongkura/dsh-usage-plugin" target="_blank" rel="noreferrer" data-work="3" data-aria-zh="打开 DSH 用量统计插件仓库" data-aria-en="Open the DSH usage plugin repository">
                   <span class="work-num">04</span>
-                  <span class="work-name">DSH 用量统计插件<em>开发工具 · TypeScript</em></span>
+                  <span class="work-name">
+                    <span class="work-title"><span class="zh">DSH 用量统计插件</span><span class="en" lang="en">DSH Usage Plugin</span></span>
+                    <em><span class="zh">开发工具 · TypeScript</span><span class="en" lang="en">Developer Tool · TypeScript</span></em>
+                  </span>
                   <span class="work-arrow" aria-hidden="true">↗</span>
                 </a>
               </li>
               <li>
-                <a class="work-row" href="https://github.com/Qiongkura/Focus-time-tracker" target="_blank" rel="noreferrer" data-work="4" aria-label="打开屏幕使用时间仓库">
+                <a class="work-row" href="https://github.com/Qiongkura/Focus-time-tracker" target="_blank" rel="noreferrer" data-work="4" data-aria-zh="打开屏幕使用时间仓库" data-aria-en="Open the Focus Time Tracker repository">
                   <span class="work-num">05</span>
-                  <span class="work-name">屏幕使用时间记录<em>桌面工具 · Python · ★ 7</em></span>
+                  <span class="work-name">
+                    <span class="work-title"><span class="zh">屏幕使用时间记录</span><span class="en" lang="en">Focus Time Tracker</span></span>
+                    <em><span class="zh">桌面工具 · Python · ★ 7</span><span class="en" lang="en">Desktop Tool · Python · ★ 7</span></em>
+                  </span>
                   <span class="work-arrow" aria-hidden="true">↗</span>
                 </a>
               </li>
@@ -207,57 +307,72 @@
             <div class="work-stage" id="work-stage" aria-hidden="true">
               <figure class="work-panel is-active" data-panel="0">
                 <div class="diagram">
-                  <p class="diagram-title">系统结构示意</p>
+                  <p class="diagram-title"><span class="zh">系统结构示意</span><span class="en" lang="en">SYSTEM DIAGRAM</span></p>
                   <ol class="diagram-flow">
-                    <li>Java Swing 游戏</li>
-                    <li>TCP Socket 通信 :8888</li>
-                    <li>Python 智能体</li>
+                    <li><span class="zh">Java Swing 游戏</span><span class="en" lang="en">Java Swing game</span></li>
+                    <li><span class="zh">TCP Socket 通信 :8888</span><span class="en" lang="en">TCP socket :8888</span></li>
+                    <li><span class="zh">Python 智能体</span><span class="en" lang="en">Python agent</span></li>
                     <li>PyTorch Double DQN</li>
                   </ol>
                   <dl class="diagram-rows">
-                    <div><dt>状态空间</dt><dd>47 维</dd></div>
-                    <div><dt>动作空间</dt><dd>4 个方向</dd></div>
-                    <div><dt>奖励设计</dt><dd>+800 吃到食物 / −350 撞墙</dd></div>
-                    <div><dt>训练技巧</dt><dd>优先经验回放 + 目标网络</dd></div>
+                    <div><dt><span class="zh">状态空间</span><span class="en" lang="en">State</span></dt><dd><span class="zh">47 维</span><span class="en" lang="en">47 dims</span></dd></div>
+                    <div><dt><span class="zh">动作空间</span><span class="en" lang="en">Actions</span></dt><dd><span class="zh">4 个方向</span><span class="en" lang="en">4 directions</span></dd></div>
+                    <div><dt><span class="zh">奖励设计</span><span class="en" lang="en">Reward</span></dt><dd><span class="zh">+800 吃到食物 / −350 撞墙</span><span class="en" lang="en">+800 food / −350 wall</span></dd></div>
+                    <div><dt><span class="zh">训练技巧</span><span class="en" lang="en">Training</span></dt><dd><span class="zh">优先经验回放 + 目标网络</span><span class="en" lang="en">Prioritized replay + target net</span></dd></div>
                   </dl>
                 </div>
-                <figcaption>项目结构示意（该仓库未提供界面截图）</figcaption>
+                <figcaption>
+                  <span class="zh">项目结构示意（该仓库未提供界面截图）</span>
+                  <span class="en" lang="en">Structure diagram (no UI screenshot in this repo)</span>
+                </figcaption>
               </figure>
 
               <figure class="work-panel" data-panel="1">
-                <img src="assets/racing-frame.webp" alt="BeamNG 自动驾驶项目的车载视角画面" width="960" height="540" loading="lazy" decoding="async" />
-                <figcaption>BeamNG 自动驾驶 · 车载视角</figcaption>
+                <img src="assets/racing-frame.webp" alt="BeamNG 自动驾驶项目的车载视角画面" data-alt-zh="BeamNG 自动驾驶项目的车载视角画面" data-alt-en="Onboard view from the BeamNG autonomous driving project" width="960" height="540" loading="lazy" decoding="async" />
+                <figcaption>
+                  <span class="zh">BeamNG 自动驾驶 · 车载视角</span>
+                  <span class="en" lang="en">BeamNG Autopilot · Onboard</span>
+                </figcaption>
               </figure>
 
               <figure class="work-panel" data-panel="2">
-                <img src="assets/hifi-visualizer.webp" alt="音频可视化程序的频谱与波形界面截图" width="1600" height="978" loading="lazy" decoding="async" />
-                <figcaption>音频可视化监听器 · WASAPI 环回采集</figcaption>
+                <img src="assets/hifi-visualizer.webp" alt="音频可视化程序的频谱与波形界面截图" data-alt-zh="音频可视化程序的频谱与波形界面截图" data-alt-en="Spectrum and waveform interface of the audio visualizer" width="1600" height="978" loading="lazy" decoding="async" />
+                <figcaption>
+                  <span class="zh">音频可视化监听器 · WASAPI 环回采集</span>
+                  <span class="en" lang="en">Audio Visualizer · WASAPI loopback</span>
+                </figcaption>
               </figure>
 
               <figure class="work-panel" data-panel="3">
                 <div class="diagram">
-                  <p class="diagram-title">插件</p>
-                  <p class="diagram-big">DSH 用量统计</p>
+                  <p class="diagram-title"><span class="zh">插件</span><span class="en" lang="en">PLUGIN</span></p>
+                  <p class="diagram-big"><span class="zh">DSH 用量统计</span><span class="en" lang="en">DSH Usage</span></p>
                   <div class="bars" aria-hidden="true">
                     <span style="--h: 42%"></span><span style="--h: 64%"></span><span style="--h: 31%"></span>
                     <span style="--h: 78%"></span><span style="--h: 55%"></span><span style="--h: 88%"></span>
                     <span style="--h: 47%"></span><span style="--h: 69%"></span>
                   </div>
                   <dl class="diagram-rows">
-                    <div><dt>类型</dt><dd>TypeScript 附属插件</dd></div>
-                    <div><dt>面向</dt><dd>DeepSeek Harness</dd></div>
-                    <div><dt>统计</dt><dd>Token 用量</dd></div>
+                    <div><dt><span class="zh">类型</span><span class="en" lang="en">Type</span></dt><dd><span class="zh">TypeScript 附属插件</span><span class="en" lang="en">TypeScript plugin</span></dd></div>
+                    <div><dt><span class="zh">面向</span><span class="en" lang="en">Target</span></dt><dd>DeepSeek Harness</dd></div>
+                    <div><dt><span class="zh">统计</span><span class="en" lang="en">Tracks</span></dt><dd><span class="zh">Token 用量</span><span class="en" lang="en">Token usage</span></dd></div>
                   </dl>
                 </div>
-                <figcaption>Token 用量统计插件（示意图形）</figcaption>
+                <figcaption>
+                  <span class="zh">Token 用量统计插件（示意图形）</span>
+                  <span class="en" lang="en">Token usage plugin (illustrative graphic)</span>
+                </figcaption>
               </figure>
 
               <figure class="work-panel" data-panel="4">
                 <div class="panel-pair">
-                  <img src="assets/focus-home.webp" alt="屏幕使用时间记录程序的主界面" width="1400" height="944" loading="lazy" decoding="async" />
-                  <img src="assets/focus-stats.webp" alt="屏幕使用时间的统计报告" width="1400" height="944" loading="lazy" decoding="async" />
+                  <img src="assets/focus-home.webp" alt="屏幕使用时间记录程序的主界面" data-alt-zh="屏幕使用时间记录程序的主界面" data-alt-en="Main window of the focus time tracker" width="1400" height="944" loading="lazy" decoding="async" />
+                  <img src="assets/focus-stats.webp" alt="屏幕使用时间的统计报告" data-alt-zh="屏幕使用时间的统计报告" data-alt-en="Usage statistics report of the focus time tracker" width="1400" height="944" loading="lazy" decoding="async" />
                 </div>
-                <figcaption>屏幕使用时间记录 · 主界面与统计报告</figcaption>
+                <figcaption>
+                  <span class="zh">屏幕使用时间记录 · 主界面与统计报告</span>
+                  <span class="en" lang="en">Focus Time Tracker · Window and report</span>
+                </figcaption>
               </figure>
             </div>
           </div>
@@ -265,7 +380,10 @@
 
         <div class="panel-foot">
           <div class="wrap panel-foot-inner">
-            <span class="meta-note">全部项目均可在 GitHub 查看源码</span>
+            <span class="meta-note">
+              <span class="zh">全部项目均可在 GitHub 查看源码</span>
+              <span class="en" lang="en">All projects are open source on GitHub</span>
+            </span>
             <span class="meta-note">03 / 05</span>
           </div>
         </div>
@@ -275,37 +393,56 @@
       <section class="panel panel--hifi" id="hifi" data-section="hifi" aria-labelledby="hifi-title">
         <div class="wrap panel-body">
           <header class="panel-head reveal">
-            <p class="kicker">04 / 音频</p>
-            <h2 class="display" id="hifi-title">音频</h2>
-            <p class="subtitle">音乐 / 器材 / 聆听</p>
+            <p class="kicker">04 / <span class="zh">音频</span><span class="en" lang="en">Hi-Fi</span></p>
+            <h2 class="display" id="hifi-title"><span class="zh">音频</span><span class="en" lang="en">HI-FI</span></h2>
+            <p class="subtitle">
+              <span class="zh">音乐 / 器材 / 聆听</span>
+              <span class="en" lang="en">Music / Audio / Listening</span>
+            </p>
           </header>
 
           <div class="hifi-grid">
             <div class="hifi-main reveal">
-              <p class="hifi-line">听得再近一点。</p>
-              <p class="hifi-note">音乐，是另一种关注细节的方式。</p>
+              <p class="hifi-line">
+                <span class="zh">听得再近一点。</span>
+                <span class="en" lang="en">Listen closer.</span>
+              </p>
+              <p class="hifi-note">
+                <span class="zh">音乐，是另一种关注细节的方式。</span>
+                <span class="en" lang="en">Music is another way of paying attention to details.</span>
+              </p>
 
               <figure class="frame frame--wide frame--listen frame--soft">
                 <img
                   src="assets/hifi-visualizer.webp"
                   alt="音频可视化程序界面：对数频谱柱状图与波形显示"
+                  data-alt-zh="音频可视化程序界面：对数频谱柱状图与波形显示"
+                  data-alt-en="Audio visualizer interface with log-scale spectrum bars and a waveform"
                   width="1600"
                   height="978"
                   loading="lazy"
                   decoding="async"
                 />
                 <figcaption>
-                  <span>音频可视化</span>
-                  <span>频谱 + 波形</span>
+                  <span class="zh">音频可视化</span><span class="en" lang="en">Audio visualization</span>
+                  <span class="zh">频谱 + 波形</span><span class="en" lang="en">Spectrum + waveform</span>
                 </figcaption>
               </figure>
 
               <div class="project-head">
-                <h3>音频可视化监听器</h3>
-                <a class="ghost-link" href="https://github.com/Qiongkura/audio-visualizer" target="_blank" rel="noreferrer">查看源码 ↗</a>
+                <h3><span class="zh">音频可视化监听器</span><span class="en" lang="en">Audio Visualizer</span></h3>
+                <a class="ghost-link" href="https://github.com/Qiongkura/audio-visualizer" target="_blank" rel="noreferrer">
+                  <span class="zh">查看源码</span><span class="en" lang="en">View source</span> ↗
+                </a>
               </div>
-              <p class="project-zh">音频监听与可视化工具：自动采集电脑正在播放的声音，实时显示频谱与波形。</p>
-              <p class="tech-line">Python · WASAPI 环回采集 · FFT · NumPy · CustomTkinter</p>
+              <p class="project-desc">
+                <span class="zh">音频监听与可视化工具：自动采集电脑正在播放的声音，实时显示频谱与波形。</span>
+                <span class="en" lang="en">An audio monitoring and visualization tool: it captures what your computer is playing and renders spectrum and waveform in real time.</span>
+              </p>
+              <p class="tech-line">
+                <span class="zh">Python · WASAPI 环回采集 · FFT · NumPy · CustomTkinter</span>
+                <span class="en" lang="en">Python · WASAPI loopback · FFT · NumPy · CustomTkinter</span>
+              </p>
             </div>
 
             <aside class="hifi-side reveal">
@@ -315,17 +452,17 @@
               <p class="scale" aria-hidden="true"><span>20Hz</span><span class="scale-line"></span><span>20kHz</span></p>
 
               <div class="listen-block">
-                <p class="block-title">常听类型</p>
+                <p class="block-title"><span class="zh">常听类型</span><span class="en" lang="en">LISTENING</span></p>
                 <ul class="listen-list">
-                  <li>中文流行</li>
-                  <li>欧美流行</li>
-                  <li>另类音乐</li>
-                  <li>电子音乐</li>
+                  <li><span class="zh">中文流行</span><span class="en" lang="en">Chinese Pop</span></li>
+                  <li><span class="zh">欧美流行</span><span class="en" lang="en">Western Pop</span></li>
+                  <li><span class="zh">另类音乐</span><span class="en" lang="en">Alternative</span></li>
+                  <li><span class="zh">电子音乐</span><span class="en" lang="en">Electronic</span></li>
                 </ul>
               </div>
 
               <div class="listen-block">
-                <p class="block-title">最近在听</p>
+                <p class="block-title"><span class="zh">最近在听</span><span class="en" lang="en">CURRENTLY LISTENING</span></p>
                 <p class="listen-current">The Weeknd</p>
               </div>
 
@@ -341,7 +478,10 @@
 
         <div class="panel-foot">
           <div class="wrap panel-foot-inner">
-            <span class="meta-note">安静 · 细节 · 声音 · 氛围</span>
+            <span class="meta-note">
+              <span class="zh">安静 · 细节 · 声音 · 氛围</span>
+              <span class="en" lang="en">Calm · Detail · Sound · Atmosphere</span>
+            </span>
             <span class="meta-note">04 / 05</span>
           </div>
         </div>
@@ -351,47 +491,58 @@
       <section class="panel panel--about" id="about" data-section="about" aria-labelledby="about-title">
         <div class="wrap panel-body">
           <header class="panel-head reveal">
-            <p class="kicker">05 / 关于</p>
-            <h2 class="display" id="about-title">关于 Qiongkura</h2>
+            <p class="kicker">05 / <span class="zh">关于</span><span class="en" lang="en">About</span></p>
+            <h2 class="display" id="about-title"><span class="zh">关于 Qiongkura</span><span class="en" lang="en">ABOUT QIONGKURA</span></h2>
           </header>
 
           <div class="about-grid">
             <div class="about-intro reveal">
-              <img class="avatar" src="assets/avatar.jpg" alt="Qiongkura 的头像" width="96" height="96" loading="lazy" decoding="async" />
-              <p class="about-en">
-                华南农业大学电子信息工程大二在读，现居广州。
+              <img class="avatar" src="assets/avatar.jpg" alt="Qiongkura 的头像" data-alt-zh="Qiongkura 的头像" data-alt-en="Portrait of Qiongkura" width="96" height="96" loading="lazy" decoding="async" />
+              <p class="about-lead">
+                <span class="zh">华南农业大学电子信息工程大二在读，现居广州。</span>
+                <span class="en" lang="en">Second-year Electronic Information Engineering student at South China Agricultural University, based in Guangzhou.</span>
               </p>
-              <p class="about-zh">
-                喜欢把技术、赛车和声音这些兴趣，做成真正能运行、能分享的东西。
-                对人工智能、软件开发、仿真与音频都保持好奇。
+              <p class="about-body">
+                <span class="zh">喜欢把技术、赛车和声音这些兴趣，做成真正能运行、能分享的东西。对人工智能、软件开发、仿真与音频都保持好奇。</span>
+                <span class="en" lang="en">I turn an interest in technology, racing and sound into things that actually run and can be shared — curious about AI, software, simulation and audio.</span>
               </p>
             </div>
 
             <div class="about-keywords reveal">
               <article class="keyword">
-                <p class="keyword-title">构建</p>
-                <p class="keyword-note">软件 · 人工智能 · 个人项目</p>
+                <p class="keyword-title"><span class="zh">构建</span><span class="en" lang="en">BUILD</span></p>
+                <p class="keyword-note">
+                  <span class="zh">软件 · 人工智能 · 个人项目</span>
+                  <span class="en" lang="en">Software · AI · Projects</span>
+                </p>
               </article>
               <article class="keyword">
-                <p class="keyword-title">驾驶</p>
-                <p class="keyword-note">模拟赛车 · BeamNG · 自动驾驶</p>
+                <p class="keyword-title"><span class="zh">驾驶</span><span class="en" lang="en">DRIVE</span></p>
+                <p class="keyword-note">
+                  <span class="zh">模拟赛车 · BeamNG · 自动驾驶</span>
+                  <span class="en" lang="en">Sim Racing · BeamNG · Autonomous Driving</span>
+                </p>
               </article>
               <article class="keyword">
-                <p class="keyword-title">聆听</p>
-                <p class="keyword-note">音频 · 音乐 · 声音细节</p>
+                <p class="keyword-title"><span class="zh">聆听</span><span class="en" lang="en">LISTEN</span></p>
+                <p class="keyword-note">
+                  <span class="zh">音频 · 音乐 · 声音细节</span>
+                  <span class="en" lang="en">Hi-Fi · Music · Audio</span>
+                </p>
               </article>
             </div>
 
             <div class="about-stack reveal">
-              <p class="block-title">常用工具</p>
+              <p class="block-title"><span class="zh">常用工具</span><span class="en" lang="en">TOOLBOX</span></p>
               <ul class="stack-list">
                 <li>Python</li><li>Java</li><li>C / C++</li><li>PyTorch</li><li>DQN</li>
-                <li>Git</li><li>GitHub</li><li>BeamNG</li><li>Linux</li><li>Windows</li><li>音频处理</li>
+                <li>Git</li><li>GitHub</li><li>BeamNG</li><li>Linux</li><li>Windows</li>
+                <li><span class="zh">音频处理</span><span class="en" lang="en">Audio</span></li>
               </ul>
             </div>
 
             <div class="about-contact reveal">
-              <p class="block-title">联系方式</p>
+              <p class="block-title"><span class="zh">联系方式</span><span class="en" lang="en">CONTACT</span></p>
               <a class="contact-link" href="mailto:2447402326@qq.com">2447402326@qq.com <span aria-hidden="true">↗</span></a>
               <a class="contact-link" href="mailto:202534310330@stu.scau.edu.cn">202534310330@stu.scau.edu.cn <span aria-hidden="true">↗</span></a>
               <a class="contact-link" href="https://github.com/Qiongkura" target="_blank" rel="noreferrer">github.com/Qiongkura <span aria-hidden="true">↗</span></a>
@@ -402,7 +553,10 @@
         <div class="panel-foot">
           <div class="wrap panel-foot-inner">
             <span class="meta-note">© <span id="current-year">2026</span> Qiongkura</span>
-            <span class="meta-note">用技术、赛车和声音搭起来的个人空间</span>
+            <span class="meta-note">
+              <span class="zh">用技术、赛车和声音搭起来的个人空间</span>
+              <span class="en" lang="en">A personal space built from technology, racing and sound</span>
+            </span>
           </div>
         </div>
       </section>

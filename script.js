@@ -12,6 +12,65 @@
   const menuToggle = doc.querySelector('.menu-toggle');
   const nav = doc.getElementById('primary-nav');
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const root = doc.documentElement;
+
+  /* -------------------------------------------------------------- 语言切换 */
+
+  const langButtons = Array.from(doc.querySelectorAll('[data-lang-set]'));
+  const metas = {
+    zh: {
+      title: 'Qiongkura · 个人主页',
+      description:
+        'Qiongkura 的个人主页：华南农业大学电子信息工程学生，关注人工智能、软件开发、模拟赛车与音频技术。'
+    },
+    en: {
+      title: 'Qiongkura · Personal Space',
+      description:
+        'Personal site of Qiongkura — an Electronic Information Engineering student into AI, software, sim racing and audio.'
+    }
+  };
+
+  const applyLang = (lang) => {
+    const next = lang === 'en' ? 'en' : 'zh';
+    root.setAttribute('data-lang', next);
+    root.setAttribute('lang', next === 'en' ? 'en' : 'zh-CN');
+
+    if (metas[next]) {
+      doc.title = metas[next].title;
+      const meta = doc.querySelector('meta[name="description"]');
+      if (meta) meta.setAttribute('content', metas[next].description);
+    }
+
+    doc.querySelectorAll('[data-alt-zh]').forEach((el) => {
+      const value = next === 'en' ? el.getAttribute('data-alt-en') : el.getAttribute('data-alt-zh');
+      if (value) el.setAttribute('alt', value);
+    });
+
+    doc.querySelectorAll('[data-aria-zh]').forEach((el) => {
+      const value = next === 'en' ? el.getAttribute('data-aria-en') : el.getAttribute('data-aria-zh');
+      if (value) el.setAttribute('aria-label', value);
+    });
+
+    langButtons.forEach((button) => {
+      const on = button.getAttribute('data-lang-set') === next;
+      button.classList.toggle('is-active', on);
+      button.setAttribute('aria-pressed', String(on));
+    });
+
+    try {
+      localStorage.setItem('qiongkura-lang', next);
+    } catch (error) {
+      /* 隐私模式下忽略存储失败 */
+    }
+  };
+
+  langButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      applyLang(button.getAttribute('data-lang-set'));
+    });
+  });
+
+  applyLang(root.getAttribute('data-lang') || 'zh');
 
   let current = 0;
   let wheelLocked = false;
