@@ -1075,6 +1075,106 @@ html[data-lang='en'] .zh { display: none !important; }
   .meta-note { white-space: normal; }
 }
 
+/* 超大屏幕（4K 等）：放开宽度与尺寸上限，避免内容缩在中间一小块 */
+@media (min-width: 1921px) {
+  :root {
+    --maxw: min(1800px, 88vw);
+    --bar-h: 72px;
+  }
+
+  .panel { padding-top: calc(var(--bar-h) + 30px); }
+  .panel-body { padding: clamp(30px, 4vh, 76px) 0; }
+  .panel-foot-inner { min-height: 52px; }
+
+  .kicker { font-size: 12px; }
+  .wordmark { font-size: clamp(150px, 9vw, 220px); margin-top: 22px; }
+  .display { font-size: clamp(88px, 5.6vw, 124px); margin-top: 16px; }
+  .subtitle { font-size: 14px; margin-top: 14px; }
+  .tagline { font-size: 14px; margin-top: 20px; }
+  .lede { font-size: clamp(26px, 1.5vw, 36px); margin-top: 22px; }
+  .theme-words { font-size: 12px; margin-top: 32px; }
+
+  .frame figcaption { font-size: 12px; padding: 13px 16px; }
+  .frame--hero img { height: clamp(440px, 32vh, 620px); }
+  .frame--wide img { height: clamp(340px, 24vh, 460px); }
+  .frame--slides { --frame-h: clamp(400px, 28vh, 560px); }
+  .frame--portrait img { height: clamp(480px, 38vh, 700px); }
+  .frame--landscape img { height: clamp(280px, 20vh, 400px); }
+
+  .project-head h3 { font-size: clamp(28px, 1.7vw, 40px); }
+  .project-desc { font-size: 17px; }
+  .project-quote { font-size: 16px; }
+  .tech-line { font-size: 12px; }
+  .hud { padding: 24px; }
+  .hud-title, .hud-foot { font-size: 12px; }
+  .hud-row { padding: 10px 0; }
+  .hud-row dt { font-size: 12px; }
+  .hud-row dd { font-size: 14px; }
+
+  .work-row { padding: clamp(18px, 2.3vh, 34px) 0; }
+  .work-num { font-size: 13px; }
+  .work-name { font-size: clamp(24px, 1.6vw, 34px); }
+  .work-name em { font-size: 12px; }
+  .work-stage { min-height: clamp(320px, 32vh, 500px); }
+  .diagram-title, .diagram-rows dt { font-size: 12px; }
+  .diagram-flow li { font-size: 14px; padding: 12px 15px; }
+  .diagram-rows dd { font-size: 14px; }
+  .diagram-big { font-size: clamp(30px, 2.2vw, 44px); }
+
+  .hifi-line { font-size: clamp(36px, 2.5vw, 54px); }
+  .hifi-note { font-size: 16px; margin: 6px 0 18px; }
+  .listen-list li { font-size: 16px; padding: 9px 0; }
+  .listen-current { font-size: clamp(26px, 1.7vw, 36px); }
+  .listen-block { margin-bottom: 22px; }
+  .block-title { font-size: 12px; margin-bottom: 14px; }
+  .waveform canvas { height: 128px; }
+  .scale { font-size: 12px; margin: 12px 0 22px; }
+  .spectrum { height: 92px; }
+
+  .avatar { width: 128px; height: 128px; }
+  .about-lead { font-size: clamp(24px, 1.5vw, 34px); }
+  .about-body { font-size: 16px; }
+  .keyword { padding: 18px 0; }
+  .keyword-title { font-size: 26px; }
+  .keyword-note { font-size: 12px; }
+  .stack-list li { font-size: 12px; padding: 8px 13px; }
+  .contact-row { padding: 11px 0; }
+  .contact-key { font-size: 12px; }
+  .contact-link { font-size: 15px; }
+
+  .meta-note, .panel-foot-inner { font-size: 12px; }
+  .nav-link { font-size: 14px; }
+  .index-item { font-size: 12px; gap: 12px; }
+  .index-line { width: 24px; }
+  .index-item.is-active .index-line { width: 60px; }
+}
+
+/* 真正的大画布（4K 100% 缩放等）：再放开一档尺寸 */
+@media (min-width: 2400px) and (min-height: 1600px) {
+  :root { --maxw: min(2120px, 88vw); }
+
+  .wordmark { font-size: clamp(220px, 9vw, 280px); }
+  .display { font-size: clamp(124px, 5.6vw, 150px); }
+  .lede { font-size: clamp(36px, 1.5vw, 46px); }
+
+  .frame--hero img { height: clamp(620px, 34vh, 800px); }
+  .frame--wide img { height: clamp(460px, 24vh, 560px); }
+  .frame--slides { --frame-h: clamp(560px, 28vh, 700px); }
+  .frame--portrait img { height: clamp(700px, 38vh, 880px); }
+  .frame--landscape img { height: clamp(400px, 20vh, 500px); }
+
+  .hifi-line { font-size: clamp(54px, 2.5vw, 68px); }
+  .listen-list li { font-size: 18px; }
+  .listen-current { font-size: clamp(36px, 1.7vw, 44px); }
+  .waveform canvas { height: 160px; }
+  .spectrum { height: 120px; }
+
+  .work-name { font-size: clamp(34px, 1.6vw, 42px); }
+  .work-stage { min-height: clamp(500px, 32vh, 640px); }
+  .project-head h3 { font-size: clamp(40px, 1.7vw, 48px); }
+  .about-lead { font-size: clamp(34px, 1.5vw, 42px); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .js .reveal { opacity: 1; transform: none; }
