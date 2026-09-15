@@ -121,6 +121,19 @@ git push
 - 自定义域名：<https://qiongkura.xyz>
 - Cloudflare 域名：<https://my-profile-1qe.pages.dev>
 
+## 添加图片时的两个注意点
+
+**1. 先应用 EXIF 旋转。** 手机/相机拍的照片经常把方向记在 EXIF 里，像素本身却是横向的。直接用 PIL 打开转换会得到躺着的图。转换时要这样写：
+
+```python
+from PIL import Image, ImageOps
+im = ImageOps.exif_transpose(Image.open(src)).convert('RGB')
+```
+
+`hifi-gear-01.webp` 就踩过这个坑：源图 EXIF 方向是 6（竖拍 4284×5712），未旋转直接转换会得到 5712×4284 的横图。
+
+**2. 同名替换要改缓存参数。** 浏览器会长期缓存图片。如果替换了图片内容但文件名不变，请把 `index.html` 里的引用改成 `图片.webp?v=2`（依次递增），否则访客仍会看到旧图。本项目里 `hifi-gear-01.webp?v=2` 就是这么处理的。
+
 ## 素材说明
 
 页面内图片均来自 Qiongkura 自己的项目截图，未使用外部图库素材。DQN Snake 与 DSH Usage 两个项目仓库中没有界面截图，因此对应预览使用代码绘制的结构示意图，并在图注中标注。
