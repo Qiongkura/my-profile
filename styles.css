@@ -378,10 +378,57 @@ html[data-lang='en'] .zh { display: none !important; }
   letter-spacing: .06em;
   color: var(--ink-3);
 }
-.frame--hero img { height: clamp(170px, 30vh, 380px); }
-.frame--wide img { height: clamp(150px, 24vh, 300px); }
-.frame--listen img { height: clamp(130px, 19vh, 250px); }
+.frame { --frame-h: clamp(150px, 24vh, 300px); }
+.frame--hero { --frame-h: clamp(170px, 30vh, 380px); }
+.frame--listen { --frame-h: clamp(130px, 19vh, 250px); }
+.frame--slides { --frame-h: clamp(180px, 30vh, 340px); }
+
+.frame img { height: var(--frame-h); }
 .frame--soft img { filter: saturate(.94); }
+
+/* 赛车章节的图片轮播 */
+.slides {
+  position: relative;
+  height: var(--frame-h);
+  overflow: hidden;
+  background: var(--line-2);
+}
+.slides .slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity .55s var(--ease);
+}
+.slides .slide.is-active { opacity: 1; }
+
+.slide-bar { align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.slide-caption { display: inline-flex; align-items: baseline; gap: 6px; }
+.slide-nav { display: inline-flex; align-items: center; gap: 8px; }
+.slide-btn {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  background: none;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--ink-2);
+  transition: color .2s var(--ease), border-color .2s var(--ease);
+}
+.slide-btn:hover { color: var(--ink); border-color: var(--ink-3); }
+.slide-count {
+  min-width: 54px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: .06em;
+  color: var(--ink-3);
+}
 
 /* ------------------------------------------------------------------ home */
 
@@ -870,9 +917,10 @@ html[data-lang='en'] .zh { display: none !important; }
   .display { font-size: clamp(26px, 4.6vw, 58px); }
   .lede { font-size: clamp(16px, 1.5vw, 19px); }
   .theme-words { margin-top: 16px; }
-  .frame--hero img { height: clamp(150px, 26vh, 300px); }
-  .frame--wide img { height: clamp(126px, 20vh, 240px); }
-  .frame--listen img { height: clamp(116px, 17vh, 210px); }
+  .frame { --frame-h: clamp(126px, 20vh, 240px); }
+  .frame--hero { --frame-h: clamp(150px, 26vh, 300px); }
+  .frame--listen { --frame-h: clamp(116px, 17vh, 210px); }
+  .frame--slides { --frame-h: clamp(170px, 33vh, 300px); }
   .racing-grid,
   .works,
   .hifi-grid,
@@ -972,9 +1020,9 @@ html[data-lang='en'] .zh { display: none !important; }
 
   .wordmark { font-size: clamp(36px, 12vw, 68px); }
   .display { font-size: clamp(32px, 10vw, 56px); }
-  .frame--hero img,
-  .frame--wide img,
-  .frame--listen img { height: clamp(170px, 34vw, 280px); }
+  .frame--hero,
+  .frame--wide,
+  .frame--listen { --frame-h: clamp(170px, 34vw, 280px); }
   .panel-head--row { flex-direction: column; align-items: flex-start; gap: 10px; }
   .head-note { text-align: left; }
   .speedlines { display: none; }
@@ -1006,6 +1054,7 @@ html[data-lang='en'] .zh { display: none !important; }
   .bars span,
   .spectrum span { animation: none; }
   .work-panel,
+  .slides .slide,
   .work-row,
   .contact-link,
   .ghost-link { transition: none; }

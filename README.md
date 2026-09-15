@@ -29,6 +29,17 @@ my-profile/
 | 04 HI-FI | Audio Visualizer、听音偏好、声波与频谱动画 |
 | 05 ABOUT | 学校年级、三个关键词、技术栈、联系方式 |
 
+## 赛车章节的图片轮播
+
+RACING 章节的主图是自动轮播，共 9 张：
+
+- 7 张模拟赛车实拍
+- 2 张视觉标线检测叠加图（来自 `beamng-autopilot/logs/m5_lane_state/lane_annotate_*.jpg`，由 `scripts/m5_lane_state_annotate.py` 生成）
+
+行为：每 4.8 秒自动切换，鼠标悬停、键盘聚焦或页面切到后台时暂停，离开后继续；`←` `→` 按钮与键盘方向键可手动切换；章节滚出视口后停止计时。开启「减少动态效果」时不自动播放，只能手动切换。
+
+图片用 `object-fit: cover`，画幅是横向条幅，所以会裁切。每张图通过内联 `object-position` 指定取景位置：标线检测图偏向下方（90% / 95%），因为检测叠加线集中在画面下半部；赛车实拍用 55%。换图时如果主体不在中间，记得同步调整这个值。
+
 ## 交互
 
 - 桌面端使用 CSS `scroll-snap` 实现逐章翻页，JS 增强滚轮、`↑` `↓`、`PageUp` `PageDown`、`Home` `End`。

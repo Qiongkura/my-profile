@@ -17,6 +17,7 @@
   /* -------------------------------------------------------------- 语言切换 */
 
   const langButtons = Array.from(doc.querySelectorAll('[data-lang-set]'));
+  let onLangChange = null;
   const metas = {
     zh: {
       title: 'Qiongkura · 个人主页',
@@ -62,6 +63,8 @@
     } catch (error) {
       /* 隐私模式下忽略存储失败 */
     }
+
+    if (typeof onLangChange === 'function') onLangChange(next);
   };
 
   langButtons.forEach((button) => {
@@ -424,6 +427,132 @@
         }
       });
     }
+  }
+
+  /* ------------------------------------------------------- 赛车图片轮播 */
+
+  const slideshow = doc.querySelector('[data-slideshow]');
+
+  if (slideshow) {
+    const slides = Array.from(slideshow.querySelectorAll('.slide'));
+    const capZh = slideshow.querySelector('[data-slide-cap-zh]');
+    const capEn = slideshow.querySelector('[data-slide-cap-en]');
+    const counter = slideshow.querySelector('[data-slide-count]');
+    const prevBtn = slideshow.querySelector('[data-slide-prev]');
+    const nextBtn = slideshow.querySelector('[data-slide-next]');
+    const INTERVAL = 4800;
+
+    let slideIndex = 0;
+    let slideTimer = null;
+    let slideVisible = false;
+    let slidePaused = false;
+    const preloaded = new Set();
+
+    const pad = (value) => String(value).padStart(2, '0');
+
+    const refreshCaption = () => {
+      const img = slides[slideIndex];
+      if (!img) return;
+      const zh = img.getAttribute('data-cap-zh') || '';
+      const en = img.getAttribute('data-cap-en') || zh;
+      if (capZh) capZh.textContent = zh;
+      if (capEn) capEn.textContent = en;
+      if (counter) counter.textContent = `${pad(slideIndex + 1)} / ${pad(slides.length)}`;
+    };
+
+    const preloadNext = () => {
+      const next = slides[(slideIndex + 1) % slides.length];
+      const src = next && next.getAttribute('src');
+      if (!src || preloaded.has(src)) return;
+      preloaded.add(src);
+      const image = new Image();
+      image.src = src;
+    };
+
+    const showSlide = (target, restart = true) => {
+      slideIndex = (target + slides.length) % slides.length;
+      slides.forEach((img, i) => {
+        const active = i === slideIndex;
+        img.classList.toggle('is-active', active);
+        img.setAttribute('aria-hidden', String(!active));
+      });
+      refreshCaption();
+      preloadNext();
+      if (restart) startSlides();
+    };
+
+    const stopSlides = () => {
+      if (slideTimer !== null) clearInterval(slideTimer);
+      slideTimer = null;
+    };
+
+    function startSlides() {
+      stopSlides();
+      if (reduced.matches || slidePaused || !slideVisible || slides.length < 2) return;
+      slideTimer = setInterval(() => showSlide(slideIndex + 1, false), INTERVAL);
+    }
+
+    slideshow.addEventListener('mouseenter', () => {
+      slidePaused = true;
+      stopSlides();
+    });
+    slideshow.addEventListener('mouseleave', () => {
+      slidePaused = false;
+      startSlides();
+    });
+    slideshow.addEventListener('focusin', () => {
+      slidePaused = true;
+      stopSlides();
+    });
+    slideshow.addEventListener('focusout', () => {
+      slidePaused = false;
+      startSlides();
+    });
+
+    slideshow.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        showSlide(slideIndex - 1);
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        showSlide(slideIndex + 1);
+      }
+    });
+
+    if (prevBtn) prevBtn.addEventListener('click', () => showSlide(slideIndex - 1));
+    if (nextBtn) nextBtn.addEventListener('click', () => showSlide(slideIndex + 1));
+
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            slideVisible = entry.isIntersecting;
+            if (slideVisible) startSlides();
+            else stopSlides();
+          });
+        },
+        { threshold: 0.25 }
+      ).observe(slideshow);
+    } else {
+      slideVisible = true;
+      startSlides();
+    }
+
+    doc.addEventListener('visibilitychange', () => {
+      if (doc.hidden) stopSlides();
+      else startSlides();
+    });
+
+    if (typeof reduced.addEventListener === 'function') {
+      reduced.addEventListener('change', () => {
+        if (reduced.matches) stopSlides();
+        else startSlides();
+      });
+    }
+
+    onLangChange = refreshCaption;
+    showSlide(0, false);
+    preloadNext();
   }
 
   /* ------------------------------------------------------------- 年份 */
