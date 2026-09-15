@@ -382,7 +382,7 @@ html[data-lang='en'] .zh { display: none !important; }
 .frame--hero { --frame-h: clamp(170px, 30vh, 380px); }
 .frame--listen { --frame-h: clamp(130px, 19vh, 250px); }
 .frame--slides { --frame-h: clamp(180px, 30vh, 340px); }
-.frame--gear { --frame-h: clamp(170px, 30vh, 340px); }
+.frame--gear { --frame-h: clamp(160px, 26vh, 300px); }
 
 .frame img { height: var(--frame-h); }
 .frame--soft img { filter: saturate(.94); }
@@ -919,7 +919,7 @@ html[data-lang='en'] .zh { display: none !important; }
   .frame--hero { --frame-h: clamp(150px, 26vh, 300px); }
   .frame--listen { --frame-h: clamp(116px, 17vh, 210px); }
   .frame--slides { --frame-h: clamp(170px, 33vh, 300px); }
-  .frame--gear { --frame-h: clamp(168px, 30vh, 320px); }
+  .frame--gear { --frame-h: clamp(156px, 26vh, 280px); }
   .racing-grid,
   .works,
   .hifi-grid,
