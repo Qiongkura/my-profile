@@ -79,6 +79,19 @@ RACING 章节的主图是自动轮播，共 9 张：
 
 替换图片时保持文件名不变，或同步修改 `index.html` 中的 `src`。新增图片建议先转成 WebP 以控制体积。
 
+## 更新样式或脚本时请改版本号
+
+`index.html` 里这样引用资源：
+
+```html
+<link rel="stylesheet" href="styles.css?v=5" />
+<script src="script.js?v=5"></script>
+```
+
+`?v=` 是缓存版本号。浏览器会长期缓存 CSS/JS，改了内容但文件名不变时，访客可能几小时内看到的还是旧样式（页面结构是新的、样式是旧的，会明显错乱）。所以每次修改 `styles.css` 或 `script.js` 后，把 `v=` 的数字加一。
+
+只改 HTML 文案或图片内容不需要动这个版本号。
+
 ## 本地预览
 
 ```bash
