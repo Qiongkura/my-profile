@@ -53,7 +53,12 @@ RACING 章节的主图是自动轮播，共 9 张：
 
 ## HI-FI 章节的图片
 
-主视觉是两张设备照片并排（`.frame--gear` + `.gear-pair`），每张约 332×173。图片用 `object-fit: cover`，会裁掉上下部分，换图时注意主体是否落在中间，必要时用内联 `object-position` 调整取景。
+主视觉是两张设备照片并排（`.frame--gear` + `.gear-pair`）：
+
+- 左图固定 3:4 竖幅，宽度由行高推算（`aspect-ratio: 3 / 4`）
+- 右图占满剩余宽度
+
+两张都用 `object-fit: cover`，会裁切。换图时如果主体被裁掉，用内联 `object-position` 调整取景；改行高看 `.frame--gear` 的 `--frame-h`。
 
 音频可视化界面截图不再放在这一章，它仍然出现在 PROJECTS 的轮播里。
 
