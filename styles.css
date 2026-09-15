@@ -382,7 +382,6 @@ html[data-lang='en'] .zh { display: none !important; }
 .frame--hero { --frame-h: clamp(170px, 30vh, 380px); }
 .frame--listen { --frame-h: clamp(130px, 19vh, 250px); }
 .frame--slides { --frame-h: clamp(180px, 30vh, 340px); }
-.frame--gear { --frame-h: clamp(160px, 26vh, 300px); }
 
 .frame img { height: var(--frame-h); }
 .frame--soft img { filter: saturate(.94); }
@@ -407,16 +406,30 @@ html[data-lang='en'] .zh { display: none !important; }
 
 .slide-bar { align-items: center; flex-wrap: wrap; gap: 8px 12px; }
 
-.gear-pair {
+/* HI-FI 媒体区：左侧竖图通栏，右侧横图 + 项目信息 */
+.hifi-media {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 1px;
-  background: var(--line);
+  grid-template-columns: minmax(150px, 240px) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 14px;
+  margin-top: 4px;
 }
-/* 左图固定 3:4 竖幅，宽度由高度推算；右图占满剩余宽度 */
-.gear-pair img { object-fit: cover; }
-.gear-pair img:first-child { width: auto; aspect-ratio: 3 / 4; }
-.gear-pair img:last-child { width: 100%; }
+.hifi-media-right { display: flex; flex-direction: column; }
+
+.frame--portrait { display: flex; flex-direction: column; }
+.frame--portrait img {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  width: 100%;
+  object-fit: cover;
+}
+.frame--landscape img { height: clamp(130px, 24vh, 230px); }
+
+@media (max-width: 980px) {
+  .hifi-media { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .frame--portrait img { height: clamp(220px, 52vw, 340px); }
+}
 
 .slide-caption { display: inline-flex; align-items: baseline; gap: 6px; }
 .slide-nav { display: inline-flex; align-items: center; gap: 8px; }
@@ -919,7 +932,6 @@ html[data-lang='en'] .zh { display: none !important; }
   .frame--hero { --frame-h: clamp(150px, 26vh, 300px); }
   .frame--listen { --frame-h: clamp(116px, 17vh, 210px); }
   .frame--slides { --frame-h: clamp(170px, 33vh, 300px); }
-  .frame--gear { --frame-h: clamp(156px, 26vh, 280px); }
   .racing-grid,
   .works,
   .hifi-grid,

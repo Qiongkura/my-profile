@@ -16,7 +16,7 @@
       rel="stylesheet"
     />
     <link rel="preload" as="image" href="assets/racing-frame.webp" />
-    <link rel="stylesheet" href="styles.css?v=7" />
+    <link rel="stylesheet" href="styles.css?v=8" />
     <script>
       /* 在样式生效前确定语言，避免切换时闪烁 */
       (function () {
@@ -420,8 +420,8 @@
                 <span class="en" lang="en">Music is another way of paying attention to details.</span>
               </p>
 
-              <figure class="frame frame--listen frame--soft frame--gear">
-                <div class="gear-pair">
+              <div class="hifi-media">
+                <figure class="frame frame--soft frame--portrait">
                   <img
                     src="assets/hifi-gear-01.webp"
                     alt="我的听音设备"
@@ -432,38 +432,45 @@
                     loading="lazy"
                     decoding="async"
                   />
-                  <img
-                    src="assets/hifi-gear-02.webp"
-                    alt="我的听音设备"
-                    data-alt-zh="我的听音设备"
-                    data-alt-en="My listening gear"
-                    width="1200"
-                    height="1202"
-                    loading="lazy"
-                    decoding="async"
-                  />
+                  <figcaption>
+                    <span class="zh">我的设备</span><span class="en" lang="en">MY GEAR</span>
+                  </figcaption>
+                </figure>
+
+                <div class="hifi-media-right">
+                  <figure class="frame frame--soft frame--landscape">
+                    <img
+                      src="assets/hifi-gear-02.webp"
+                      alt="我的听音设备"
+                      data-alt-zh="我的听音设备"
+                      data-alt-en="My listening gear"
+                      width="1200"
+                      height="1202"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <figcaption>
+                      <span class="zh">设备实拍</span><span class="en" lang="en">GEAR</span>
+                      <span>DX1ii · JT9 · TitanX</span>
+                    </figcaption>
+                  </figure>
+
+                  <div class="project-head">
+                    <h3><span class="zh">音频可视化监听器</span><span class="en" lang="en">Audio Visualizer</span></h3>
+                    <a class="ghost-link" href="https://github.com/Qiongkura/audio-visualizer" target="_blank" rel="noreferrer">
+                      <span class="zh">查看源码</span><span class="en" lang="en">View source</span> ↗
+                    </a>
+                  </div>
+                  <p class="project-desc">
+                    <span class="zh">音频监听与可视化工具：自动采集电脑正在播放的声音，实时显示频谱与波形。</span>
+                    <span class="en" lang="en">An audio monitoring and visualization tool: it captures what your computer is playing and renders spectrum and waveform in real time.</span>
+                  </p>
+                  <p class="tech-line">
+                    <span class="zh">Python · WASAPI 环回采集 · FFT · NumPy · CustomTkinter</span>
+                    <span class="en" lang="en">Python · WASAPI loopback · FFT · NumPy · CustomTkinter</span>
+                  </p>
                 </div>
-                <figcaption>
-                  <span class="zh">我的设备</span><span class="en" lang="en">MY GEAR</span>
-                  <span>DX1ii · JT9 · TitanX</span>
-                </figcaption>
-              </figure>
-
-              <div class="project-head">
-                <h3><span class="zh">音频可视化监听器</span><span class="en" lang="en">Audio Visualizer</span></h3>
-                <a class="ghost-link" href="https://github.com/Qiongkura/audio-visualizer" target="_blank" rel="noreferrer">
-                  <span class="zh">查看源码</span><span class="en" lang="en">View source</span> ↗
-                </a>
               </div>
-              <p class="project-desc">
-                <span class="zh">音频监听与可视化工具：自动采集电脑正在播放的声音，实时显示频谱与波形。</span>
-                <span class="en" lang="en">An audio monitoring and visualization tool: it captures what your computer is playing and renders spectrum and waveform in real time.</span>
-              </p>
-              <p class="tech-line">
-                <span class="zh">Python · WASAPI 环回采集 · FFT · NumPy · CustomTkinter</span>
-                <span class="en" lang="en">Python · WASAPI loopback · FFT · NumPy · CustomTkinter</span>
-              </p>
-
             </div>
 
             <aside class="hifi-side reveal">
@@ -592,6 +599,6 @@
       </section>
     </main>
 
-    <script src="script.js?v=7"></script>
+    <script src="script.js?v=8"></script>
   </body>
 </html>
