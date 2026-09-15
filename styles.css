@@ -150,11 +150,13 @@ html[data-lang='en'] .zh { display: none !important; }
 .lang-switch { display: flex; align-items: center; gap: 4px; }
 
 .lang-btn {
+  min-width: 42px;
   padding: 4px 8px;
   border: 1px solid var(--line);
   border-radius: 2px;
   background: none;
   cursor: pointer;
+  text-align: center;
   font-family: var(--mono);
   font-size: 10px;
   letter-spacing: .02em;
