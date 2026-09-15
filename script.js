@@ -17,7 +17,7 @@
   /* -------------------------------------------------------------- 语言切换 */
 
   const langButtons = Array.from(doc.querySelectorAll('[data-lang-set]'));
-  let onLangChange = null;
+  const langChangeHooks = [];
   const metas = {
     zh: {
       title: 'Qiongkura · 个人主页',
@@ -64,7 +64,7 @@
       /* 隐私模式下忽略存储失败 */
     }
 
-    if (typeof onLangChange === 'function') onLangChange(next);
+    langChangeHooks.forEach((hook) => hook(next));
   };
 
   langButtons.forEach((button) => {
@@ -315,11 +315,13 @@
 
   const workRows = Array.from(doc.querySelectorAll('.work-row'));
   const workPanels = Array.from(doc.querySelectorAll('.work-panel'));
+  const workBriefs = Array.from(doc.querySelectorAll('.work-brief-item'));
 
   if (workRows.length && workPanels.length) {
     const showWork = (index) => {
       workRows.forEach((row, i) => row.classList.toggle('is-active', i === index));
       workPanels.forEach((panel, i) => panel.classList.toggle('is-active', i === index));
+      workBriefs.forEach((item, i) => item.classList.toggle('is-active', i === index));
     };
 
     workRows.forEach((row, index) => {
@@ -329,6 +331,100 @@
     });
 
     showWork(0);
+
+    /* ------------------------------------------ 作品简介：悬停 2 秒后展开 */
+
+    const works = doc.querySelector('.works');
+    const workList = doc.querySelector('.work-list');
+    const workBrief = doc.querySelector('#work-brief');
+    const stacked = window.matchMedia('(max-width: 900px), (max-width: 1180px) and (orientation: portrait)');
+    const DWELL = 2000;
+
+    if (works && workList && workBrief) {
+      let timer = null;
+      let opened = -1;
+
+      /* 左栏收到「最长文字 + 箭头」的宽度，剩下的宽度六成给模块、四成给简介 */
+      const measure = () => {
+        const gap = parseFloat(window.getComputedStyle(works).columnGap) || 0;
+        const total = works.clientWidth;
+        const avail = Math.max(0, total - gap);
+        const idle = Math.round(avail * 0.525);
+        works.style.setProperty('--list-w-idle', idle + 'px');
+
+        const wasOpen = works.classList.contains('is-open');
+        if (wasOpen) works.classList.remove('is-open');
+
+        /* 量文字本身而不是元素盒子：元素盒子会被拉伸满栏，量不出真实文字宽度 */
+        const listLeft = workList.getBoundingClientRect().left;
+        const range = doc.createRange();
+        let textRight = 0;
+        workList.querySelectorAll('.work-num, .work-name').forEach((el) => {
+          const walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+          let node = walker.nextNode();
+          while (node) {
+            if (node.nodeValue && node.nodeValue.trim()) {
+              range.selectNodeContents(node);
+              const rect = range.getBoundingClientRect();
+              if (rect.width) textRight = Math.max(textRight, rect.right - listLeft);
+            }
+            node = walker.nextNode();
+          }
+        });
+
+        const hug = Math.round(Math.min(textRight + 56, idle));
+        const rest = Math.max(0, total - gap * 2 - hug);
+        works.style.setProperty('--list-w-hug', hug + 'px');
+        works.style.setProperty('--brief-w', Math.round(rest * 0.44) + 'px');
+
+        if (wasOpen) works.classList.add('is-open');
+      };
+
+      const open = (index) => {
+        if (stacked.matches) return;
+        if (opened === -1) measure();
+        opened = index;
+        works.classList.add('is-open');
+      };
+
+      const close = () => {
+        window.clearTimeout(timer);
+        timer = null;
+        opened = -1;
+        works.classList.remove('is-open');
+      };
+
+      workRows.forEach((row, index) => {
+        row.addEventListener('mouseenter', () => {
+          window.clearTimeout(timer);
+          timer = window.setTimeout(() => open(index), DWELL);
+        });
+        row.addEventListener('mouseleave', () => {
+          if (opened === -1) window.clearTimeout(timer);
+        });
+        row.addEventListener('focus', () => {
+          window.clearTimeout(timer);
+          open(index);
+        });
+      });
+
+      works.addEventListener('mouseleave', close);
+      works.addEventListener('focusout', (event) => {
+        if (!works.contains(event.relatedTarget)) close();
+      });
+      doc.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') close();
+      });
+
+      const relayout = () => {
+        if (stacked.matches) close();
+        else measure();
+      };
+      window.addEventListener('resize', relayout);
+      if (stacked.addEventListener) stacked.addEventListener('change', relayout);
+
+      measure();
+    }
   }
 
   /* --------------------------------------------------------- 声波绘制 */
@@ -429,11 +525,9 @@
     }
   }
 
-  /* ------------------------------------------------------- 赛车图片轮播 */
+  /* ------------------------------------------------- 图片轮播（首页 / 赛车） */
 
-  const slideshow = doc.querySelector('[data-slideshow]');
-
-  if (slideshow) {
+  Array.from(doc.querySelectorAll('[data-slideshow]')).forEach((slideshow) => {
     const slides = Array.from(slideshow.querySelectorAll('.slide'));
     const capZh = slideshow.querySelector('[data-slide-cap-zh]');
     const capEn = slideshow.querySelector('[data-slide-cap-en]');
@@ -550,10 +644,10 @@
       });
     }
 
-    onLangChange = refreshCaption;
+    langChangeHooks.push(refreshCaption);
     showSlide(0, false);
     preloadNext();
-  }
+  });
 
   /* ------------------------------------------------------------- 年份 */
 

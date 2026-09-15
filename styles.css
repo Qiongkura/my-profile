@@ -402,6 +402,8 @@ html[data-lang='en'] .zh { display: none !important; }
 .slides .slide.is-active { opacity: 1; }
 
 .slide-bar { align-items: center; flex-wrap: wrap; gap: 7px 11px; }
+/* 没有图注的轮播（首页）：只留右下角的计数与翻页按钮 */
+.frame figcaption.slide-bar--end { justify-content: flex-end; }
 
 /* HI-FI 媒体区：左侧竖图通栏，右侧横图 + 项目信息 */
 .hifi-media {
@@ -605,14 +607,26 @@ html[data-lang='en'] .zh { display: none !important; }
 /* -------------------------------------------------------------- projects */
 
 .works {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
-  align-items: start;
-  gap: clamp(21px, 4vw, 53px);
+  /* 左栏宽度与简介宽度由 JS 按实际文字宽度写入，两个状态都只改宽度，因此能平滑过渡 */
+  --list-w-idle: 52.5%;
+  --list-w-hug: 34%;
+  --brief-w: 0px;
+  --works-gap: clamp(21px, 4vw, 53px);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--works-gap);
   margin-top: clamp(12px, 2.6vh, 29px);
 }
 
-.work-list { border-top: 1px solid var(--line); }
+.work-list {
+  flex: 0 0 auto;
+  width: var(--list-w-idle);
+  transition: width .62s var(--ease);
+  border-top: 1px solid var(--line);
+}
+
+/* 悬停 2 秒后：左栏收到文字宽度，预览模块左移贴住文字，右侧腾出的位置显示简介 */
+.works.is-open .work-list { width: var(--list-w-hug); }
 .work-list li { border-bottom: 1px solid var(--line); }
 
 .work-row {
@@ -660,10 +674,67 @@ html[data-lang='en'] .zh { display: none !important; }
 
 .work-stage {
   position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
   min-height: clamp(170px, min(38vh, 37vw), 1200px);
   background: var(--white);
   border: 1px solid var(--line);
 }
+
+/* ---------------------------------------------------- 项目简介（悬停展开） */
+
+.work-brief {
+  flex: 0 0 auto;
+  width: 0;      /* 收起时宽度与高度都归零：既不挤占预览模块，也不会把章节撑高 */
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: width .62s var(--ease), opacity .5s var(--ease);
+}
+.works.is-open .work-brief {
+  width: var(--brief-w);
+  height: auto;
+  opacity: 1;
+  transition-delay: 0s, .16s;
+}
+
+.work-brief-item { display: none; padding-top: calc(.4 * var(--u)); }
+.work-brief-item.is-active { display: block; }
+
+.brief-kicker {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: var(--red);
+}
+.brief-title {
+  margin-top: calc(.42 * var(--u));
+  font-size: clamp(13px, calc(1.22 * var(--u)), 74px);
+  font-weight: 600;
+  letter-spacing: .03em;
+}
+.brief-desc {
+  margin-top: calc(.62 * var(--u));
+  font-size: clamp(11px, calc(.92 * var(--u)), 48px);
+  line-height: 1.75;
+  color: var(--ink-2);
+}
+.brief-tech {
+  margin-top: calc(.66 * var(--u));
+  padding-top: calc(.42 * var(--u));
+  border-top: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .05em;
+  color: var(--ink-3);
+}
+
+/* 无 JS 时简介直接铺开显示，不依赖交互 */
+html:not(.js) .works { flex-wrap: wrap; }
+html:not(.js) .work-list { width: 100%; }
+html:not(.js) .work-brief { width: 100%; opacity: 1; }
+html:not(.js) .work-brief-item { display: block; margin-top: calc(1.2 * var(--u)); }
+
 .work-panel {
   position: absolute;
   inset: 0;
@@ -953,6 +1024,9 @@ html[data-lang='en'] .zh { display: none !important; }
   .works,
   .hifi-grid,
   .about-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .works { flex-direction: column; align-items: stretch; gap: 20px; }
+  .work-list { width: 100%; }
+  .work-brief { display: none; }
   .work-stage { min-height: clamp(194px, 30vh, 299px); }
 
   html { scroll-snap-type: none; }
@@ -1062,6 +1136,8 @@ html[data-lang='en'] .zh { display: none !important; }
   .bars span,
   .spectrum span { animation: none; }
   .work-panel,
+  .work-list,
+  .work-brief,
   .slides .slide,
   .work-row,
   .contact-link,

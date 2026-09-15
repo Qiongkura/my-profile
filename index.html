@@ -15,8 +15,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="preload" as="image" href="assets/racing-frame.webp" />
-    <link rel="stylesheet" href="styles.css?v=18" />
+    <link rel="preload" as="image" href="assets/home-01.webp" />
+    <link rel="stylesheet" href="styles.css?v=20" />
     <script>
       /* 在样式生效前确定语言，避免切换时闪烁 */
       (function () {
@@ -98,20 +98,18 @@
             </div>
 
             <div class="home-visual reveal" data-parallax="0.06">
-              <figure class="frame frame--hero">
-                <img
-                  src="assets/racing-frame.webp"
-                  alt="BeamNG 自动驾驶项目的车载视角运行画面"
-                  data-alt-zh="BeamNG 自动驾驶项目的车载视角运行画面"
-                  data-alt-en="Onboard view from the BeamNG autonomous driving project"
-                  width="960"
-                  height="540"
-                  fetchpriority="high"
-                  decoding="async"
-                />
-                <figcaption>
-                  <span class="zh">车载视角</span><span class="en" lang="en">Onboard view</span>
-                  <span class="zh">BeamNG 自动驾驶</span><span class="en" lang="en">BeamNG Autopilot</span>
+              <figure class="frame frame--hero" data-slideshow>
+                <div class="slides">
+                  <img class="slide is-active" src="assets/home-01.webp" alt="Qiongkura 的照片" data-alt-zh="Qiongkura 的照片" data-alt-en="A photo of Qiongkura" width="1600" height="900" fetchpriority="high" decoding="async" />
+                  <img class="slide" src="assets/home-02.webp" alt="Qiongkura 的照片" data-alt-zh="Qiongkura 的照片" data-alt-en="A photo of Qiongkura" width="1600" height="1200" loading="lazy" decoding="async" />
+                  <img class="slide" src="assets/home-03.webp" alt="Qiongkura 的照片" data-alt-zh="Qiongkura 的照片" data-alt-en="A photo of Qiongkura" width="1600" height="902" loading="lazy" decoding="async" />
+                </div>
+                <figcaption class="slide-bar slide-bar--end">
+                  <span class="slide-nav">
+                    <button class="slide-btn" type="button" data-slide-prev data-aria-zh="上一张图片" data-aria-en="Previous image">←</button>
+                    <span class="slide-count" data-slide-count>01 / 03</span>
+                    <button class="slide-btn" type="button" data-slide-next data-aria-zh="下一张图片" data-aria-en="Next image">→</button>
+                  </span>
                 </figcaption>
               </figure>
               <div class="speedlines" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -383,6 +381,54 @@
                 </figcaption>
               </figure>
             </div>
+
+            <aside class="work-brief" id="work-brief" aria-label="项目简介">
+              <article class="work-brief-item is-active" data-brief="0">
+                <p class="brief-kicker">01 / <span class="zh">强化学习</span><span class="en" lang="en">Reinforcement Learning</span></p>
+                <h3 class="brief-title"><span class="zh">DQN 贪吃蛇</span><span class="en" lang="en">DQN Snake</span></h3>
+                <p class="brief-desc">
+                  <span class="zh">用 Java Swing 写的贪吃蛇当环境，通过 TCP Socket 把 47 维状态传给 Python 侧智能体，再用 PyTorch 训练 Double DQN：吃到食物 +800、撞墙 −350，配合优先经验回放与目标网络让训练稳定下来。</span>
+                  <span class="en" lang="en">A Java Swing Snake game acts as the environment and streams a 47-dim state over a TCP socket to a Python agent that learns with a PyTorch Double DQN — +800 for food, −350 for walls, stabilised by prioritized replay and a target network.</span>
+                </p>
+                <p class="brief-tech">Python · PyTorch · Java · Socket</p>
+              </article>
+              <article class="work-brief-item" data-brief="1">
+                <p class="brief-kicker">02 / <span class="zh">自动驾驶</span><span class="en" lang="en">Autonomous Driving</span></p>
+                <h3 class="brief-title"><span class="zh">BeamNG 自动驾驶</span><span class="en" lang="en">BeamNG Autopilot</span></h3>
+                <p class="brief-desc">
+                  <span class="zh">在 BeamNG.drive 里采集车载视角画面，用计算机视觉识别车道与可行驶区域，再据此输出转向和油门控制，让车辆自己跑完整条赛道。</span>
+                  <span class="en" lang="en">Captures the onboard camera inside BeamNG.drive, recognises lanes and drivable area with computer vision, then turns that into steering and throttle commands so the car drives the track on its own.</span>
+                </p>
+                <p class="brief-tech">Computer Vision · Vehicle Control</p>
+              </article>
+              <article class="work-brief-item" data-brief="2">
+                <p class="brief-kicker">03 / <span class="zh">音频分析</span><span class="en" lang="en">Audio Analysis</span></p>
+                <h3 class="brief-title"><span class="zh">音频可视化监听器</span><span class="en" lang="en">Audio Visualizer</span></h3>
+                <p class="brief-desc">
+                  <span class="zh">通过 WASAPI 环回采集系统正在播放的声音，做 FFT 之后把频谱和波形实时画出来；不用接录音设备，任何播放器的输出都能直接看到。</span>
+                  <span class="en" lang="en">Captures whatever the system is playing through WASAPI loopback, runs an FFT, and draws the spectrum and waveform in real time — no recording device needed, any player works.</span>
+                </p>
+                <p class="brief-tech">WASAPI Loopback · FFT</p>
+              </article>
+              <article class="work-brief-item" data-brief="3">
+                <p class="brief-kicker">04 / <span class="zh">开发工具</span><span class="en" lang="en">Developer Tool</span></p>
+                <h3 class="brief-title"><span class="zh">DSH 用量统计插件</span><span class="en" lang="en">DSH Usage Plugin</span></h3>
+                <p class="brief-desc">
+                  <span class="zh">给 DeepSeek Harness 写的 TypeScript 附属插件：统计每次对话的 Token 用量，把开销直接摆在界面上，省得自己去翻日志。</span>
+                  <span class="en" lang="en">A TypeScript plugin for the DeepSeek Harness that tracks token usage per session and puts the cost right in the interface, so there is no need to dig through logs.</span>
+                </p>
+                <p class="brief-tech">TypeScript · DeepSeek Harness</p>
+              </article>
+              <article class="work-brief-item" data-brief="4">
+                <p class="brief-kicker">05 / <span class="zh">桌面工具</span><span class="en" lang="en">Desktop Tool</span></p>
+                <h3 class="brief-title"><span class="zh">屏幕使用时间记录</span><span class="en" lang="en">Focus Time Tracker</span></h3>
+                <p class="brief-desc">
+                  <span class="zh">常驻后台记录在各个窗口和程序上花的时间，再汇总成统计报告，用来复盘一天的时间到底去哪了。</span>
+                  <span class="en" lang="en">Runs in the background recording time spent in each window and app, then rolls it up into a report for reviewing where the day actually went.</span>
+                </p>
+                <p class="brief-tech">Python · 桌面端</p>
+              </article>
+            </aside>
           </div>
         </div>
 
@@ -599,6 +645,6 @@
       </section>
     </main>
 
-    <script src="script.js?v=18"></script>
+    <script src="script.js?v=20"></script>
   </body>
 </html>
