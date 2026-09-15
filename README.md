@@ -2,6 +2,28 @@
 
 `qiongkura.xyz` 的源码。白色编辑杂志风单页网站，由五个全屏章节组成，纯静态、无构建步骤。
 
+## 改完怎么发布（重要）
+
+网站是 GitHub 自动部署的，**在 VS Code 里改完文件不会自动上线**。必须提交并推送到 GitHub，Cloudflare 才会重新部署（约 1 分钟）。
+
+最省事的方式：双击项目根目录的 `publish.cmd`。它会自动做三件事：
+
+1. 如果 `styles.css` 或 `script.js` 有改动，把 `index.html` 里的 `?v=` 版本号加一（否则访客看到的还是旧缓存样式）
+2. 提交所有改动
+3. 推送到 GitHub
+
+也可以手动执行：
+
+```bash
+cd /i/projects/my-profile
+python tools/bump_asset_version.py   # 改了 CSS / JS 时才需要
+git add -A
+git commit -m "Update site"
+git push
+```
+
+只在本地看效果、不发布：在该目录运行 `python -m http.server 8000`，然后打开 <http://localhost:8000>。本地看到的是本地文件，和线上是两回事。
+
 ## 文件结构
 
 ```text
