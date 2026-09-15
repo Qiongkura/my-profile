@@ -17,10 +17,13 @@
 ```bash
 cd /i/projects/my-profile
 python tools/bump_asset_version.py   # 改了 CSS / JS 时才需要
+python tools/bump_asset_version.py --force   # 强制加一，用于补救漏改的情况
 git add -A
 git commit -m "Update site"
 git push
 ```
+
+> 注意：`publish.cmd` 只能靠「未提交的改动」判断是否要升版本号。如果某次 CSS 改动已经提交了却没升版本号，用 `--force` 补一次。
 
 只在本地看效果、不发布：在该目录运行 `python -m http.server 8000`，然后打开 <http://localhost:8000>。本地看到的是本地文件，和线上是两回事。
 
@@ -83,6 +86,14 @@ RACING 章节的主图是自动轮播，共 9 张：
 两张都用 `object-fit: cover`，会裁切。换图时如果主体被裁掉，用内联 `object-position` 调整取景；横图高度改 `.frame--landscape img` 的 `height`，竖图高度跟随右栏内容自动变化。窄屏（≤980px）会变成上下排列。
 
 音频可视化界面截图不再放在这一章，它仍然出现在 PROJECTS 的轮播里。
+
+## 窗口尺寸适配
+
+- **宽度 ≥ 901px**：左右双栏布局，每个章节正好一屏，滚轮/键盘逐章切换。
+- **宽度 901–1180px**：仍是双栏，但间距、图片高度、内部留白都会收紧，保证一节一屏。
+- **宽度 ≤ 900px**：改为上下堆叠、自然滚动，顶部导航收起为抽屉菜单，右侧章节指示器移到页面底部。
+
+改动版式后建议用多个尺寸量一遍：把窗口拖窄到 ~1000px、~950px 看看是否仍是一节一屏。
 
 ## 中英双语
 
