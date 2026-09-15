@@ -26,11 +26,14 @@ def changed_files() -> set[str]:
 
 
 def main() -> int:
+    force = "--force" in sys.argv
     text = INDEX.read_text(encoding="utf-8")
     match = re.search(r"styles\.css\?v=(\d+)", text)
     current = int(match.group(1)) if match else 0
 
     touched = [name for name in WATCHED if name in changed_files()]
+    if force:
+        touched = ["--force"]
     if not touched:
         print(f"样式与脚本没有改动，版本号保持 v={current}")
         return 0

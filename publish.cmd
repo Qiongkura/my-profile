@@ -2,7 +2,7 @@
 cd /d "%~dp0."
 
 echo [1/3] Check asset version...
-python "%~dp0toolsump_asset_version.py" || echo   (python not available, version not bumped)
+python "%~dp0tools/bump_asset_version.py" || echo   (python not available, version not bumped)
 
 echo.
 echo [2/3] Commit changes...
