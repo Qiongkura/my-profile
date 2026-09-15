@@ -343,6 +343,7 @@
     if (works && workList && workBrief) {
       let timer = null;
       let opened = -1;
+      let measured = false;
 
       /* 左栏收到「最长文字 + 箭头」的宽度，剩下的宽度六成给模块、四成给简介 */
       const measure = () => {
@@ -374,15 +375,17 @@
 
         const hug = Math.round(Math.min(textRight + 56, idle));
         const rest = Math.max(0, total - gap * 2 - hug);
+        /* 矮窗口里简介窄了会不停换行、把章节顶超一屏，所以让它占宽一些 */
+        const share = window.matchMedia('(max-height: 820px)').matches ? 0.62 : 0.44;
         works.style.setProperty('--list-w-hug', hug + 'px');
-        works.style.setProperty('--brief-w', Math.round(rest * 0.44) + 'px');
+        works.style.setProperty('--brief-w', Math.round(rest * share) + 'px');
 
         if (wasOpen) works.classList.add('is-open');
       };
 
+      /* 展开只切一个类：测量放在别处做，避免在悬停那一刻触发同步重排造成顿挫 */
       const open = (index) => {
         if (stacked.matches) return;
-        if (opened === -1) measure();
         opened = index;
         works.classList.add('is-open');
       };
@@ -397,6 +400,10 @@
       workRows.forEach((row, index) => {
         row.addEventListener('mouseenter', () => {
           window.clearTimeout(timer);
+          if (!measured) {
+            measure();          /* 提前到悬停瞬间量，远离 2 秒后的动画，避免动画起步时强制重排 */
+            measured = true;
+          }
           timer = window.setTimeout(() => open(index), DWELL);
         });
         row.addEventListener('mouseleave', () => {
@@ -417,13 +424,19 @@
       });
 
       const relayout = () => {
-        if (stacked.matches) close();
-        else measure();
+        if (stacked.matches) {
+          close();
+          measured = false;
+        } else {
+          measure();
+          measured = true;
+        }
       };
       window.addEventListener('resize', relayout);
       if (stacked.addEventListener) stacked.addEventListener('change', relayout);
 
       measure();
+      measured = true;
     }
   }
 
@@ -648,6 +661,152 @@
     showSlide(0, false);
     preloadNext();
   });
+
+  /* ------------------------------------------------------ HI-FI 试听播放 */
+
+  const hifiAudio = doc.getElementById('hifi-audio');
+  const hifiRows = Array.from(doc.querySelectorAll('[data-track]'));
+
+  if (hifiAudio && hifiRows.length) {
+    /* 音频文件没就位时的去处：打开音乐站的搜索页 */
+    const SEARCH_URL = 'https://music.163.com/#/search/m/?s=';
+
+    const tracks = hifiRows.map((row) => ({
+      row,
+      src: row.getAttribute('data-src'),
+      query: row.getAttribute('data-query') || '',
+      btn: row.querySelector('[data-pick-btn]'),
+      time: row.querySelector('[data-pick-time]'),
+      seek: row.querySelector('[data-pick-seek]'),
+      bar: row.querySelector('[data-pick-bar]'),
+      fill: row.querySelector('[data-pick-fill]'),
+      knob: row.querySelector('[data-pick-knob]')
+    }));
+
+    let playing = null;
+
+    const clock = (seconds) => {
+      if (!isFinite(seconds) || seconds < 0) return '0:00';
+      const whole = Math.floor(seconds);
+      return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
+    };
+
+    const setButton = (track, on) => {
+      const zh = `${on ? '暂停' : '播放'} ${track.query}`.trim();
+      const en = `${on ? 'Pause' : 'Play'} ${track.query}`.trim();
+      track.btn.textContent = on ? '❚❚' : '▶';
+      track.btn.setAttribute('data-aria-zh', zh);
+      track.btn.setAttribute('data-aria-en', en);
+      track.btn.setAttribute('aria-label', root.getAttribute('data-lang') === 'en' ? en : zh);
+      track.row.classList.toggle('is-playing', on);
+    };
+
+    const paint = (track, ratio) => {
+      const clamped = Math.min(1, Math.max(0, ratio));
+      const percent = `${(clamped * 100).toFixed(2)}%`;
+      track.fill.style.width = percent;
+      track.knob.style.left = percent;
+      track.bar.setAttribute('aria-valuenow', String(Math.round(clamped * 100)));
+    };
+
+    const reset = (track) => {
+      setButton(track, false);
+      paint(track, 0);
+      track.seek.hidden = true;
+      track.time.textContent = '';
+    };
+
+    const update = () => {
+      if (!playing) return;
+      const duration = hifiAudio.duration;
+      const ratio = isFinite(duration) && duration > 0 ? hifiAudio.currentTime / duration : 0;
+      paint(playing, ratio);
+      playing.time.textContent = `${clock(hifiAudio.currentTime)} / ${clock(duration)}`;
+    };
+
+    const start = (track) => {
+      if (playing !== track) {
+        if (playing) reset(playing);
+        playing = track;
+        hifiAudio.src = track.src;
+        track.seek.hidden = false;
+      }
+      const played = hifiAudio.play();
+      if (played && typeof played.catch === 'function') played.catch(() => {});
+    };
+
+    const seekTo = (track, clientX) => {
+      const box = track.bar.getBoundingClientRect();
+      if (!box.width) return;
+      const ratio = Math.min(1, Math.max(0, (clientX - box.left) / box.width));
+      const duration = hifiAudio.duration;
+      if (playing === track && isFinite(duration) && duration > 0) {
+        hifiAudio.currentTime = ratio * duration;
+      }
+      paint(track, ratio);
+    };
+
+    hifiAudio.addEventListener('play', () => { if (playing) setButton(playing, true); });
+    hifiAudio.addEventListener('pause', () => { if (playing) setButton(playing, false); });
+    hifiAudio.addEventListener('timeupdate', update);
+    hifiAudio.addEventListener('loadedmetadata', update);
+    hifiAudio.addEventListener('ended', () => { if (playing) paint(playing, 1); });
+
+    /* 文件不存在或格式不支持时打开搜索页，避免点了没反应 */
+    hifiAudio.addEventListener('error', () => {
+      const track = playing;
+      if (!track) return;
+      playing = null;
+      reset(track);
+      if (track.query) window.open(SEARCH_URL + encodeURIComponent(track.query), '_blank', 'noopener');
+    });
+
+    tracks.forEach((track) => {
+      track.btn.addEventListener('click', () => {
+        if (playing === track && !hifiAudio.paused) hifiAudio.pause();
+        else start(track);
+      });
+
+      track.bar.addEventListener('pointerdown', (event) => {
+        if (playing !== track) return;
+        event.preventDefault();
+        track.bar.dataset.dragging = '1';
+        try {
+          track.bar.setPointerCapture(event.pointerId);
+        } catch (error) {
+          /* 指针已经释放时忽略：按 clientX 计算拖动依然成立 */
+        }
+        seekTo(track, event.clientX);
+      });
+      track.bar.addEventListener('pointermove', (event) => {
+        if (track.bar.dataset.dragging !== '1') return;
+        seekTo(track, event.clientX);
+      });
+      const releaseBar = (event) => {
+        if (track.bar.dataset.dragging !== '1') return;
+        delete track.bar.dataset.dragging;
+        if (track.bar.hasPointerCapture(event.pointerId)) track.bar.releasePointerCapture(event.pointerId);
+      };
+      track.bar.addEventListener('pointerup', releaseBar);
+      track.bar.addEventListener('pointercancel', releaseBar);
+
+      track.bar.addEventListener('keydown', (event) => {
+        if (playing !== track) return;
+        const duration = hifiAudio.duration;
+        if (!isFinite(duration) || duration <= 0) return;
+        let step = null;
+        if (event.key === 'ArrowRight' || event.key === 'ArrowUp') step = 5;
+        else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') step = -5;
+        else if (event.key === 'Home') step = -Infinity;
+        else if (event.key === 'End') step = Infinity;
+        if (step === null) return;
+        event.preventDefault();
+        const next = step === -Infinity ? 0 : step === Infinity ? duration : hifiAudio.currentTime + step;
+        hifiAudio.currentTime = Math.min(duration, Math.max(0, next));
+        update();
+      });
+    });
+  }
 
   /* ------------------------------------------------------------- 年份 */
 

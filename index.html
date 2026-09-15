@@ -16,7 +16,7 @@
       rel="stylesheet"
     />
     <link rel="preload" as="image" href="assets/home-01.webp" />
-    <link rel="stylesheet" href="styles.css?v=20" />
+    <link rel="stylesheet" href="styles.css?v=21" />
     <script>
       /* 在样式生效前确定语言，避免切换时闪烁 */
       (function () {
@@ -387,46 +387,71 @@
                 <p class="brief-kicker">01 / <span class="zh">强化学习</span><span class="en" lang="en">Reinforcement Learning</span></p>
                 <h3 class="brief-title"><span class="zh">DQN 贪吃蛇</span><span class="en" lang="en">DQN Snake</span></h3>
                 <p class="brief-desc">
-                  <span class="zh">用 Java Swing 写的贪吃蛇当环境，通过 TCP Socket 把 47 维状态传给 Python 侧智能体，再用 PyTorch 训练 Double DQN：吃到食物 +800、撞墙 −350，配合优先经验回放与目标网络让训练稳定下来。</span>
-                  <span class="en" lang="en">A Java Swing Snake game acts as the environment and streams a 47-dim state over a TCP socket to a Python agent that learns with a PyTorch Double DQN — +800 for food, −350 for walls, stabilised by prioritized replay and a target network.</span>
+                  <span class="zh">用 Java Swing 写的贪吃蛇当作环境，通过 TCP Socket 把 47 维状态传给 Python 侧的 PyTorch 智能体，用 Double DQN 训练它自己找食物、躲墙、少绕圈。</span>
+                  <span class="en" lang="en">A Java Swing Snake game acts as the environment; a PyTorch agent learns Double DQN over a 47-dim state streamed through a TCP socket, teaching itself to find food, avoid walls and stop looping.</span>
                 </p>
-                <p class="brief-tech">Python · PyTorch · Java · Socket</p>
+                <ul class="brief-points">
+                    <li><span class="zh">Double DQN + 优先经验回放（按 TD 误差采样）+ 目标网络</span><span class="en" lang="en">Double DQN with prioritized replay (TD-error sampling) and a target network</span></li>
+                    <li><span class="zh">ε 从 1.0 衰减到 0.03；每 8000 步自动存档模型与经验池</span><span class="en" lang="en">ε decays 1.0 → 0.03; model and replay buffer auto-saved every 8,000 steps</span></li>
+                    <li><span class="zh">检测并惩罚重复状态，抑制原地绕圈</span><span class="en" lang="en">Repeated states are detected and penalised to stop it looping in place</span></li>
+                </ul>
+                <p class="brief-tech">Java Swing · TCP Socket · Python · PyTorch</p>
               </article>
               <article class="work-brief-item" data-brief="1">
                 <p class="brief-kicker">02 / <span class="zh">自动驾驶</span><span class="en" lang="en">Autonomous Driving</span></p>
                 <h3 class="brief-title"><span class="zh">BeamNG 自动驾驶</span><span class="en" lang="en">BeamNG Autopilot</span></h3>
                 <p class="brief-desc">
-                  <span class="zh">在 BeamNG.drive 里采集车载视角画面，用计算机视觉识别车道与可行驶区域，再据此输出转向和油门控制，让车辆自己跑完整条赛道。</span>
-                  <span class="en" lang="en">Captures the onboard camera inside BeamNG.drive, recognises lanes and drivable area with computer vision, then turns that into steering and throttle commands so the car drives the track on its own.</span>
+                  <span class="zh">基于 BeamNG.drive + BeamNGpy 的自动驾驶研究项目，按感知 / 决策 / 控制分层；规则驾驶那层已经在山地路线跑通，现在把结构对齐特斯拉 FSD 的分层数据流。</span>
+                  <span class="en" lang="en">An autonomous driving research project on BeamNG.drive + BeamNGpy, layered as perception / decision / control; the rule-based layer already completes mountain routes, and the stack now mirrors Tesla FSD’s layered data flow.</span>
                 </p>
-                <p class="brief-tech">Computer Vision · Vehicle Control</p>
+                <ul class="brief-points">
+                    <li><span class="zh">8 路环视相机 + HydraNet 多任务感知：语义分割 / YOLO 目标 / 交通灯 / 车道拓扑</span><span class="en" lang="en">8-camera ring with a HydraNet multi-task head: segmentation / YOLO objects / traffic lights / lane topology</span></li>
+                    <li><span class="zh">BEV 占用栅格 + 向量空间：地面反投影、log-odds 融合、时序滤波抑制幻影墙</span><span class="en" lang="en">BEV occupancy grid and vector space: ground reprojection, log-odds fusion, temporal filtering against phantom walls</span></li>
+                    <li><span class="zh">分层规划：候选轨迹扇、走廊连通性门控、真曲率限速 + 12m 前瞻；规则层山路完成度 94.6%</span><span class="en" lang="en">Layered planning: trajectory fan, corridor gating, true-curvature speed limits + 12 m lookahead; rule layer: 94.6% mountain-route completion</span></li>
+                </ul>
+                <p class="brief-tech">BeamNG.drive · BeamNGpy · YOLOv8 · Stable-Baselines3</p>
               </article>
               <article class="work-brief-item" data-brief="2">
                 <p class="brief-kicker">03 / <span class="zh">音频分析</span><span class="en" lang="en">Audio Analysis</span></p>
                 <h3 class="brief-title"><span class="zh">音频可视化监听器</span><span class="en" lang="en">Audio Visualizer</span></h3>
                 <p class="brief-desc">
-                  <span class="zh">通过 WASAPI 环回采集系统正在播放的声音，做 FFT 之后把频谱和波形实时画出来；不用接录音设备，任何播放器的输出都能直接看到。</span>
-                  <span class="en" lang="en">Captures whatever the system is playing through WASAPI loopback, runs an FFT, and draws the spectrum and waveform in real time — no recording device needed, any player works.</span>
+                  <span class="zh">抓电脑正在播放的声音做实时可视化，不用选文件、也不用装虚拟声卡——能听到什么就画什么。</span>
+                  <span class="en" lang="en">Real-time visualisation of whatever the computer is playing: no file picking, no virtual audio cable — if you can hear it, it gets drawn.</span>
                 </p>
-                <p class="brief-tech">WASAPI Loopback · FFT</p>
+                <ul class="brief-points">
+                    <li><span class="zh">WASAPI 环回采集：Float32、自动适配 48k/96k/192k、32768 采样环形缓冲</span><span class="en" lang="en">WASAPI loopback capture: Float32, auto-adapting to 48k/96k/192k, 32,768-sample ring buffer</span></li>
+                    <li><span class="zh">FFT 2048–16384 点汉宁窗 + 对数频谱柱与峰值保持；波形自动增益</span><span class="en" lang="en">FFT 2,048–16,384 point Hann window with log-frequency bars and peak hold; auto-gain waveform</span></li>
+                    <li><span class="zh">numpy 整帧绘入 RGB 缓冲上屏，两张画布各 30Hz 交替刷新，远程桌面下也不掉帧</span><span class="en" lang="en">Whole frames drawn into an RGB buffer with numpy; two canvases alternate at 30 Hz each and hold up over remote desktop</span></li>
+                </ul>
+                <p class="brief-tech">WASAPI Loopback · FFT · numpy · CustomTkinter</p>
               </article>
               <article class="work-brief-item" data-brief="3">
                 <p class="brief-kicker">04 / <span class="zh">开发工具</span><span class="en" lang="en">Developer Tool</span></p>
                 <h3 class="brief-title"><span class="zh">DSH 用量统计插件</span><span class="en" lang="en">DSH Usage Plugin</span></h3>
                 <p class="brief-desc">
-                  <span class="zh">给 DeepSeek Harness 写的 TypeScript 附属插件：统计每次对话的 Token 用量，把开销直接摆在界面上，省得自己去翻日志。</span>
-                  <span class="en" lang="en">A TypeScript plugin for the DeepSeek Harness that tracks token usage per session and puts the cost right in the interface, so there is no need to dig through logs.</span>
+                  <span class="zh">给 DeepSeek Harness 写的 Token 用量统计插件，侧边栏入口加模态面板；在官方统计之上补了工作区分组、按用量排序和子代理用量合并。</span>
+                  <span class="en" lang="en">A token-usage plugin for the DeepSeek Harness, opened from the sidebar; on top of the official stats it adds workspace grouping, sorting by usage and sub-agent merging.</span>
                 </p>
+                <ul class="brief-points">
+                    <li><span class="zh">一键幂等安装脚本：必要时给宿主打 7 个补丁、注册插件、构建，重复运行安全</span><span class="en" lang="en">One-shot idempotent installer: applies 7 host patches when needed, registers the plugin and builds</span></li>
+                    <li><span class="zh">修掉一个真实数据缺陷：fork / 延续会话把父历史重复计入，宽时间窗下虚高 2.4 倍</span><span class="en" lang="en">Fixed a real data bug: forked or continued sessions re-counted inherited history, inflating wide windows by up to 2.4×</span></li>
+                    <li><span class="zh">按 seedLength / session-end-seed 划定归属边界，每个会话只计自有调用</span><span class="en" lang="en">Ownership is bounded by seedLength / session-end-seed so a session only counts its own calls</span></li>
+                </ul>
                 <p class="brief-tech">TypeScript · DeepSeek Harness</p>
               </article>
               <article class="work-brief-item" data-brief="4">
                 <p class="brief-kicker">05 / <span class="zh">桌面工具</span><span class="en" lang="en">Desktop Tool</span></p>
                 <h3 class="brief-title"><span class="zh">屏幕使用时间记录</span><span class="en" lang="en">Focus Time Tracker</span></h3>
                 <p class="brief-desc">
-                  <span class="zh">常驻后台记录在各个窗口和程序上花的时间，再汇总成统计报告，用来复盘一天的时间到底去哪了。</span>
-                  <span class="en" lang="en">Runs in the background recording time spent in each window and app, then rolls it up into a report for reviewing where the day actually went.</span>
+                  <span class="zh">Python 写的 Windows 桌面工具，每 2 秒采样一次前台窗口，把花在软件、游戏和网站上的时间记进 SQLite，再用浅色界面和图表复盘一天。</span>
+                  <span class="en" lang="en">A Python desktop tool for Windows that samples the foreground window every 2 seconds, records time spent in apps, games and websites into SQLite, then reviews the day in a light-themed UI.</span>
                 </p>
-                <p class="brief-tech">Python · 桌面端</p>
+                <ul class="brief-points">
+                    <li><span class="zh">只用标准库 ctypes 调 Win32 API 采样；分类优先级：手动覆盖 > 游戏规则 > 网站 > 应用</span><span class="en" lang="en">Samples the foreground window with nothing but the stdlib (ctypes); order: manual override > game rules > website > app</span></li>
+                    <li><span class="zh">游戏按启动器 / 安装目录关键字识别（Steam / Epic / 战网 / WeGame 等），规则写在 JSON 里可改</span><span class="en" lang="en">Games recognised by launcher/install-dir keywords (Steam / Epic / Battle.net / WeGame …), rules in an editable JSON file</span></li>
+                    <li><span class="zh">网站靠窗口标题 + 浏览器历史库本地匹配（Chrome / Edge / Firefox），全程不联网；SQLite WAL 支持读写并发</span><span class="en" lang="en">Websites matched locally via window title + browser history (Chrome / Edge / Firefox), never online; SQLite WAL for concurrent reads</span></li>
+                </ul>
+                <p class="brief-tech">Python · Win32 API · SQLite</p>
               </article>
             </aside>
           </div>
@@ -528,17 +553,38 @@
               <div class="listen-block">
                 <p class="block-title"><span class="zh">常听类型</span><span class="en" lang="en">LISTENING</span></p>
                 <ul class="listen-list">
-                  <li><span class="zh">中文流行</span><span class="en" lang="en">Chinese Pop</span></li>
-                  <li><span class="zh">欧美流行</span><span class="en" lang="en">Western Pop</span></li>
-                  <li><span class="zh">另类音乐</span><span class="en" lang="en">Alternative</span></li>
-                  <li><span class="zh">电子音乐</span><span class="en" lang="en">Electronic</span></li>
+                  <li class="listen-item">
+                    <span class="listen-genre"><span class="zh">中文流行</span><span class="en" lang="en">Chinese Pop</span></span>
+                    <span class="listen-pick"><span class="zh">会呼吸的痛 · 梁静茹</span><span class="en" lang="en">会呼吸的痛 · Fish Leong</span></span>
+                  </li>
+                  <li class="listen-item">
+                    <span class="listen-genre"><span class="zh">欧美流行</span><span class="en" lang="en">Western Pop</span></span>
+                    <span class="listen-pick">Just Like Fire · P!nk</span>
+                  </li>
+                  <li class="listen-item">
+                    <span class="listen-genre"><span class="zh">另类音乐</span><span class="en" lang="en">Alternative</span></span>
+                    <span class="listen-pick">NIGHT DANCER · imase</span>
+                  </li>
+                  <li class="listen-item">
+                    <span class="listen-genre"><span class="zh">电子音乐</span><span class="en" lang="en">Electronic</span></span>
+                    <span class="listen-pick">CAROUSEL! · DEITIES / ASMODEUS</span>
+                  </li>
                 </ul>
               </div>
 
               <div class="listen-block">
                 <p class="block-title"><span class="zh">最近在听</span><span class="en" lang="en">CURRENTLY LISTENING</span></p>
-                <p class="listen-current">The Weeknd</p>
+                <ul class="listen-list listen-list--now">
+                  <li class="pick pick--now" data-track data-src="assets/audio/cha-tang.mp3" data-query="茶汤 郁可唯">
+                    <button class="pick-btn" type="button" data-pick-btn data-aria-zh="播放 茶汤 · 郁可唯" data-aria-en="Play 茶汤 · Yisa Yu">▶</button>
+                    <span class="pick-title"><span class="zh">茶汤<span class="pick-artist">郁可唯</span></span><span class="en" lang="en">茶汤<span class="pick-artist">Yisa Yu</span></span></span>
+                    <span class="pick-time" data-pick-time></span>
+                    <span class="pick-seek" data-pick-seek hidden><span class="pick-bar" data-pick-bar role="slider" tabindex="0" data-aria-zh="播放进度" data-aria-en="Playback position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="pick-fill" data-pick-fill></span><span class="pick-knob" data-pick-knob aria-hidden="true"></span></span></span>
+                  </li>
+                </ul>
               </div>
+
+              <audio id="hifi-audio" preload="none"></audio>
 
               <div class="spectrum" aria-hidden="true">
                 <span style="--h: 22%"></span><span style="--h: 46%"></span><span style="--h: 72%"></span>
@@ -645,6 +691,6 @@
       </section>
     </main>
 
-    <script src="script.js?v=20"></script>
+    <script src="script.js?v=21"></script>
   </body>
 </html>
