@@ -50,9 +50,10 @@ my-profile/
 
 所有文案都在 `index.html` 内，搜索对应标题即可修改：
 
-- 姓名与身份：`QIONGKURA`、`Electronic Information Engineering Student`
+- 姓名与身份：`QIONGKURA`、`电子信息工程专业学生`
 - 项目与链接：`work-row` 列表项，以及 `work-panel` 里的预览图
-- 联系方式：`mailto:` 链接
+- 联系方式：`.contact-row` 里的 `Personal`、`Academic / Work`、`GitHub` 三行
+- 听音偏好与设备：`.listen-list`（常听类型）和 `.gear-line`（我的设备：DX1ii、JT9、TitanX）
 - 技术栈：`stack-list`
 
 替换图片时保持文件名不变，或同步修改 `index.html` 中的 `src`。新增图片建议先转成 WebP 以控制体积。
