@@ -9,22 +9,23 @@ my-profile/
 ├── index.html   # 页面内容和结构
 ├── styles.css   # 响应式视觉样式
 ├── script.js    # 移动端菜单、滚动动画和导航高亮
+├── assets/
+│   └── avatar.jpg # 个人头像
 └── README.md    # 当前说明文件
 ```
 
-## 需要替换的内容
+## 当前内容
 
-打开 `index.html`，搜索并替换这些占位内容：
+网站已经替换为 Qiongkura 的个人信息：
 
-- `你的名字`：姓名或常用昵称
-- `YN`：头像占位字母
-- `独立开发者 · 设计与代码`：你的职业标签
-- 个人简介、技能、项目和经历
-- `hello@example.com`：你的邮箱
-- GitHub、LinkedIn、X 的链接
-- `远程 / 杭州`：你所在的城市或工作方式
+- 身份：华南农业大学电子信息工程大二学生 / vibe coder
+- 城市：广州
+- 项目：Focus-time-tracker、dsh-usage-plugin、BeamNG-autopilot
+- 联系方式：2447402326@qq.com、202534310330@stu.scau.edu.cn
+- GitHub：<https://github.com/Qiongkura>
+- 头像：`assets/avatar.jpg`
 
-网站暂时使用 CSS 生成头像占位图，不需要额外图片。之后可以把 `.avatar-placeholder` 替换成自己的头像图片。
+如果以后要修改内容，直接编辑 `index.html`，搜索对应的姓名、简介、项目或邮箱即可。头像文件替换时保持路径为 `assets/avatar.jpg`，或同步修改 HTML 中的 `src` 路径。
 
 ## 本地预览
 
