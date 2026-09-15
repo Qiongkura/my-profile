@@ -1087,92 +1087,92 @@ html[data-lang='en'] .zh { display: none !important; }
   .panel-foot-inner { min-height: 52px; }
 
   .kicker { font-size: 12px; }
-  .wordmark { font-size: clamp(150px, 9vw, 220px); margin-top: 22px; }
-  .display { font-size: clamp(88px, 5.6vw, 124px); margin-top: 16px; }
-  .subtitle { font-size: 14px; margin-top: 14px; }
-  .tagline { font-size: 14px; margin-top: 20px; }
-  .lede { font-size: clamp(26px, 1.5vw, 36px); margin-top: 22px; }
-  .theme-words { font-size: 12px; margin-top: 32px; }
+  .wordmark { font-size: clamp(135px, 8.1vw, 198px); margin-top: 20px; }
+  .display { font-size: clamp(79px, 5vw, 112px); margin-top: 14px; }
+  .subtitle { font-size: 13px; margin-top: 13px; }
+  .tagline { font-size: 13px; margin-top: 18px; }
+  .lede { font-size: clamp(23px, 1.35vw, 32px); margin-top: 20px; }
+  .theme-words { font-size: 12px; margin-top: 28px; }
 
   .frame figcaption { font-size: 12px; padding: 13px 16px; }
-  .frame--hero img { height: clamp(440px, 32vh, 620px); }
-  .frame--wide img { height: clamp(340px, 24vh, 460px); }
-  .frame--slides { --frame-h: clamp(400px, 28vh, 560px); }
-  .frame--portrait img { height: clamp(480px, 38vh, 700px); }
-  .frame--landscape img { height: clamp(280px, 20vh, 400px); }
+  .frame--hero img { height: clamp(530px, 35vh, 745px); }
+  .frame--wide img { height: clamp(400px, 27vh, 550px); }
+  .frame--slides { --frame-h: clamp(480px, 32vh, 670px); }
+  .frame--portrait img { height: clamp(560px, 42vh, 840px); }
+  .frame--landscape img { height: clamp(330px, 22vh, 480px); }
 
-  .project-head h3 { font-size: clamp(28px, 1.7vw, 40px); }
-  .project-desc { font-size: 17px; }
-  .project-quote { font-size: 16px; }
+  .project-head h3 { font-size: clamp(25px, 1.53vw, 36px); }
+  .project-desc { font-size: 15px; }
+  .project-quote { font-size: 14px; }
   .tech-line { font-size: 12px; }
   .hud { padding: 24px; }
   .hud-title, .hud-foot { font-size: 12px; }
   .hud-row { padding: 10px 0; }
   .hud-row dt { font-size: 12px; }
-  .hud-row dd { font-size: 14px; }
+  .hud-row dd { font-size: 13px; }
 
   .work-row { padding: clamp(18px, 2.3vh, 34px) 0; }
-  .work-num { font-size: 13px; }
-  .work-name { font-size: clamp(24px, 1.6vw, 34px); }
+  .work-num { font-size: 12px; }
+  .work-name { font-size: clamp(22px, 1.44vw, 31px); }
   .work-name em { font-size: 12px; }
-  .work-stage { min-height: clamp(320px, 32vh, 500px); }
+  .work-stage { min-height: clamp(370px, 35vh, 600px); }
   .diagram-title, .diagram-rows dt { font-size: 12px; }
-  .diagram-flow li { font-size: 14px; padding: 12px 15px; }
-  .diagram-rows dd { font-size: 14px; }
-  .diagram-big { font-size: clamp(30px, 2.2vw, 44px); }
+  .diagram-flow li { font-size: 13px; padding: 12px 15px; }
+  .diagram-rows dd { font-size: 13px; }
+  .diagram-big { font-size: clamp(27px, 2vw, 40px); }
 
-  .hifi-line { font-size: clamp(36px, 2.5vw, 54px); }
-  .hifi-note { font-size: 16px; margin: 6px 0 18px; }
-  .listen-list li { font-size: 16px; padding: 9px 0; }
-  .listen-current { font-size: clamp(26px, 1.7vw, 36px); }
+  .hifi-line { font-size: clamp(32px, 2.25vw, 49px); }
+  .hifi-note { font-size: 14px; margin: 6px 0 18px; }
+  .listen-list li { font-size: 14px; padding: 9px 0; }
+  .listen-current { font-size: clamp(23px, 1.53vw, 32px); }
   .listen-block { margin-bottom: 22px; }
   .block-title { font-size: 12px; margin-bottom: 14px; }
-  .waveform canvas { height: 128px; }
+  .waveform canvas { height: 140px; }
   .scale { font-size: 12px; margin: 12px 0 22px; }
-  .spectrum { height: 92px; }
+  .spectrum { height: 100px; }
 
   .avatar { width: 128px; height: 128px; }
-  .about-lead { font-size: clamp(24px, 1.5vw, 34px); }
-  .about-body { font-size: 16px; }
+  .about-lead { font-size: clamp(22px, 1.35vw, 31px); }
+  .about-body { font-size: 14px; }
   .keyword { padding: 18px 0; }
-  .keyword-title { font-size: 26px; }
+  .keyword-title { font-size: 23px; }
   .keyword-note { font-size: 12px; }
   .stack-list li { font-size: 12px; padding: 8px 13px; }
   .contact-row { padding: 11px 0; }
   .contact-key { font-size: 12px; }
-  .contact-link { font-size: 15px; }
+  .contact-link { font-size: 14px; }
 
   .meta-note, .panel-foot-inner { font-size: 12px; }
-  .nav-link { font-size: 14px; }
+  .nav-link { font-size: 13px; }
   .index-item { font-size: 12px; gap: 12px; }
   .index-line { width: 24px; }
   .index-item.is-active .index-line { width: 60px; }
 }
 
-/* 真正的大画布（4K 100% 缩放等）：再放开一档尺寸 */
+/* 真正的大画布（4K 100% 缩放等）：字号再降一档，图片再放开一档 */
 @media (min-width: 2400px) and (min-height: 1600px) {
   :root { --maxw: min(2120px, 88vw); }
 
-  .wordmark { font-size: clamp(220px, 9vw, 280px); }
-  .display { font-size: clamp(124px, 5.6vw, 150px); }
-  .lede { font-size: clamp(36px, 1.5vw, 46px); }
+  .wordmark { font-size: clamp(198px, 8.1vw, 252px); }
+  .display { font-size: clamp(112px, 5vw, 135px); }
+  .lede { font-size: clamp(32px, 1.35vw, 41px); }
 
-  .frame--hero img { height: clamp(620px, 34vh, 800px); }
-  .frame--wide img { height: clamp(460px, 24vh, 560px); }
-  .frame--slides { --frame-h: clamp(560px, 28vh, 700px); }
-  .frame--portrait img { height: clamp(700px, 38vh, 880px); }
-  .frame--landscape img { height: clamp(400px, 20vh, 500px); }
+  .frame--hero img { height: clamp(745px, 40vh, 960px); }
+  .frame--wide img { height: clamp(550px, 29vh, 670px); }
+  .frame--slides { --frame-h: clamp(670px, 33vh, 840px); }
+  .frame--portrait img { height: clamp(840px, 45vh, 1055px); }
+  .frame--landscape img { height: clamp(480px, 24vh, 600px); }
 
-  .hifi-line { font-size: clamp(54px, 2.5vw, 68px); }
-  .listen-list li { font-size: 18px; }
-  .listen-current { font-size: clamp(36px, 1.7vw, 44px); }
-  .waveform canvas { height: 160px; }
-  .spectrum { height: 120px; }
+  .hifi-line { font-size: clamp(49px, 2.25vw, 61px); }
+  .listen-list li { font-size: 16px; }
+  .listen-current { font-size: clamp(32px, 1.53vw, 40px); }
+  .waveform canvas { height: 180px; }
+  .spectrum { height: 140px; }
 
-  .work-name { font-size: clamp(34px, 1.6vw, 42px); }
-  .work-stage { min-height: clamp(500px, 32vh, 640px); }
-  .project-head h3 { font-size: clamp(40px, 1.7vw, 48px); }
-  .about-lead { font-size: clamp(34px, 1.5vw, 42px); }
+  .work-name { font-size: clamp(31px, 1.44vw, 38px); }
+  .work-stage { min-height: clamp(600px, 36vh, 770px); }
+  .project-head h3 { font-size: clamp(36px, 1.53vw, 43px); }
+  .about-lead { font-size: clamp(31px, 1.35vw, 38px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
