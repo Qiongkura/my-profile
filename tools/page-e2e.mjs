@@ -70,11 +70,15 @@ function check(label, ok, detail = '') {
 /**
  * 起一个跑着真实页面的 jsdom。
  * @param {string} search 页面 URL 的 query，例如 '?api=off'
- * @param {{ apiDead?: boolean, riskControl?: boolean }} [options]
+ * @param {{ apiDead?: boolean, riskControl?: number|'always' }} [options]
  *   apiDead     模拟「functions/ 还没被 Cloudflare 识别到」
- *   riskControl 模拟「网易云风控」：解析接口回 429 + 中文说明
+ *   riskControl 模拟「网易云风控」：解析接口回 429 + 中文说明。
+ *               数字 = 前 N 次被拦；'always' = 一直拦
+ * @returns {object} jsdom 实例，额外挂了 .riskHits（被拦了几次）
  */
 function bootPage(search, options = {}) {
+  let riskHits = 0;
+
   const dom = new JSDOM(html, {
     url: `${ORIGIN}/netease/${search}`,
     runScripts: 'outside-only',
@@ -104,19 +108,26 @@ function bootPage(search, options = {}) {
     }
 
     // 风控只影响解析接口，体检照常通过 —— 这样才能测出「后端是好的，只是这次被拦了」
+    //
+    // riskControl 传数字 = 前 N 次被拦、之后放行（用来验证客户端会自动换新请求重试）；
+    // 传 'always' = 一直拦（用来验证重试用尽后给用户的提示）。
     if (options.riskControl && !/\/health(\?|$)/.test(absolute)) {
-      return Promise.resolve(
-        new Response(
-          JSON.stringify({
-            code: 429,
-            message:
-              '网易云风控拦截（-462）：这次请求的出口 IP 被网易临时标记了，跟链接本身没关系。' +
-              '过几秒再点一次解析通常就好了 —— 每次请求走的是不同的边缘节点。',
-            upstream: { code: -462 },
-          }),
-          { status: 429, headers: { 'content-type': 'application/json; charset=utf-8' } },
-        ),
-      );
+      riskHits += 1;
+      const stillBlocked = options.riskControl === 'always' || riskHits <= Number(options.riskControl);
+      if (stillBlocked) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              code: 429,
+              message:
+                '网易云风控拦截（-462）：这次请求的出口 IP 被网易临时标记了，跟链接本身没关系。' +
+                '过几秒再点一次解析通常就好了 —— 每次请求走的是不同的边缘节点。',
+              upstream: { code: -462 },
+            }),
+            { status: 429, headers: { 'content-type': 'application/json; charset=utf-8' } },
+          ),
+        );
+      }
     }
 
     return pagesOnRequest({ request, env: {} });
@@ -127,6 +138,8 @@ function bootPage(search, options = {}) {
 
   // 页面自己的内联脚本（head 里那段语言初始化 + body 末尾的页面逻辑）
   for (const code of INLINE) window.eval(code);
+
+  Object.defineProperty(dom, 'riskHits', { get: () => riskHits });
 
   return dom;
 }
@@ -234,15 +247,37 @@ console.log(bold('\n[3] 内置代理没部署好 → 自动退回离线，不弹
 
 /* ------------------------------------------------- 4. 风控 429 要能看懂 */
 
-console.log(bold('\n[4] 网易云风控（429）→ 页面要显示中文原因，不能只甩一个状态码'));
+console.log(bold('\n[4] 网易云风控（429）→ 客户端会自动换新请求重试，救得回来就不打扰用户'));
 
 {
-  const dom = bootPage('?u=https://music.163.com/%23/song?id=186016', { riskControl: true });
-  await wait(6000);
+  // 前 2 次被拦、第 3 次放行。
+  // 这模拟的是线上的真实情况：风控按出口 IP 判，同一个请求里重试没用，
+  // 但换一个新请求（新的 HTTP 往返 → Cloudflare 重新选节点）就等于重新抽签。
+  const dom = bootPage('?u=https://music.163.com/%23/song?id=186016', { riskControl: 2 });
+  await wait(9000);
   const { document } = dom.window;
 
   const status = document.getElementById('np-status');
   check('体检仍然通过（后端本身是好的）', status?.getAttribute('data-state') === 'ok', `state=${status?.getAttribute('data-state')}`);
+
+  // riskHits 数的是「一共打了几次」，所以 2 次被拦 + 1 次成功 = 3
+  check('确实发了 3 个请求（前 2 次被拦）', dom.riskHits === 3, `riskHits=${dom.riskHits}`);
+
+  // 重试救回来了 → 应该是正常卡片，不该出现报错卡
+  const card = document.querySelector('#np-result .nmp-card--song');
+  check('重试之后解析成功', Boolean(card), document.querySelector('#np-result .nmp-card--error') ? '出现了报错卡' : '没有卡片');
+  check('标题是晴天', card?.querySelector('.nmp-title')?.textContent?.trim() === '晴天', card?.querySelector('.nmp-title')?.textContent);
+  check('没有报错块', !document.querySelector('#np-result .nmp-card--error'));
+
+  dom.window.close();
+}
+
+console.log(bold('\n[4b] 风控一直不放行 → 报错卡要说清「已经自动试过几次」'));
+
+{
+  const dom = bootPage('?u=https://music.163.com/%23/song?id=186016', { riskControl: 'always' });
+  await wait(12000);
+  const { document } = dom.window;
 
   // 插件渲染的是 .nmp-card--error，原因写在 .nmp-sub 里。
   // 别找 .nmp-error —— 那个类名不存在（踩过一次）。
@@ -251,7 +286,8 @@ console.log(bold('\n[4] 网易云风控（429）→ 页面要显示中文原因�
   check('出现了报错卡', Boolean(errCard), errText.slice(0, 40));
   check('带上了代理给的中文说明', /风控/.test(errText), errText.slice(0, 110));
   check('不是光秃秃一个状态码', !/^接口返回 HTTP 429$/.test(errText), errText.slice(0, 70));
-  check('提示了「再点一次」', /再点|重试/.test(errText), errText.slice(0, 110));
+  check('说明已经自动重试过', /自动换新请求重试/.test(errText), errText.slice(0, 130));
+  check('默认一共发了 3 个请求（1 + 2 次重试）', dom.riskHits === 3, `riskHits=${dom.riskHits}`);
 
   dom.window.close();
 }

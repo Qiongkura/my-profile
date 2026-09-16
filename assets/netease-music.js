@@ -21,6 +21,7 @@ var NeteaseMusic = (() => {
   // src/index.js
   var index_exports = {};
   __export(index_exports, {
+    DEFAULT_RISK_RETRIES: () => DEFAULT_RISK_RETRIES,
     NeteaseApiError: () => NeteaseApiError,
     OFFICIAL_BASE: () => OFFICIAL_BASE,
     RESOURCE_TYPES: () => RESOURCE_TYPES,
@@ -34,6 +35,7 @@ var NeteaseMusic = (() => {
     formatDuration: () => formatDuration,
     getDefaultClient: () => getDefaultClient,
     injectStyles: () => injectStyles,
+    isRiskControlResponse: () => isRiskControlResponse,
     load: () => load,
     looksLikeShare: () => looksLikeShare,
     mount: () => mount,
@@ -98,6 +100,9 @@ var NeteaseMusic = (() => {
     if (typeof artists === "string") return artists.trim() || "\u672A\u77E5\u6B4C\u624B";
     if (!Array.isArray(artists) || artists.length === 0) return "\u672A\u77E5\u6B4C\u624B";
     return artists.map((a) => typeof a === "string" ? a : a == null ? void 0 : a.name).filter(Boolean).join(" / ") || "\u672A\u77E5\u6B4C\u624B";
+  }
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   // src/parser.js
@@ -385,6 +390,16 @@ var NeteaseMusic = (() => {
 
   // src/api.js
   var OFFICIAL_BASE = "https://music.163.com";
+  var DEFAULT_RISK_RETRIES = 2;
+  var RISK_RETRY_BASE_DELAY = 350;
+  function isRiskControlResponse(status, data) {
+    var _a;
+    if (data && typeof data === "object") {
+      if (data.code === -462) return true;
+      if (((_a = data.data) == null ? void 0 : _a.verifyType) || data.verifyType) return true;
+    }
+    return status === 429;
+  }
   var NeteaseApiError = class extends Error {
     constructor(message, { status = 0, body = null, url = "" } = {}) {
       super(message);
@@ -395,17 +410,20 @@ var NeteaseMusic = (() => {
     }
   };
   function createClient(options = {}) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     const apiBase = ((_a = options.apiBase) != null ? _a : "").replace(/\/+$/, "");
     const timeout = (_b = options.timeout) != null ? _b : 1e4;
     const customFetch = options.fetch;
     const extraHeaders = options.headers || {};
+    const riskRetries = Math.max(0, Number((_c = options.riskRetries) != null ? _c : DEFAULT_RISK_RETRIES) || 0);
+    const riskRetryDelay = Math.max(0, Number((_d = options.riskRetryDelay) != null ? _d : RISK_RETRY_BASE_DELAY) || 0);
+    const onRiskRetry = typeof options.onRiskRetry === "function" ? options.onRiskRetry : null;
     function resolveFetch() {
       if (customFetch) return customFetch;
       if (typeof globalThis.fetch === "function") return globalThis.fetch.bind(globalThis);
       throw new NeteaseApiError("\u5F53\u524D\u73AF\u5883\u6CA1\u6709 fetch\uFF0C\u8BF7\u6CE8\u5165 options.fetch");
     }
-    async function send(url, init) {
+    async function sendOnce(url, init) {
       const controller = typeof AbortController === "function" ? new AbortController() : null;
       const timer = controller ? setTimeout(() => controller.abort(), timeout) : null;
       let res;
@@ -444,6 +462,34 @@ var NeteaseMusic = (() => {
       }
       return data;
     }
+    async function send(url, init) {
+      let lastErr = null;
+      for (let attempt = 0; attempt <= riskRetries; attempt++) {
+        try {
+          return await sendOnce(url, init);
+        } catch (err) {
+          const risk = err instanceof NeteaseApiError && isRiskControlResponse(err.status, err.body);
+          if (!risk) throw err;
+          lastErr = err;
+          if (attempt >= riskRetries) break;
+          if (onRiskRetry) {
+            try {
+              onRiskRetry(attempt + 1, riskRetries, err);
+            } catch {
+            }
+          }
+          await sleep(riskRetryDelay * (attempt + 1) + Math.random() * 250);
+        }
+      }
+      if (riskRetries > 0 && lastErr) {
+        throw new NeteaseApiError(`${lastErr.message}\uFF08\u5DF2\u81EA\u52A8\u6362\u65B0\u8BF7\u6C42\u91CD\u8BD5 ${riskRetries} \u6B21\u90FD\u6CA1\u8FC7\uFF09`, {
+          status: lastErr.status,
+          body: lastErr.body,
+          url: lastErr.url
+        });
+      }
+      throw lastErr;
+    }
     function get(path, params = {}) {
       const query = buildQuery(params);
       const url = `${apiBase || OFFICIAL_BASE}${path}${query ? `?${query}` : ""}`;
@@ -457,7 +503,7 @@ var NeteaseMusic = (() => {
         body: JSON.stringify(body)
       });
     }
-    const adapterOption = (_c = options.adapter) != null ? _c : "official";
+    const adapterOption = (_e = options.adapter) != null ? _e : "official";
     let impl;
     if (typeof adapterOption === "function") {
       impl = adapterOption({ get, post, apiBase });
@@ -473,6 +519,7 @@ var NeteaseMusic = (() => {
     return {
       apiBase: apiBase || OFFICIAL_BASE,
       adapter: impl.name || String(adapterOption),
+      riskRetries,
       get,
       post,
       ...impl
@@ -1384,7 +1431,14 @@ var NeteaseMusic = (() => {
       apiBase: options.apiBase,
       adapter: options.adapter,
       adapterOptions: options.adapterOptions,
-      fetch: options.fetch
+      fetch: options.fetch,
+      riskRetries: options.riskRetries,
+      riskRetryDelay: options.riskRetryDelay,
+      // 撞风控时默认在骨架屏里提示一句，不然用户只会看到它卡在那里
+      onRiskRetry: options.onRiskRetry || ((attempt, total) => {
+        if (el.dataset.nmpState !== "loading") return;
+        showNotice(el, `\u7F51\u6613\u4E91\u98CE\u63A7\u62E6\u4E86\u4E00\u4E0B\uFF0C\u6B63\u5728\u6362\u4E2A\u8282\u70B9\u91CD\u8BD5\uFF08${attempt}/${total}\uFF09`, 2500);
+      })
     }) : getDefaultClient());
     const src = (_d = (_c = (_b = options.src) != null ? _b : el.dataset.netease) != null ? _c : el.textContent) != null ? _d : "";
     renderSkeleton(el);
@@ -1533,7 +1587,8 @@ var NeteaseMusic = (() => {
     RESOURCE_TYPES,
     normalize: normalize_exports,
     ADAPTERS,
-    NeteaseApiError
+    NeteaseApiError,
+    isRiskControlResponse
   };
   var index_default = NeteaseMusic;
   return __toCommonJS(index_exports);
