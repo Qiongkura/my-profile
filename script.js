@@ -275,6 +275,12 @@
   /* --------------------------------------------------------- 进入视口动画 */
 
   const revealItems = Array.from(doc.querySelectorAll('.reveal'));
+  revealItems.forEach((item) => {
+    const panel = item.closest('.panel');
+    const siblings = panel ? Array.from(panel.querySelectorAll('.reveal')) : revealItems;
+    const order = Math.min(siblings.indexOf(item), 4);
+    item.style.setProperty('--reveal-delay', `${Math.max(0, order) * 70}ms`);
+  });
   if ('IntersectionObserver' in window) {
     const revealer = new IntersectionObserver(
       (entries, observer) => {
@@ -348,22 +354,24 @@
 
     showWork(0);
 
-    /* ------------------------------------------ 作品简介：悬停 2 秒后展开 */
+    /* ------------------------------------------ 作品简介：悬停 1 秒后展开 */
 
     const works = doc.querySelector('.works');
     const workList = doc.querySelector('.work-list');
     const workBrief = doc.querySelector('#work-brief');
     const stacked = window.matchMedia('(max-width: 900px), (max-width: 1180px) and (orientation: portrait)');
-    const DWELL = 2000;
+    const DWELL = 500;
 
     if (works && workList && workBrief) {
       let timer = null;
       let opened = -1;
-      let measured = false;
 
-      /* 左栏收到「最长文字 + 箭头」的宽度，剩下的宽度六成给模块、四成给简介 */
+      /* 左栏宽度取「所有项目里最宽的文字」，只算一次（载入 / 字体就绪 / 窗口变化），
+         悬停不再重算：这样不管悬停哪个项目，右侧图片模块都停在同一个位置，
+         既不会来回漂移，也不会压到文字或让小字换行。 */
       const measure = () => {
         const gap = parseFloat(window.getComputedStyle(works).columnGap) || 0;
+        const openGap = parseFloat(window.getComputedStyle(works).getPropertyValue('--works-gap-open')) || gap;
         const total = works.clientWidth;
         const avail = Math.max(0, total - gap);
         const idle = Math.round(avail * 0.525);
@@ -372,25 +380,39 @@
         const wasOpen = works.classList.contains('is-open');
         if (wasOpen) works.classList.remove('is-open');
 
-        /* 量文字本身而不是元素盒子：元素盒子会被拉伸满栏，量不出真实文字宽度 */
-        const listLeft = workList.getBoundingClientRect().left;
+        /* 网格行的 scrollWidth 是「盒子宽度」不是内容宽度，所以要显式相加：
+           编号列 + 两处间距 + 文字的最大内容宽度 + 箭头宽度。 */
+        workList.classList.add('is-measuring');
         const range = doc.createRange();
-        let textRight = 0;
-        workList.querySelectorAll('.work-num, .work-name').forEach((el) => {
-          const walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-          let node = walker.nextNode();
-          while (node) {
-            if (node.nodeValue && node.nodeValue.trim()) {
-              range.selectNodeContents(node);
-              const rect = range.getBoundingClientRect();
-              if (rect.width) textRight = Math.max(textRight, rect.right - listLeft);
+        let content = 0;
+        workRows.forEach((row) => {
+          const num = row.querySelector('.work-num');
+          const arrow = row.querySelector('.work-arrow');
+          const gap = parseFloat(window.getComputedStyle(row).columnGap) || 0;
+          let widest = 0;
+          [row.querySelector('.work-title'), row.querySelector('.work-name em')].forEach((el) => {
+            if (!el) return;
+            const walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+            let node = walker.nextNode();
+            while (node) {
+              if (node.nodeValue && node.nodeValue.trim()) {
+                range.selectNodeContents(node);
+                const rect = range.getBoundingClientRect();
+                if (rect.width) widest = Math.max(widest, rect.width);
+              }
+              node = walker.nextNode();
             }
-            node = walker.nextNode();
-          }
+          });
+          const numW = num ? num.getBoundingClientRect().width : 0;
+          const arrowW = arrow ? arrow.getBoundingClientRect().width : 0;
+          content = Math.max(content, numW + gap + widest + gap + arrowW);
         });
+        workList.classList.remove('is-measuring');
 
-        const hug = Math.round(Math.min(textRight + 56, idle));
-        const rest = Math.max(0, total - gap * 2 - hug);
+        /* 再补悬停时该行的 11px 右移 + 12px 呼吸位：
+           保证不换行、不压字，且不管悬停哪个项目图片模块位置都一样 */
+        const hug = Math.round(Math.min(content + 11 + 12, idle));
+        const rest = Math.max(0, total - openGap * 2 - hug);
         /* 矮窗口里简介窄了会不停换行、把章节顶超一屏，所以让它占宽一些 */
         const share = window.matchMedia('(max-height: 820px)').matches ? 0.62 : 0.44;
         works.style.setProperty('--list-w-hug', hug + 'px');
@@ -416,10 +438,6 @@
       workRows.forEach((row, index) => {
         row.addEventListener('mouseenter', () => {
           window.clearTimeout(timer);
-          if (!measured) {
-            measure();          /* 提前到悬停瞬间量，远离 2 秒后的动画，避免动画起步时强制重排 */
-            measured = true;
-          }
           timer = window.setTimeout(() => open(index), DWELL);
         });
         row.addEventListener('mouseleave', () => {
@@ -442,17 +460,20 @@
       const relayout = () => {
         if (stacked.matches) {
           close();
-          measured = false;
         } else {
           measure();
-          measured = true;
         }
       };
       window.addEventListener('resize', relayout);
       if (stacked.addEventListener) stacked.addEventListener('change', relayout);
 
       measure();
-      measured = true;
+      /* 首屏测量可能早于网页字体加载完成，字体就绪后按当前状态再量一次，避免第一次悬停偏窄 */
+      if (doc.fonts && doc.fonts.ready && typeof doc.fonts.ready.then === 'function') {
+        doc.fonts.ready.then(() => {
+          if (!stacked.matches) measure();
+        });
+      }
     }
   }
 

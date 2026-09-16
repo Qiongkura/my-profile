@@ -38,7 +38,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--sans);
-  clamp(13px, calc(1.36 * var(--u)), 88px): 13px;
+  font-size: 13px;
   line-height: 1.7;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -48,7 +48,7 @@ img { max-width: 100%; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; }
 h1, h2, h3, p, dl, dd, figure { margin: 0; }
-ul, ol { margin: 0; calc(1.0 * var(--u)) 0: 0; list-style: none; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
 :focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
 
 .wrap {
@@ -358,12 +358,21 @@ html[data-lang='en'] .zh { display: none !important; }
 
 .frame {
   background: var(--white);
-  border: 1px solid var(--line); --frame-h: clamp(110px, min(21vh, 24vw), 900px); }
+  border: 1px solid var(--line);
+  overflow: hidden;
+  --frame-h: clamp(110px, min(21vh, 24vw), 900px);
+  transition: transform .5s var(--ease), box-shadow .5s var(--ease); }
 .frame img {
   display: block;
   width: 100%;
   object-fit: cover;
 }
+.frame:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 34px rgba(17, 17, 17, .07);
+}
+.frame img { transition: transform .75s var(--ease); }
+.frame:hover img { transform: scale(1.012); }
 .frame figcaption {
   display: flex;
   align-items: center;
@@ -383,6 +392,11 @@ html[data-lang='en'] .zh { display: none !important; }
 .frame img { height: var(--frame-h); }
 .frame--soft img { filter: saturate(.94); }
 
+/* 图注整体是等宽英文排版，但等宽字体栈没有中文字形，
+   中文会回落到系统字体、11px 下显得比英文粗一圈。
+   这里让图注里的中文改用站点加载的 Noto Sans SC，保持同样的细度。 */
+.frame figcaption .zh { font-family: var(--sans); }
+
 /* 赛车章节的图片轮播 */
 .slides {
   position: relative;
@@ -397,7 +411,7 @@ html[data-lang='en'] .zh { display: none !important; }
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity .55s var(--ease);
+  transition: opacity .55s var(--ease), transform .75s var(--ease);
 }
 .slides .slide.is-active { opacity: 1; }
 
@@ -408,21 +422,36 @@ html[data-lang='en'] .zh { display: none !important; }
 /* HI-FI 媒体区：左侧竖图通栏，右侧横图 + 项目信息 */
 .hifi-media {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
+  grid-template-columns: minmax(0, .42fr) minmax(0, .58fr);
+  align-items: stretch;
   gap: clamp(9px, 1.4vw, 15px);
   margin-top: 3px;
 }
 .hifi-media-right { display: flex; flex-direction: column; }
 
-/* 竖图高度跟随视口高度自适应，宽度按 3:4 比例自动得出 */
-.frame--portrait { display: flex; flex-direction: column; }
+/* 竖图铺满左栏：高度跟右栏（图片 + 小字）等高，宽度占左栏整宽，
+   照片用 cover 裁切填满，周围不留白边；图注叠在照片底部 */
+.frame--portrait {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 100%;
+  border: 0;
+  background: none;
+}
 .frame--portrait img {
-  width: auto;
-  height: clamp(190px, min(39vh, 26vw), 1400px);
-  aspect-ratio: 3 / 4;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  align-self: flex-start;
+}
+.frame--portrait figcaption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-top: 0;
+  /* 不透明白：之前的半透明白 + blur 会被照片底部暖色染成橙/奶油色 */
+  background: var(--white);
 }
 .frame--landscape img { height: clamp(100px, min(23vh, 30vw), 800px); }
 
@@ -480,17 +509,24 @@ html[data-lang='en'] .zh { display: none !important; }
   width: 2px;
   height: 41px;
   background: var(--red);
-  transform: skewX(-16deg);
+  transform: skewX(-16deg) scaleY(.7);
   transform-origin: bottom;
-  animation: speed-sweep 3.6s var(--ease) infinite;
+  opacity: .45;
+  transition: opacity .35s var(--ease), transform .5s var(--ease);
 }
-.speedlines span:nth-child(2) { height: 29px; animation-delay: .25s; }
-.speedlines span:nth-child(3) { height: 18px; animation-delay: .5s; }
-
-@keyframes speed-sweep {
-  0%, 100% { transform: skewX(-16deg) scaleY(.55); opacity: .55; }
-  50% { transform: skewX(-16deg) scaleY(1); opacity: 1; }
+.speedlines span:nth-child(2) { height: 29px; }
+.speedlines span:nth-child(3) { height: 18px; }
+.home-visual:hover .speedlines span,
+.home-visual:focus-within .speedlines span {
+  transform: skewX(-16deg) scaleY(1);
+  opacity: .9;
 }
+.home-visual:hover .speedlines span:nth-child(1),
+.home-visual:focus-within .speedlines span:nth-child(1) { transition-delay: 0s; }
+.home-visual:hover .speedlines span:nth-child(2),
+.home-visual:focus-within .speedlines span:nth-child(2) { transition-delay: .08s; }
+.home-visual:hover .speedlines span:nth-child(3),
+.home-visual:focus-within .speedlines span:nth-child(3) { transition-delay: .16s; }
 
 .scroll-cue {
   display: inline-flex;
@@ -612,28 +648,42 @@ html[data-lang='en'] .zh { display: none !important; }
   --list-w-hug: 34%;
   --brief-w: 0px;
   --works-gap: clamp(21px, 4vw, 53px);
+  --works-gap-open: clamp(6px, .6vw, 10px);
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: var(--works-gap);
+  transition: gap .5s var(--ease);
   margin-top: clamp(12px, 2.6vh, 29px);
 }
 
 .work-list {
   flex: 0 0 auto;
   width: var(--list-w-idle);
+  min-width: 0;
   transition: width .62s var(--ease);
   border-top: 1px solid var(--line);
 }
 
-/* 悬停 2 秒后：左栏收到文字宽度，预览模块左移贴住文字，右侧腾出的位置显示简介 */
+.works.is-open {
+  gap: var(--works-gap-open);
+}
 .works.is-open .work-list { width: var(--list-w-hug); }
 .work-list li { border-bottom: 1px solid var(--line); }
+
+/* 测量专用：临时去掉悬停位移、强制单行满宽，
+   否则量到的宽度会随当时栏宽（换行与否）变化，来回悬停会一路漂移 */
+.work-list.is-measuring .work-row { padding-left: 0; }
+.work-list.is-measuring .work-name em {
+  white-space: nowrap;
+  width: max-content;
+}
 
 .work-row {
   display: grid;
   grid-template-columns: 35px minmax(0, 1fr) auto;
   align-items: baseline;
   gap: 12px;
+  min-width: 0;
   padding: calc(1.08 * var(--u)) 0;
   transition: padding-left .35s var(--ease);
 }
@@ -647,6 +697,7 @@ html[data-lang='en'] .zh { display: none !important; }
 .work-name {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   gap: 4px;
   font-size: clamp(13px, min(calc(1.08 * var(--u)), 1.7vw), 70px);
   font-weight: 600;
@@ -658,6 +709,7 @@ html[data-lang='en'] .zh { display: none !important; }
   font-size: 11px;
   font-weight: 400;
   letter-spacing: .04em;
+  line-height: 1.45;
   color: var(--ink-3);
 }
 .work-arrow {
@@ -763,21 +815,26 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
   inset: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   opacity: 0;
   transition: opacity .45s var(--ease);
 }
 .work-panel.is-active { opacity: 1; }
 .work-panel img {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 0;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  object-fit: contain;
+  background: var(--bg-warm);
 }
 .work-panel figcaption {
+  position: relative;
+  z-index: 1;
   flex: 0 0 auto;
   padding: 8px 11px;
   border-top: 1px solid var(--line-2);
+  background: var(--white);
   font-family: var(--mono);
   font-size: 11px;
   letter-spacing: .06em;
@@ -788,7 +845,9 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* 屏幕使用时间那两张图上下堆叠，不并排 */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 1fr 1fr;
   gap: 1px;
   background: var(--line);
 }
@@ -796,7 +855,8 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
   width: 100%;
   height: 100%;
   min-height: 0;
-  object-fit: cover;
+  object-fit: contain;
+  background: var(--bg-warm);
 }
 
 .diagram {
@@ -861,10 +921,13 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
   background: var(--ink);
   opacity: .85;
   transform-origin: bottom;
-  animation: bar-breathe 3.4s var(--ease) infinite alternate;
 }
-.bars span:nth-child(2n) { animation-delay: .5s; }
-.bars span:nth-child(3n) { animation-delay: .9s; }
+.diagram:hover .bars span,
+.diagram:focus-within .bars span { animation: bar-breathe 1.2s var(--ease) 1; }
+.diagram:hover .bars span:nth-child(2n),
+.diagram:focus-within .bars span:nth-child(2n) { animation-delay: .08s; }
+.diagram:hover .bars span:nth-child(3n),
+.diagram:focus-within .bars span:nth-child(3n) { animation-delay: .16s; }
 @keyframes bar-breathe { from { transform: scaleY(.6); } to { transform: scaleY(1); } }
 
 /* ----------------------------------------------------------------- hifi */
@@ -1304,9 +1367,8 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
 }
 .contact-link:hover { color: var(--red); }
 
-/* --------------------------------------------------------------- reveal */
-
-.reveal { transition: opacity .7s var(--ease), transform .7s var(--ease); }
+/* 动效都服务于操作反馈：入场、hover、播放，不做无意义的全屏循环 */
+.reveal { transition: opacity .7s var(--ease), transform .7s var(--ease); transition-delay: var(--reveal-delay, 0ms); }
 .js .reveal { opacity: 0; transform: translateY(14px); }
 .js .reveal.is-visible { opacity: 1; transform: none; }
 
@@ -1321,7 +1383,6 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
   .frame { --frame-h: clamp(90px, min(17vh, 21vw), 600px); }
   .frame--hero { --frame-h: clamp(100px, min(38vh, 35vw), 800px); }
   .frame--slides { --frame-h: clamp(110px, min(26vh, 37vw), 700px); }
-  .frame--portrait img { height: clamp(150px, min(29vh, 22vw), 900px); }
   .frame--landscape img { height: clamp(80px, min(17vh, 24vw), 560px); }
   .work-stage { min-height: clamp(140px, min(26vh, 32vw), 700px); }
   .keyword { padding: calc(0.88 * var(--u)) 0; }
@@ -1462,6 +1523,8 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
   .bars span,
   .spectrum span { animation: none; }
   .lyrics,
+  .frame,
+  .frame img,
   .spectrum span,
   .scale-live,
   .work-panel,
