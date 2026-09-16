@@ -687,10 +687,16 @@
 
     let playing = null;
 
-    /* 音量：默认 80%，改动写进 localStorage，下次打开还是这个音量 */
-    const VOLUME_KEY = 'qiongkura-volume';
-    const VOLUME_DEFAULT = 0.8;
-    let lastVolume = VOLUME_DEFAULT;
+    /* 音量：滑块存的是「位置」，实际增益走平方映射。
+       线性映射下 50% 位置只有 −6dB，对响度做满的流行母带依旧很吵；
+       平方后 50% ≈ −12dB、25% ≈ −24dB，低音量段手感也更细。
+       位置 100% 才等于文件原始电平。改动写进 localStorage。 */
+    const VOLUME_KEY = 'qiongkura-volume-v2';
+    const VOLUME_DEFAULT = 0.5;
+    let currentPosition = VOLUME_DEFAULT;
+    let lastPosition = VOLUME_DEFAULT;
+
+    const gainFromPosition = (position) => position * position;
 
     const readVolume = () => {
       try {
@@ -702,17 +708,21 @@
       return VOLUME_DEFAULT;
     };
 
-    const paintVolume = (value) => {
-      const percent = `${(value * 100).toFixed(0)}%`;
+    const paintVolume = (position) => {
+      const percent = `${(position * 100).toFixed(1)}%`;
+      const gain = gainFromPosition(position);
+      const decibels = position <= 0 ? '-∞' : String(Math.round(20 * Math.log10(gain)));
       tracks.forEach((track) => {
         if (!track.volBar) return;
         track.volFill.style.width = percent;
         track.volKnob.style.left = percent;
-        track.volBar.setAttribute('aria-valuenow', String(Math.round(value * 100)));
-        track.row.classList.toggle('is-muted', value === 0);
+        track.volBar.setAttribute('aria-valuenow', String(Math.round(position * 100)));
+        track.volBar.setAttribute('aria-valuetext', position <= 0 ? '静音' : `${decibels} dB`);
+        track.volBar.setAttribute('title', position <= 0 ? '静音' : `${Math.round(position * 100)}% · ${decibels} dB`);
+        track.row.classList.toggle('is-muted', position === 0);
         if (track.volBtn) {
-          const zh = value === 0 ? '恢复音量' : '静音';
-          const en = value === 0 ? 'Unmute' : 'Mute';
+          const zh = position === 0 ? '恢复音量' : '静音';
+          const en = position === 0 ? 'Unmute' : 'Mute';
           track.volBtn.setAttribute('data-aria-zh', zh);
           track.volBtn.setAttribute('data-aria-en', en);
           track.volBtn.setAttribute('aria-label', root.getAttribute('data-lang') === 'en' ? en : zh);
@@ -720,10 +730,11 @@
       });
     };
 
-    const setVolume = (value, persist) => {
-      const clamped = Math.min(1, Math.max(0, value));
-      hifiAudio.volume = clamped;
-      if (clamped > 0) lastVolume = clamped;
+    const setVolume = (position, persist) => {
+      const clamped = Math.min(1, Math.max(0, position));
+      hifiAudio.volume = gainFromPosition(clamped);
+      currentPosition = clamped;
+      if (clamped > 0) lastPosition = clamped;
       paintVolume(clamped);
       if (persist !== false) {
         try {
@@ -866,7 +877,7 @@
 
       if (track.volBtn) {
         track.volBtn.addEventListener('click', () => {
-          setVolume(hifiAudio.volume > 0 ? 0 : lastVolume || VOLUME_DEFAULT);
+          setVolume(currentPosition > 0 ? 0 : lastPosition || VOLUME_DEFAULT);
         });
       }
 
@@ -877,7 +888,7 @@
           event.preventDefault();
           if (step === -Infinity) setVolume(0);
           else if (step === Infinity) setVolume(1);
-          else setVolume(hifiAudio.volume + step * 0.05);
+          else setVolume(currentPosition + step * 0.05);
         });
       }
 
