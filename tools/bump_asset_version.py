@@ -41,6 +41,25 @@ def bump(text: str, version: int) -> str:
     return text
 
 
+def current_version(pages: list[Path]) -> int:
+    """两页里目标资源的版本号，取**最大值**。
+
+    为什么不是「以主页为准」：两页有可能被单独升过（比如只改了网易云页、
+    顺手只升了它），这时候主页的号是**落后**的。按主页 +1 会把另一页的号
+    降回去，而那个 URL 浏览器早就缓存过旧内容了 —— 降号等于让人继续看旧 JS，
+    正好是这脚本要防的事。（2026-09-16 真踩到：netease 页 v=41 被降成 v=39。）
+
+    只统计 TARGETS，别把图片那种独立版本号（`hifi-gear-01.webp?v=2`）算进来。
+    """
+    highest = 0
+    for path in pages:
+        text = path.read_text(encoding="utf-8")
+        for name in TARGETS:
+            for match in re.finditer(rf"{re.escape(name)}\?v=(\d+)", text):
+                highest = max(highest, int(match.group(1)))
+    return highest
+
+
 def main() -> int:
     force = "--force" in sys.argv
     pages = [path for path in PAGES if path.exists()]
@@ -48,10 +67,8 @@ def main() -> int:
         print("找不到任何页面文件")
         return 1
 
-    # 以主页的版本号为基准，保证两页一致
-    primary = pages[0].read_text(encoding="utf-8")
-    match = re.search(r"styles\.css\?v=(\d+)", primary)
-    current = int(match.group(1)) if match else 0
+    # 取两页里的最大值再 +1，保证「只升不降」（见 current_version 的注释）
+    current = current_version(pages)
 
     touched = [name for name in WATCHED if name in changed_files()]
     if force:
