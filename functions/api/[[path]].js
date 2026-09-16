@@ -35,8 +35,8 @@ const BASE_HEADERS = {
 const cache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
 
-/** 撞上风控最多重发几次（不含首次） */
-const RISK_RETRIES = 2;
+/** 撞上风控最多重发几次（不含首次）。默认 0，理由见 fetchUpstream 的注释 */
+const DEFAULT_RISK_RETRIES = 0;
 
 function cacheGet(key) {
   const hit = cache.get(key);
@@ -112,7 +112,7 @@ function upstreamHeaders(env = {}) {
  * 网易云的风控响应。
  *
  * 典型长这样：{ code: -462, data: { verifyType: 40, verifyUrl: '.../encrypt-pages' } }
- * 意思是「你先去过个验证」—— 跟参数没关系，同一秒重发就可能过。
+ * 意思是「你先去过个验证」—— 跟参数没关系，隔几秒重发就可能过。
  * 实测从 Cloudflare 的出口 IP 请求 /playlist、/album、/artist 会间歇性中招，
  * 而 /song、/lyric 基本不中，所以这是网易按接口 + 按 IP 的分级风控。
  */
@@ -125,24 +125,41 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /**
  * 请求上游并返回 JSON。
  *
- * 两个要点：
- *   1. 撞上风控就重发。它是概率性的，实测 3 次里能过 2 次，重试是最省事的解法。
- *   2. **风控响应绝不能进缓存。** 一旦把 -462 缓存 5 分钟，等于把一次偶发失败
- *      钉死成一个持续故障，重试也没用（因为根本不会打到上游）。
+ * 关于「撞上风控要不要自动重试」：**默认不重试**，因为实测在 Cloudflare
+ * Pages Functions 上重试是负收益。
+ *
+ * 现象是：撞上 -462 之后如果继续发第二次、第三次，函数会在返回之前被平台掐掉，
+ * 客户端拿到的是 Cloudflare 自己的纯文本 `error code: 502`，
+ * 而不是我们构造的那条 JSON 错误 —— 说明根本没走到返回语句。
+ * 带重试的版本实测 12 次只过 3 次；不重试的版本 3 次过 2 次。重试反而更差。
+ *
+ * 免费计划的 CPU 预算是 10ms/请求，而重试等于把上游响应多解析两遍，
+ * 最可能的原因就是撞在 CPU 上限上（网络等待不算 CPU，解析算）。
+ *
+ * 所以策略改成「一次就一次」：失败就快速失败、把话说清楚，让用户自己再点一次。
+ * 人手动重试是隔几秒的，跟同一请求里连发三次完全不是一回事。
+ * 想自己验证重试有没有用：Pages 环境变量 `RISK_RETRIES=1`，
+ * 或者直接打 `/diag` 看它连续请求的结果。
+ *
+ * 唯一必须守住的一点：**风控响应绝不能进缓存。**
+ * 一旦把一次偶发的 -462 缓存 5 分钟，等于把瞬时故障钉死成持续故障。
  *
  * @param {string} url
  * @param {object} env
- * @param {{ noCache?: boolean, retries?: number }} [options] 诊断类请求要绕开缓存，否则测不出当前 Cookie 的状态
+ * @param {{ noCache?: boolean, retries?: number, extraHeaders?: Record<string,string> }} [options]
  */
 async function fetchUpstream(url, env = {}, options = {}) {
   const cached = options.noCache ? null : cacheGet(url);
   if (cached) return cached;
 
-  const retries = options.retries ?? RISK_RETRIES;
+  const envRetries = Number(env.RISK_RETRIES);
+  const retries = options.retries ?? (Number.isFinite(envRetries) ? envRetries : DEFAULT_RISK_RETRIES);
   let last = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
-    const res = await fetch(url, { headers: upstreamHeaders(env) });
+    const res = await fetch(url, {
+      headers: { ...upstreamHeaders(env), ...(options.extraHeaders || {}) },
+    });
     if (!res.ok) {
       throw Object.assign(new Error(`上游返回 HTTP ${res.status}`), { status: res.status });
     }
@@ -160,7 +177,7 @@ async function fetchUpstream(url, env = {}, options = {}) {
     }
 
     last = data;
-    // 还在风控里，喘口气再来。加抖动，避免并发请求整齐地一起重试
+    // 还在风控里。默认不会走到这（retries=0），开了重试才睡一下再发
     if (attempt < retries) await sleep(150 + Math.random() * 350);
   }
 
@@ -259,8 +276,8 @@ export async function handleRequest(request, env = {}) {
     return json({
       code: 200,
       service: 'netease-music-parser-proxy',
-      // /resolve 和 /verify 是特殊路由，不走 ROUTES 表，这里手动补上
-      routes: ['/resolve', '/verify', '/health', ...Object.keys(ROUTES)],
+      // /resolve /verify /diag 是特殊路由，不走 ROUTES 表，这里手动补上
+      routes: ['/resolve', '/verify', '/diag', '/health', ...Object.keys(ROUTES)],
       hasCookie: Boolean(env.NETEASE_COOKIE),
       cookie: inspectCookie(env),
       // 一句话说清这个后端现在能干什么
@@ -378,6 +395,73 @@ export async function handleRequest(request, env = {}) {
           code: 200,
         },
         { env },
+      );
+    }
+
+    // ---- 风控诊断：连着打同一个接口 n 次，把每次的结果记下来 ----
+    //
+    // 存在的意义：风控是「按出口 IP + 按接口」的，只有从 Cloudflare 内部发请求
+    // 才看得到真实情况，本地跑什么都测不出来。两个模式用来区分故障原因：
+    //   mode=parse（默认）走完整流程，会 JSON.parse 上游响应
+    //   mode=raw          只发请求、只记状态码和字节数，不解析
+    // 如果 raw 能跑完而 parse 跑不完，那就是撞了 CPU 上限，不是网络问题。
+    //
+    //   /diag?path=/album&id=18905&n=3
+    //   /diag?path=/album&id=18905&n=3&mode=raw
+    //   /diag?path=/album&id=18905&n=3&realip=1.2.3.4   # 试 X-Real-IP 有没有用
+    if (path === '/diag') {
+      const target = url.searchParams.get('path') || '/album';
+      const builder = ROUTES[target];
+      if (!builder) {
+        return json(
+          { code: 400, message: `path 只能是：${Object.keys(ROUTES).join(' / ')}` },
+          { status: 400, env },
+        );
+      }
+      const n = Math.min(Math.max(Number(url.searchParams.get('n')) || 3, 1), 6);
+      const raw = url.searchParams.get('mode') === 'raw';
+      const realip = url.searchParams.get('realip') || '';
+      const extraHeaders = realip ? { 'X-Real-IP': realip, 'X-Forwarded-For': realip } : undefined;
+      const apiUrl = builder(url.searchParams);
+
+      const attempts = [];
+      for (let i = 0; i < n; i++) {
+        const started = Date.now();
+        try {
+          if (raw) {
+            const res = await fetch(apiUrl, {
+              headers: { ...upstreamHeaders(env), ...(extraHeaders || {}) },
+            });
+            const text = await res.text();
+            attempts.push({ i: i + 1, ms: Date.now() - started, http: res.status, bytes: text.length });
+          } else {
+            const data = await fetchUpstream(apiUrl, env, { noCache: true, retries: 0, extraHeaders });
+            attempts.push({
+              i: i + 1,
+              ms: Date.now() - started,
+              code: data?.code ?? null,
+              riskControl: isRiskControl(data),
+            });
+          }
+        } catch (err) {
+          attempts.push({ i: i + 1, ms: Date.now() - started, error: err?.message || String(err) });
+        }
+        if (i < n - 1) await sleep(200);
+      }
+
+      const blocked = attempts.filter((a) => a.riskControl).length;
+      return json(
+        {
+          code: 200,
+          mode: raw ? 'raw' : 'parse',
+          upstream: apiUrl,
+          realip: realip || null,
+          attempts,
+          summary: raw
+            ? `${n} 次请求都完成了（不解析响应体）`
+            : `${n} 次里 ${blocked} 次被风控${blocked ? '' : '，这个出口 IP 目前是干净的'}`,
+        },
+        { env, extra: { 'Cache-Control': 'no-store' } },
       );
     }
 
