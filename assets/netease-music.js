@@ -847,12 +847,15 @@ var NeteaseMusic = (() => {
     </div>`;
   }
   function trackRow(song, index, playable = true) {
+    const id = escapeHtml(song.id);
     return `
-    <li class="nmp-track" data-nmp-song="${escapeHtml(song.id)}" ${playable ? 'data-nmp-playable="1"' : ""}>
+    <li class="nmp-track" data-nmp-song="${id}" ${playable ? 'data-nmp-playable="1"' : ""}>
       <span class="nmp-track-index">${String(index + 1).padStart(2, "0")}</span>
       <span class="nmp-track-name" title="${escapeHtml(song.name)}">${escapeHtml(song.name)}</span>
       <span class="nmp-track-artist">${escapeHtml(song.artistText)}</span>
       <span class="nmp-track-time">${formatDuration(song.duration)}</span>
+      ${playable ? `<button class="nmp-track-play" type="button" data-nmp-action="toggle" data-nmp-song="${id}"
+                     aria-label="\u64AD\u653E ${escapeHtml(song.name)}">${ICONS.play}</button>` : ""}
     </li>`;
   }
   function playNote(options) {
@@ -891,7 +894,8 @@ var NeteaseMusic = (() => {
     <div class="nmp-card nmp-card--song" data-nmp-song="${escapeHtml(song.id)}">
       <div class="nmp-cover-wrap">
         <img class="nmp-cover" src="${escapeHtml(song.cover)}" alt="${escapeHtml(song.name)} \u5C01\u9762" loading="lazy" />
-        ${playback ? `<button class="nmp-play" type="button" data-nmp-action="toggle" aria-label="\u64AD\u653E ${escapeHtml(song.name)}">
+        ${playback ? `<button class="nmp-play" type="button" data-nmp-action="toggle" data-nmp-song="${escapeHtml(song.id)}"
+                     aria-label="\u64AD\u653E ${escapeHtml(song.name)}">
           ${ICONS.play}
         </button>` : ""}
       </div>
@@ -913,9 +917,10 @@ var NeteaseMusic = (() => {
     return container;
   }
   function renderCollection(container, data, options = {}) {
-    var _a, _b, _c;
+    var _a;
     const playback = options.playback !== false;
     const isPlaylist = data.type === "playlist";
+    const tracks = data.tracks || [];
     const label = data.kind === "djradio" ? TYPE_LABELS.djradio : TYPE_LABELS[data.type] || "\u5408\u96C6";
     const subtitle = isPlaylist ? [((_a = data.creator) == null ? void 0 : _a.name) && `by ${data.creator.name}`, `${data.trackCount} \u9996`].filter(Boolean).join(" \xB7 ") : data.type === "artist" ? [`${data.musicSize || data.trackCount} \u9996\u4F5C\u54C1`, `${data.albumSize || 0} \u5F20\u4E13\u8F91`].join(" \xB7 ") : [data.artistText, data.publishTime ? formatDate(data.publishTime) : ""].filter(Boolean).join(" \xB7 ");
     container.dataset.nmpState = "ready";
@@ -924,21 +929,26 @@ var NeteaseMusic = (() => {
     <div class="nmp-card nmp-card--collection">
       <div class="nmp-cover-wrap">
         <img class="nmp-cover" src="${escapeHtml(data.cover)}" alt="${escapeHtml(data.name)} \u5C01\u9762" loading="lazy" />
+        ${// 合集也要有一个常驻的播放/暂停键：曲目表默认是收起来的，
+    // 只靠曲目行上的按钮，用户第一眼还是找不到怎么停。
+    // 播放目标由 index.js 决定（已在放的那首 → 否则第一首）。
+    playback && tracks.length ? `<button class="nmp-play" type="button" data-nmp-action="toggle" data-nmp-song="${escapeHtml(tracks[0].id)}"
+                     aria-label="\u64AD\u653E">${ICONS.play}</button>` : ""}
       </div>
       <div class="nmp-body">
         <div class="nmp-kind">${label}</div>
         <div class="nmp-title">${escapeHtml(data.name)}</div>
         <div class="nmp-sub">${escapeHtml(subtitle)}</div>
         ${isPlaylist && data.playCount ? `<div class="nmp-meta"><span>${formatCount(data.playCount)} \u6B21\u64AD\u653E</span></div>` : ""}
-        ${((_b = data.tracks) == null ? void 0 : _b.length) ? `<button class="nmp-toggle" type="button" data-nmp-action="expand" aria-expanded="false">
-                 \u5C55\u5F00\u5168\u90E8 ${data.tracks.length} \u9996
+        ${tracks.length ? `<button class="nmp-toggle" type="button" data-nmp-action="expand" aria-expanded="false">
+                 \u5C55\u5F00\u5168\u90E8 ${tracks.length} \u9996
                </button>` : ""}
         ${playback ? "" : playNote(options)}
       </div>
       <a class="nmp-link" href="${escapeHtml(data.url)}" target="_blank" rel="noopener noreferrer" title="\u5728\u7F51\u6613\u4E91\u6253\u5F00">
         ${ICONS.link}
       </a>
-      ${((_c = data.tracks) == null ? void 0 : _c.length) ? `<ol class="nmp-tracks" hidden>${data.tracks.map((s, i) => trackRow(s, i, playback)).join("")}</ol>` : ""}
+      ${tracks.length ? `<ol class="nmp-tracks" hidden>${tracks.map((s, i) => trackRow(s, i, playback)).join("")}</ol>` : ""}
       ${playback ? '<audio class="nmp-audio" preload="none"></audio>' : ""}
       ${playback ? playerBlock(options) : ""}
     </div>`;
@@ -1244,6 +1254,31 @@ var NeteaseMusic = (() => {
   fill: currentColor;
 }
 
+/* \u5408\u96C6\uFF08\u6B4C\u5355 / \u4E13\u8F91 / \u7535\u53F0\uFF09\u5C01\u9762\u4E0A\u7684\u90A3\u4E2A\u952E\u662F**\u552F\u4E00\u7684\u5E38\u9A7B\u63A7\u5236**\uFF1A
+   \u66F2\u76EE\u8868\u9ED8\u8BA4\u6536\u7740\uFF0C\u884C\u5185\u6309\u94AE\u770B\u4E0D\u5230\uFF1B\u89E6\u5C4F\u53C8\u6CA1\u6709 hover\u3002
+   \u6240\u4EE5\u5B83\u4E0D\u80FD\u50CF\u5355\u66F2\u5361\u90A3\u6837\u85CF\u5230 hover \u624D\u51FA\u73B0 \u2014\u2014 \u6539\u6210\u53F3\u4E0B\u89D2\u4E00\u4E2A\u5E38\u9A7B\u7684\u5706\u5F62\u5C0F\u952E\uFF0C
+   \u65E2\u4E0D\u7CCA\u4F4F\u5C01\u9762\uFF0C\u53C8\u4E00\u773C\u5C31\u80FD\u627E\u5230\u300C\u600E\u4E48\u6682\u505C\u300D\u3002 */
+.nmp-card--collection .nmp-play {
+  inset: auto 6px 6px auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--nmp-accent);
+  opacity: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.16s ease, background 0.16s ease;
+}
+
+.nmp-card--collection .nmp-play:hover {
+  background: var(--nmp-accent);
+  transform: scale(1.08);
+}
+
+.nmp-card--collection .nmp-play svg {
+  width: 16px;
+  height: 16px;
+}
+
 /* ---------- \u64AD\u653E\u5668\uFF1A\u8FDB\u5EA6\u6761 / \u65F6\u95F4 / \u97F3\u91CF ---------- */
 
 .nmp-player {
@@ -1533,6 +1568,11 @@ var NeteaseMusic = (() => {
   cursor: default;
 }
 
+/* \u53EA\u6709\u6E32\u67D3\u4E86\u64AD\u653E\u952E\u7684\u884C\u624D\u591A\u7559\u4E00\u5217\uFF0C\u4E0D\u7136\u653E\u4E0D\u4E86\u7684\u65F6\u5019\u4F1A\u7A7A\u51FA 22px */
+.nmp-track[data-nmp-playable='1'] {
+  grid-template-columns: 26px 1fr auto auto 22px;
+}
+
 .nmp-track[data-nmp-playable='1'] {
   cursor: pointer;
 }
@@ -1573,6 +1613,44 @@ var NeteaseMusic = (() => {
   font-variant-numeric: tabular-nums;
   color: var(--nmp-text-dim);
   opacity: 0.7;
+}
+
+/* \u66F2\u76EE\u884C\u4E0A\u7684\u64AD\u653E/\u6682\u505C\u952E\u3002
+   \u523B\u610F\u4E0D\u9760 hover \u624D\u663E\u5F62 \u2014\u2014 \u89E6\u5C4F\u6CA1\u6709 hover\uFF0C\u85CF\u8D77\u6765\u5C31\u7B49\u4E8E\u6CA1\u6709\u8FD9\u4E2A\u952E\uFF0C
+   \u800C\u300C\u600E\u4E48\u6682\u505C\u300D\u6B63\u662F\u5B83\u8981\u56DE\u7B54\u7684\u95EE\u9898\u3002\u9ED8\u8BA4\u7ED9 0.5 \u7684\u900F\u660E\u5EA6\uFF0C\u591F\u5B89\u9759\u4E5F\u591F\u660E\u663E\u3002 */
+.nmp-track-play {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--nmp-text-dim);
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 0.16s ease, color 0.16s ease;
+}
+
+.nmp-track-play svg {
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+}
+
+.nmp-track:hover .nmp-track-play,
+.nmp-track-play:focus-visible,
+.nmp-track[data-nmp-active='1'] .nmp-track-play {
+  opacity: 1;
+}
+
+.nmp-track-play:hover {
+  color: var(--nmp-accent);
+}
+
+.nmp-track[data-nmp-active='1'] .nmp-track-play {
+  color: var(--nmp-accent);
 }
 
 /* ---------- \u52A0\u8F7D / \u62A5\u9519 ---------- */
@@ -1663,6 +1741,7 @@ var NeteaseMusic = (() => {
 @media (prefers-reduced-motion: reduce) {
   .nmp-card,
   .nmp-play,
+  .nmp-track-play,
   .nmp-skeleton {
     transition: none;
     animation: none;
@@ -1888,6 +1967,9 @@ var NeteaseMusic = (() => {
       paintRange(seek);
     }
   }
+  function isEmptyLyric(raw) {
+    return !(raw == null ? void 0 : raw.lyric) && !(raw == null ? void 0 : raw.translated) && !(raw == null ? void 0 : raw.roma);
+  }
   async function loadLyrics(root, client, songId, options = {}) {
     const panel = root.querySelector(".nmp-lyrics");
     if (!panel || !songId) return null;
@@ -1895,30 +1977,39 @@ var NeteaseMusic = (() => {
     if (panel.dataset.nmpLyricsSong === key && panel.dataset.nmpLyrics === "ready") return null;
     panel.dataset.nmpLyricsSong = key;
     const cached = lyricCache.get(key);
-    if (cached) return paintLyrics(panel, cached);
+    if (cached) return paintLyrics(panel, cached, key);
     setLyricsState(panel, "loading", options.loadingText || "\u6B4C\u8BCD\u52A0\u8F7D\u4E2D\u2026");
     try {
       const raw = normalizeLyric(await client.lyric(songId));
-      lyricCache.set(key, raw);
-      return paintLyrics(panel, raw);
+      if (!isEmptyLyric(raw)) lyricCache.set(key, raw);
+      if (panel.dataset.nmpLyricsSong !== key) return null;
+      return paintLyrics(panel, raw, key);
     } catch {
+      if (panel.dataset.nmpLyricsSong !== key) return null;
       setLyricsState(panel, "error", "\u6B4C\u8BCD\u6CA1\u62C9\u5230\uFF08\u53EF\u80FD\u88AB\u98CE\u63A7\u62E6\u4E86\u4E00\u4E0B\uFF09\uFF0C\u70B9\u64AD\u653E\u53EF\u4EE5\u518D\u8BD5");
       return null;
     }
   }
-  function paintLyrics(panel, raw) {
+  function paintLyrics(panel, raw, songId) {
     const text = String((raw == null ? void 0 : raw.lyric) || "");
     const lines = mergeTranslation(parseLrc(text), raw == null ? void 0 : raw.translated);
     const plain = hasTimestamp(text) ? "" : text.trim();
     panel._nmpLines = lines;
+    panel._nmpLyricsFor = String(songId);
     return renderLyrics(panel, lines, { plain, message: "\u8FD9\u9996\u6B4C\u6CA1\u6709\u6B4C\u8BCD" });
   }
+  var playToken = 0;
   async function playSong(root, client, songId) {
     const card = root.querySelector(".nmp-card");
     const audio = root.querySelector(".nmp-audio");
     if (!card || !audio) return;
-    if (audio.dataset.nmpSong === songId && !audio.paused) {
+    const current = audio.dataset.nmpSong === songId;
+    const loading = audio.dataset.nmpLoading === songId;
+    if (current && !audio.paused || loading) {
+      delete audio.dataset.nmpLoading;
+      playToken += 1;
       audio.pause();
+      syncPlayButton(root, false);
       return;
     }
     if (activeAudio && activeAudio !== audio) {
@@ -1926,32 +2017,66 @@ var NeteaseMusic = (() => {
     }
     activeAudio = audio;
     loadLyrics(root, client, songId);
+    if (current && audio.getAttribute("src")) {
+      try {
+        await audio.play();
+      } catch (err) {
+        showNotice(root, `\u64AD\u653E\u5931\u8D25\uFF1A${(err == null ? void 0 : err.message) || err}`);
+      }
+      return;
+    }
+    const token = ++playToken;
+    audio.dataset.nmpLoading = songId;
     try {
       const info = normalizeSongUrl(await client.songUrl(songId));
+      if (token !== playToken) return;
+      delete audio.dataset.nmpLoading;
       if (!info.available) {
         showNotice(root, `${info.reason}\u3002\u70B9\u53F3\u4E0A\u89D2\u53EF\u4EE5\u53BB\u7F51\u6613\u4E91\u542C`);
         return;
       }
-      if (audio.dataset.nmpSong !== songId) {
-        audio.src = info.url;
-        audio.dataset.nmpSong = songId;
-      }
+      audio.src = info.url;
+      audio.dataset.nmpSong = songId;
       await audio.play();
     } catch (err) {
+      if (token !== playToken) return;
+      delete audio.dataset.nmpLoading;
       showNotice(root, `\u64AD\u653E\u5931\u8D25\uFF1A${(err == null ? void 0 : err.message) || err}`);
     }
   }
   function syncPlayButton(root, playing) {
     const card = root.querySelector(".nmp-card");
-    const btn = root.querySelector('[data-nmp-action="toggle"]');
+    const audio = root.querySelector(".nmp-audio");
+    const currentId = (audio == null ? void 0 : audio.dataset.nmpSong) || "";
     if (card) card.dataset.nmpPlaying = playing ? "1" : "0";
-    if (btn) btn.innerHTML = playing ? ICONS.pause : ICONS.play;
+    const cover = root.querySelector(".nmp-play");
+    if (cover) {
+      cover.innerHTML = playing ? ICONS.pause : ICONS.play;
+      cover.setAttribute("aria-label", playing ? "\u6682\u505C" : "\u64AD\u653E");
+    }
+    root.querySelectorAll(".nmp-track[data-nmp-song]").forEach((row) => {
+      var _a;
+      const isCurrent = Boolean(currentId) && row.dataset.nmpSong === currentId;
+      if (isCurrent) row.dataset.nmpActive = "1";
+      else row.removeAttribute("data-nmp-active");
+      const btn = row.querySelector(".nmp-track-play");
+      if (!btn) return;
+      const showPause = isCurrent && playing;
+      btn.innerHTML = showPause ? ICONS.pause : ICONS.play;
+      const name = ((_a = row.querySelector(".nmp-track-name")) == null ? void 0 : _a.textContent) || "";
+      btn.setAttribute("aria-label", `${showPause ? "\u6682\u505C" : "\u64AD\u653E"} ${name}`.trim());
+    });
+  }
+  function toggleTarget(root, action) {
+    if (action.classList.contains("nmp-track-play")) return action.dataset.nmpSong || "";
+    const audio = root.querySelector(".nmp-audio");
+    const card = root.querySelector(".nmp-card");
+    return (audio == null ? void 0 : audio.dataset.nmpSong) || (card == null ? void 0 : card.dataset.nmpSong) || action.dataset.nmpSong || "";
   }
   function bind(root, client, options = {}) {
     if (root.dataset.nmpBound === "1") return;
     root.dataset.nmpBound = "1";
     const audio = root.querySelector(".nmp-audio");
-    const card = root.querySelector(".nmp-card");
     const seek = root.querySelector("[data-nmp-seek]");
     const volumeInput = root.querySelector("[data-nmp-volume]");
     const lyricPanel = root.querySelector(".nmp-lyrics");
@@ -1994,7 +2119,7 @@ var NeteaseMusic = (() => {
       if (action) {
         const name = action.dataset.nmpAction;
         if (name === "toggle") {
-          const songId = card == null ? void 0 : card.dataset.nmpSong;
+          const songId = toggleTarget(root, action);
           if (songId) playSong(root, client, songId);
           return;
         }
@@ -2040,10 +2165,6 @@ var NeteaseMusic = (() => {
           showNotice(root, offHint);
           return;
         }
-        root.querySelectorAll('.nmp-track[data-nmp-active="1"]').forEach((n) => {
-          n.dataset.nmpActive = "0";
-        });
-        track.dataset.nmpActive = "1";
         playSong(root, client, track.dataset.nmpSong);
       }
     });
@@ -2059,7 +2180,7 @@ var NeteaseMusic = (() => {
       audio.addEventListener("timeupdate", () => {
         syncProgress(root, audio);
         if ((lyricPanel == null ? void 0 : lyricPanel.dataset.nmpLyrics) !== "ready") return;
-        if (lyricPanel.dataset.nmpLyricsSong !== audio.dataset.nmpSong) return;
+        if (lyricPanel._nmpLyricsFor !== audio.dataset.nmpSong) return;
         highlightLyric(root, findLineIndex(lyricPanel._nmpLines || [], audio.currentTime));
       });
       audio.addEventListener("error", () => {
@@ -2076,7 +2197,7 @@ var NeteaseMusic = (() => {
         lyricPanel._nmpAutoTimer = setTimeout(() => {
           lyricPanel.dataset.nmpLyricsAuto = "1";
           delete lyricPanel.dataset.nmpLyricsActive;
-          if (audio && lyricPanel.dataset.nmpLyrics === "ready") {
+          if (audio && lyricPanel.dataset.nmpLyrics === "ready" && lyricPanel._nmpLyricsFor === audio.dataset.nmpSong) {
             highlightLyric(root, findLineIndex(lyricPanel._nmpLines || [], audio.currentTime));
           }
         }, 4e3);

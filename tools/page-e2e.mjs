@@ -89,6 +89,26 @@ function bootPage(search, options = {}) {
 
   const { window } = dom;
 
+  // jsdom 不实现媒体播放：play() 只会往控制台吐一句 "Not implemented"，
+  // 而且**不派发 play 事件** —— 插件的按钮图标全靠这个事件驱动，
+  // 不桩的话「点了之后有没有变成暂停」根本观察不到。
+  const { HTMLMediaElement } = window;
+  HTMLMediaElement.prototype.play = function play() {
+    this._nmpPaused = false;
+    this.dispatchEvent(new window.Event('play'));
+    return Promise.resolve();
+  };
+  HTMLMediaElement.prototype.pause = function pause() {
+    this._nmpPaused = true;
+    this.dispatchEvent(new window.Event('pause'));
+  };
+  Object.defineProperty(HTMLMediaElement.prototype, 'paused', {
+    configurable: true,
+    get() {
+      return this._nmpPaused !== false;
+    },
+  });
+
   // 页面的脚本会 fetch(apiBase + '/health')，插件的请求也会走 window.fetch。
   // 相对路径（/api/...）交给真的 Pages Function，
   // 绝对地址（proxy.test）交给独立 Worker 那份 handler —— 两条路跑的都是真实代码。
@@ -109,13 +129,16 @@ function bootPage(search, options = {}) {
       );
     }
 
+    // 每个请求都记一笔（含 /health），后面按接口分别数次数。
+    // 放在风控判断之前，这样不开风控的用例也能用 hits 数请求。
+    hits.push(absolute);
+
     // 风控只影响解析接口，体检照常通过 —— 这样才能测出「后端是好的，只是这次被拦了」
     //
     // riskControl 传数字 = 前 N 次被拦、之后放行（用来验证客户端会自动换新请求重试）；
     // 传 'always' = 一直拦（用来验证重试用尽后给用户的提示）。
     if (options.riskControl && !/\/health(\?|$)/.test(absolute)) {
       riskHits += 1;
-      hits.push(absolute);
       const stillBlocked = options.riskControl === 'always' || riskHits <= Number(options.riskControl);
       if (stillBlocked) {
         return Promise.resolve(
@@ -335,6 +358,54 @@ if (!OFFLINE) {
     const lyricLines = result.querySelectorAll('.nmp-lyric-line');
     check('歌词自动加载出来了', lyricLines.length > 0, `${lyricLines.length} 行`);
     check('歌词第一行有时间戳', /^\d/.test(lyricLines[0]?.dataset.nmpTime || ''), lyricLines[0]?.dataset.nmpTime);
+
+    dom.window.close();
+  }
+
+  /* ------------------------------ 5b. 合集（歌单）的播放 / 暂停键 */
+
+  console.log(bold('\n[5b] 歌单：封面和每一行都要有播放/暂停键'));
+
+  {
+    const dom = bootPage('?u=https://music.163.com/%23/playlist?id=2884035');
+    await wait(9000);
+    const { document } = dom.window;
+    const result = document.getElementById('np-result');
+
+    check('歌单卡渲染出来了', Boolean(result.querySelector('.nmp-card--collection')), result.querySelector('.nmp-title')?.textContent?.trim());
+
+    // 曲目表默认收着，所以封面上必须有常驻的播放键。
+    // 只有行内按钮的话，第一眼根本找不到「怎么暂停」—— 用户就是这么反馈的。
+    const cover = result.querySelector('.nmp-play');
+    check('封面上有播放键', Boolean(cover));
+    check('封面键初始是「播放」', cover?.getAttribute('aria-label') === '播放', cover?.getAttribute('aria-label'));
+
+    result.querySelector('.nmp-toggle')?.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+
+    const rows = result.querySelectorAll('.nmp-track');
+    const rowBtns = result.querySelectorAll('.nmp-track-play');
+    check('曲目行渲染出来了', rows.length > 0, `${rows.length} 行`);
+    check('每一行都有自己的播放键', rowBtns.length === rows.length, `${rowBtns.length} / ${rows.length}`);
+    check(
+      '可播的行都标了 data-nmp-playable',
+      result.querySelectorAll('.nmp-track[data-nmp-playable="1"]').length === rows.length,
+    );
+    check('行内键的 aria-label 带曲名', /^播放 /.test(rowBtns[0]?.getAttribute('aria-label') || ''), rowBtns[0]?.getAttribute('aria-label'));
+
+    // 点第一行的键，应该真的去要播放地址（能不能拿到是另一回事）
+    const before = dom.hits.filter((u) => /\/song\/url/.test(u)).length;
+    rowBtns[0].dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+    await wait(5000);
+    const after = dom.hits.filter((u) => /\/song\/url/.test(u)).length;
+    check('点行内键会去要播放地址', after > before, `/song/url ${before} → ${after}`);
+
+    if (rows[0].dataset.nmpActive === '1') {
+      check('在放的那一行，图标换成暂停', /M7 5h3\.2v14H7z/.test(rowBtns[0].innerHTML));
+      check('封面上的键也换成暂停', /M7 5h3\.2v14H7z/.test(cover.innerHTML));
+    } else {
+      // 这一首恰好放不了：不该点亮，而且要给出原因
+      check('放不了的那首不会被点亮，并且给了原因', Boolean(result.querySelector('.nmp-notice')));
+    }
 
     dom.window.close();
   }
