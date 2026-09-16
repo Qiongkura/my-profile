@@ -308,6 +308,15 @@ if (!OFFLINE) {
     check('文案提到「本站自带」', statusText.includes('本站自带'), statusText.slice(0, 50));
 
     inspectCard(document, '同源 /api 单曲', '晴天');
+
+    // 线上没配 NETEASE_COOKIE，所以后端明确放不了。
+    // 这种情况不该摆一个点了必然失败的播放键 —— 卡片上要直接说清楚。
+    const result = document.getElementById('np-result');
+    check('没配 Cookie 时不摆播放键', !result.querySelector('.nmp-play'), result.querySelector('.nmp-play') ? '居然有播放键' : '');
+    check('也不留空的 audio 元素', !result.querySelector('audio'));
+    const note = result.querySelector('.nmp-note')?.textContent?.trim() || '';
+    check('卡片上写清了原因', /Cookie|只能看/.test(note), note.slice(0, 80));
+
     dom.window.close();
   }
 

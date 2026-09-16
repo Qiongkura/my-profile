@@ -849,17 +849,22 @@ var NeteaseMusic = (() => {
       <span class="nmp-track-time">${formatDuration(song.duration)}</span>
     </li>`;
   }
-  function renderSong(container, song) {
+  function playNote(options) {
+    const hint = options.playbackHint || "\u5F53\u524D\u540E\u7AEF\u62FF\u4E0D\u5230\u64AD\u653E\u76F4\u94FE\uFF0C\u53EA\u80FD\u770B\u4FE1\u606F";
+    return `<div class="nmp-note">${escapeHtml(hint)}</div>`;
+  }
+  function renderSong(container, song, options = {}) {
     var _a;
+    const playback = options.playback !== false;
     container.dataset.nmpState = "ready";
     container.dataset.nmpType = "song";
     container.innerHTML = `
     <div class="nmp-card nmp-card--song" data-nmp-song="${escapeHtml(song.id)}">
       <div class="nmp-cover-wrap">
         <img class="nmp-cover" src="${escapeHtml(song.cover)}" alt="${escapeHtml(song.name)} \u5C01\u9762" loading="lazy" />
-        <button class="nmp-play" type="button" data-nmp-action="toggle" aria-label="\u64AD\u653E ${escapeHtml(song.name)}">
+        ${playback ? `<button class="nmp-play" type="button" data-nmp-action="toggle" aria-label="\u64AD\u653E ${escapeHtml(song.name)}">
           ${ICONS.play}
-        </button>
+        </button>` : ""}
       </div>
       <div class="nmp-body">
         <div class="nmp-kind">${TYPE_LABELS.song}</div>
@@ -869,7 +874,7 @@ var NeteaseMusic = (() => {
           <span class="nmp-duration">${formatDuration(song.duration)}</span>
           ${song.playable ? "" : '<span class="nmp-badge">VIP</span>'}
         </div>
-        <audio class="nmp-audio" preload="none"></audio>
+        ${playback ? '<audio class="nmp-audio" preload="none"></audio>' : playNote(options)}
       </div>
       <a class="nmp-link" href="${escapeHtml(song.url)}" target="_blank" rel="noopener noreferrer" title="\u5728\u7F51\u6613\u4E91\u6253\u5F00">
         ${ICONS.link}
@@ -877,8 +882,9 @@ var NeteaseMusic = (() => {
     </div>`;
     return container;
   }
-  function renderCollection(container, data) {
+  function renderCollection(container, data, options = {}) {
     var _a, _b, _c;
+    const playback = options.playback !== false;
     const isPlaylist = data.type === "playlist";
     const label = data.kind === "djradio" ? TYPE_LABELS.djradio : TYPE_LABELS[data.type] || "\u5408\u96C6";
     const subtitle = isPlaylist ? [((_a = data.creator) == null ? void 0 : _a.name) && `by ${data.creator.name}`, `${data.trackCount} \u9996`].filter(Boolean).join(" \xB7 ") : data.type === "artist" ? [`${data.musicSize || data.trackCount} \u9996\u4F5C\u54C1`, `${data.albumSize || 0} \u5F20\u4E13\u8F91`].join(" \xB7 ") : [data.artistText, data.publishTime ? formatDate(data.publishTime) : ""].filter(Boolean).join(" \xB7 ");
@@ -897,19 +903,22 @@ var NeteaseMusic = (() => {
         ${((_b = data.tracks) == null ? void 0 : _b.length) ? `<button class="nmp-toggle" type="button" data-nmp-action="expand" aria-expanded="false">
                  \u5C55\u5F00\u5168\u90E8 ${data.tracks.length} \u9996
                </button>` : ""}
+        ${playback ? "" : playNote(options)}
       </div>
       <a class="nmp-link" href="${escapeHtml(data.url)}" target="_blank" rel="noopener noreferrer" title="\u5728\u7F51\u6613\u4E91\u6253\u5F00">
         ${ICONS.link}
       </a>
-      ${((_c = data.tracks) == null ? void 0 : _c.length) ? `<ol class="nmp-tracks" hidden>${data.tracks.map((s, i) => trackRow(s, i)).join("")}</ol>` : ""}
-      <audio class="nmp-audio" preload="none"></audio>
+      ${((_c = data.tracks) == null ? void 0 : _c.length) ? `<ol class="nmp-tracks" hidden>${data.tracks.map((s, i) => trackRow(s, i, playback)).join("")}</ol>` : ""}
+      ${playback ? '<audio class="nmp-audio" preload="none"></audio>' : ""}
     </div>`;
     return container;
   }
-  function render(container, data) {
+  function render(container, data, options = {}) {
     if (!data) return renderError(container, "\u6CA1\u6709\u62FF\u5230\u6570\u636E");
-    if (data.type === "song") return renderSong(container, data);
-    if (["playlist", "album", "artist"].includes(data.type)) return renderCollection(container, data);
+    if (data.type === "song") return renderSong(container, data, options);
+    if (["playlist", "album", "artist"].includes(data.type)) {
+      return renderCollection(container, data, options);
+    }
     return renderError(container, `\u6682\u4E0D\u652F\u6301\u7684\u7C7B\u578B\uFF1A${data.type}`);
   }
   function showNotice(container, message, duration = 3200) {
@@ -1112,6 +1121,15 @@ var NeteaseMusic = (() => {
   color: var(--nmp-accent);
   border: 1px solid currentColor;
   border-radius: 4px;
+  opacity: 0.85;
+}
+
+/* \u540E\u7AEF\u62FF\u4E0D\u5230\u64AD\u653E\u76F4\u94FE\u65F6\u7684\u90A3\u884C\u8BF4\u660E\uFF08\u66FF\u4EE3\u64AD\u653E\u952E\u7684\u4F4D\u7F6E\uFF09 */
+.nmp-note {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--nmp-text-dim);
   opacity: 0.85;
 }
 
@@ -1445,7 +1463,7 @@ var NeteaseMusic = (() => {
     el.dataset.nmpState = "loading";
     try {
       const data = await load(src, client, options);
-      render(el, data);
+      render(el, data, { playback: options.playback, playbackHint: options.playbackHint });
       if (data.playUrl) {
         const card = el.querySelector(".nmp-card");
         if (card) card.dataset.nmpSrcUrl = data.playUrl;
@@ -1497,6 +1515,8 @@ var NeteaseMusic = (() => {
     root.dataset.nmpBound = "1";
     const audio = root.querySelector(".nmp-audio");
     const card = root.querySelector(".nmp-card");
+    const playbackOff = options.playback === false;
+    const offHint = options.playbackHint || "\u5F53\u524D\u540E\u7AEF\u62FF\u4E0D\u5230\u64AD\u653E\u76F4\u94FE\uFF0C\u53EA\u80FD\u770B\u4FE1\u606F";
     root.addEventListener("click", (event) => {
       const action = event.target.closest("[data-nmp-action]");
       if (action) {
@@ -1518,6 +1538,10 @@ var NeteaseMusic = (() => {
       }
       const track = event.target.closest(".nmp-track[data-nmp-song]");
       if (track) {
+        if (playbackOff) {
+          showNotice(root, offHint);
+          return;
+        }
         root.querySelectorAll('.nmp-track[data-nmp-active="1"]').forEach((n) => {
           n.dataset.nmpActive = "0";
         });
