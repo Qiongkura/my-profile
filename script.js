@@ -668,12 +668,10 @@
   const hifiRows = Array.from(doc.querySelectorAll('[data-track]'));
 
   if (hifiAudio && hifiRows.length) {
-    /* 音频文件没就位时的去处：打开音乐站的搜索页 */
-    const SEARCH_URL = 'https://music.163.com/#/search/m/?s=';
-
     const tracks = hifiRows.map((row) => ({
       row,
       src: row.getAttribute('data-src'),
+      fallbackSrc: row.getAttribute('data-fallback-src'),
       query: row.getAttribute('data-query') || '',
       btn: row.querySelector('[data-pick-btn]'),
       time: row.querySelector('[data-pick-time]'),
@@ -709,11 +707,12 @@
       track.bar.setAttribute('aria-valuenow', String(Math.round(clamped * 100)));
     };
 
-    const reset = (track) => {
+    const reset = (track, message = '') => {
       setButton(track, false);
       paint(track, 0);
       track.seek.hidden = true;
-      track.time.textContent = '';
+      track.time.textContent = message;
+      track.row.classList.toggle('is-error', Boolean(message));
     };
 
     const update = () => {
@@ -728,6 +727,9 @@
       if (playing !== track) {
         if (playing) reset(playing);
         playing = track;
+        track.fallbackTried = false;
+        track.row.classList.remove('is-error');
+        track.time.textContent = '';
         hifiAudio.src = track.src;
         track.seek.hidden = false;
       }
@@ -752,13 +754,22 @@
     hifiAudio.addEventListener('loadedmetadata', update);
     hifiAudio.addEventListener('ended', () => { if (playing) paint(playing, 1); });
 
-    /* 文件不存在或格式不支持时打开搜索页，避免点了没反应 */
+    /* 优先播放你提供的 FLAC；不支持 FLAC 的旧浏览器自动回退到站内 MP3，不跳外部网站 */
     hifiAudio.addEventListener('error', () => {
       const track = playing;
       if (!track) return;
+      if (track.fallbackSrc && !track.fallbackTried) {
+        track.fallbackTried = true;
+        hifiAudio.src = track.fallbackSrc;
+        const played = hifiAudio.play();
+        if (played && typeof played.catch === 'function') played.catch(() => {});
+        return;
+      }
       playing = null;
-      reset(track);
-      if (track.query) window.open(SEARCH_URL + encodeURIComponent(track.query), '_blank', 'noopener');
+      const message = root.getAttribute('data-lang') === 'en'
+        ? 'Audio unavailable'
+        : '音频暂时无法播放';
+      reset(track, message);
     });
 
     tracks.forEach((track) => {

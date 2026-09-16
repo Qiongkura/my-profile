@@ -966,6 +966,7 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
 }
 .pick.is-playing .pick-title { color: var(--ink); }
 .pick.is-playing .pick-btn { color: var(--red); border-color: var(--red); }
+.pick.is-error .pick-time { color: var(--red); }
 
 /* 进度条：只有正在播放的那一行才展开 */
 .pick-seek { grid-column: 1 / -1; padding: 4px 0 1px; }

@@ -25,7 +25,7 @@ git push
 
 > 注意：`publish.cmd` 只能靠「未提交的改动」判断是否要升版本号。如果某次 CSS 改动已经提交了却没升版本号，用 `--force` 补一次。
 
-只在本地看效果、不发布：在该目录运行 `python -m http.server 8000`，然后打开 <http://localhost:8000>。本地看到的是本地文件，和线上是两回事。
+只在本地看效果、不发布：在该目录运行 `python tools/serve.py`，然后打开 <http://localhost:8000>（别用 `python -m http.server`，原因见下面「本地预览」一节）。本地看到的是本地文件，和线上是两回事。
 
 ## 文件结构
 
@@ -47,7 +47,10 @@ my-profile/
 │   ├── focus-home.webp        # Focus-time-tracker 主界面
 │   └── focus-stats.webp       # Focus-time-tracker 统计报告
 ├── assets/audio/
-│   └── cha-tang.mp3           # 最近在听「茶汤」的试听音频（需自行放入，见下文）
+│   ├── cha-tang.flac        # 最近在听「茶汤」的首选音频（你提供的 FLAC，约 35 MB）
+│   └── cha-tang.mp3         # 旧浏览器的站内备用格式（约 5.9 MB）
+├── tools/
+│   └── serve.py               # 支持 HTTP Range 的本地预览服务器（音频拖进度条要用它）
 └── README.md
 ```
 
@@ -104,27 +107,19 @@ my-profile/
 
 代表曲目是从「最近播放」列表里挑的（中文流行：会呼吸的痛 · 梁静茹；欧美流行：Just Like Fire · P!nk；另类音乐：NIGHT DANCER · imase；电子音乐：CAROUSEL! · DEITIES / ASMODEUS），想换成别的直接改文字就行。
 
-### 怎么让「茶汤」真的响起来
+### 「茶汤」的试听音频
 
-浏览器只能播放站点自己托管的音频文件，仓库里不放受版权保护的歌曲，所以**需要你自己放一个音频文件**：
+播放的是你提供、由站点自己托管的 FLAC 文件：`assets/audio/cha-tang.flac`（文件约 34.8 MiB）。页面优先把它作为 `<audio>` 的 `src`，不再跳转网易云或其他外部音乐网站；用 `preload="none"`，没人点播放就不会下载。为了兼容不支持 FLAC 的旧浏览器，`data-fallback-src` 还准备了站内 `assets/audio/cha-tang.mp3`，只有 FLAC 真正加载失败时才回退到它。想换歌就替换这些文件，或改 `index.html` 里 `li.pick--now` 那一行的 `data-src` / `data-fallback-src`。
 
-```text
-assets/audio/cha-tang.mp3
-```
+文件名和路径要和 `data-src` 完全一致。播放行为：
 
-文件名和路径要完全一致（想换路径就改 `index.html` 里 `li.pick--now` 那一行的 `data-src`）。放进去之后点 ▶ 就能播放：
-
-- ▶ / ❚❚ 播放与暂停（切换曲目时上一首自动停）
+- ▶ / ❚❚ 播放与暂停
 - 播放时该行下面展开进度条：点击或拖动跳转，键盘 `←` `→` 跳 5 秒、`Home` / `End` 到首尾，右侧显示 `已播 / 总长`
-- 用 `preload="none"`，没点播放不会下载音频
+- 文件不存在或浏览器不支持该格式时，会自动切换到站内 MP3 备用文件；两种格式都无法播放时，只在当前行显示「音频暂时无法播放」，不会打开网易云官网
 
-**文件不存在时**（也就是现在的状态）点 ▶ 会在新标签页打开音乐站的搜索页，不会出现「点了没反应」。所以上线前记得把文件放好，否则访客点了会跳走。
+FLAC 文件约 35 MB，首次点击时才请求；线上 Cloudflare 会按 HTTP Range 分段传输，进度条可以拖动。这个仓库是公开的，请确认你有权公开托管这份音频。
 
-音频体积建议控制在 1~2 MB：可以用 ffmpeg 截 30 秒当试听。整首上传会让页面变重，而且这个站是公开的，公开传播整首商业歌曲不太合适：
-
-```bash
-ffmpeg -ss 00:00:45 -t 30 -i 原文件.flac -c:a libmp3lame -b:a 128k assets/audio/cha-tang.mp3
-```
+本地预览时记得用 `tools/serve.py` 而不是 `python -m http.server`，否则进度条拖不动，原因见下面「本地预览」。
 
 ## 窗口尺寸适配
 
@@ -212,10 +207,12 @@ PROJECTS 一页上，把鼠标停在某个项目名字上**满 2 秒**会触发�
 
 ```bash
 cd I:\projects\my-profile
-python -m http.server 8000
+python tools/serve.py          # 默认 8000，也可 python tools/serve.py 8080
 ```
 
 然后访问 <http://localhost:8000>。
+
+用 `tools/serve.py` 而不是 `python -m http.server`：**音频进度条拖动要求服务器支持 HTTP Range**。标准库的 `http.server` 不返回 `Accept-Ranges`，浏览器拿到的 `audio.seekable` 是 `[0, 0]`，于是本地拖进度条会「跳一下又回到 0」，很容易误以为播放器写坏了；线上 Cloudflare / GitHub Pages 都支持 Range，不受影响。`tools/serve.py` 就是在 `SimpleHTTPRequestHandler` 上补了 Range，顺便关掉缓存，改完文件刷新即可看到。
 
 ## 部署
 
