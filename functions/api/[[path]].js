@@ -35,6 +35,9 @@ const BASE_HEADERS = {
 const cache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
 
+/** 撞上风控最多重发几次（不含首次） */
+const RISK_RETRIES = 2;
+
 function cacheGet(key) {
   const hit = cache.get(key);
   if (!hit) return null;
@@ -106,28 +109,63 @@ function upstreamHeaders(env = {}) {
 }
 
 /**
+ * 网易云的风控响应。
+ *
+ * 典型长这样：{ code: -462, data: { verifyType: 40, verifyUrl: '.../encrypt-pages' } }
+ * 意思是「你先去过个验证」—— 跟参数没关系，同一秒重发就可能过。
+ * 实测从 Cloudflare 的出口 IP 请求 /playlist、/album、/artist 会间歇性中招，
+ * 而 /song、/lyric 基本不中，所以这是网易按接口 + 按 IP 的分级风控。
+ */
+export function isRiskControl(data) {
+  return Boolean(data && (data.code === -462 || data.data?.verifyType || data.verifyType));
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
  * 请求上游并返回 JSON。
+ *
+ * 两个要点：
+ *   1. 撞上风控就重发。它是概率性的，实测 3 次里能过 2 次，重试是最省事的解法。
+ *   2. **风控响应绝不能进缓存。** 一旦把 -462 缓存 5 分钟，等于把一次偶发失败
+ *      钉死成一个持续故障，重试也没用（因为根本不会打到上游）。
+ *
  * @param {string} url
  * @param {object} env
- * @param {{ noCache?: boolean }} [options] 诊断类请求要绕开缓存，否则测不出当前 Cookie 的状态
+ * @param {{ noCache?: boolean, retries?: number }} [options] 诊断类请求要绕开缓存，否则测不出当前 Cookie 的状态
  */
 async function fetchUpstream(url, env = {}, options = {}) {
   const cached = options.noCache ? null : cacheGet(url);
   if (cached) return cached;
 
-  const res = await fetch(url, { headers: upstreamHeaders(env) });
-  if (!res.ok) {
-    throw Object.assign(new Error(`上游返回 HTTP ${res.status}`), { status: res.status });
+  const retries = options.retries ?? RISK_RETRIES;
+  let last = null;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const res = await fetch(url, { headers: upstreamHeaders(env) });
+    if (!res.ok) {
+      throw Object.assign(new Error(`上游返回 HTTP ${res.status}`), { status: res.status });
+    }
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw Object.assign(new Error('上游返回的不是 JSON'), { status: 502, body: text.slice(0, 200) });
+    }
+
+    if (!isRiskControl(data)) {
+      cacheSet(url, data);
+      return data;
+    }
+
+    last = data;
+    // 还在风控里，喘口气再来。加抖动，避免并发请求整齐地一起重试
+    if (attempt < retries) await sleep(150 + Math.random() * 350);
   }
-  const text = await res.text();
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw Object.assign(new Error('上游返回的不是 JSON'), { status: 502, body: text.slice(0, 200) });
-  }
-  cacheSet(url, data);
-  return data;
+
+  // 重试完还是被拦，原样返回但**不缓存**，下次请求会重新试
+  return last;
 }
 
 /** 从分享链接里把 type/id 抠出来（代理端也要做一次，用于 /resolve） */
@@ -350,6 +388,22 @@ export async function handleRequest(request, env = {}) {
     }
 
     const data = await fetchUpstream(builder(url.searchParams), env);
+
+    // 重试完还在风控里，别把 -462 那坨东西原样丢给前端
+    // （前端拿到 {code:-462, data:{verifyType...}} 只会显示「没找到内容」，等于没说）
+    if (isRiskControl(data)) {
+      return json(
+        {
+          code: 502,
+          message:
+            '网易云风控拦截（-462）：自动重试了几次都没过。这是按出口 IP 临时标记的，' +
+            '等一会儿再点通常就好了；如果一直这样，说明这个边缘节点被网易盯上了。',
+          upstream: { code: data?.code, verifyUrl: data?.data?.verifyUrl },
+        },
+        { status: 502, env },
+      );
+    }
+
     return json(data, { env });
   } catch (err) {
     return json(

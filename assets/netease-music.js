@@ -435,7 +435,12 @@ var NeteaseMusic = (() => {
         });
       }
       if (!res.ok) {
-        throw new NeteaseApiError(`\u63A5\u53E3\u8FD4\u56DE HTTP ${res.status}`, { status: res.status, body: data, url });
+        const hint = (data == null ? void 0 : data.message) || (data == null ? void 0 : data.msg) || (data == null ? void 0 : data.error) || "";
+        throw new NeteaseApiError(`\u63A5\u53E3\u8FD4\u56DE HTTP ${res.status}${hint ? `\uFF1A${hint}` : ""}`, {
+          status: res.status,
+          body: data,
+          url
+        });
       }
       return data;
     }
