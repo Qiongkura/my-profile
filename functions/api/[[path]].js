@@ -54,6 +54,25 @@ function cacheSet(key, value) {
   cache.set(key, { value, expire: Date.now() + CACHE_TTL });
 }
 
+/**
+ * 对外状态码映射：**5xx 一律降成 429**。
+ *
+ * 原因（2026-09 实测，踩了很久）：Cloudflare Pages 会把函数返回的 **5xx
+ * 整个替换掉**，客户端拿到的是 Cloudflare 自己的纯文本页
+ * `error code: 502`，我们自己写的 `message` 一个字都传不出去。
+ * 表现极具误导性 —— 看起来像函数被平台掐死了，其实是响应被换掉了。
+ *
+ * 4xx 不会被替换（404 / 400 / 405 都实测过，原样带 body 出来），
+ * 所以对外统一用 4xx，**真实状态码放在 body 的 `code` 字段里**。
+ * 用 429 是因为这些失败绝大多数就是「上游在限我们」，语义最贴。
+ *
+ * 这一层很关键：前端靠 body 里的 message 把原因显示给用户，
+ * 一旦被替换成 `error code: 502`，用户就只看到一个看不懂的错误码。
+ */
+function wireStatus(status) {
+  return status >= 500 ? 429 : status;
+}
+
 /** 统一响应头 */
 function corsHeaders(env = {}) {
   return {
@@ -67,7 +86,7 @@ function corsHeaders(env = {}) {
 
 function json(data, { status = 200, env = {}, extra = {} } = {}) {
   return new Response(JSON.stringify(data), {
-    status,
+    status: wireStatus(status),
     headers: { 'Content-Type': 'application/json; charset=utf-8', ...corsHeaders(env), ...extra },
   });
 }
@@ -125,23 +144,19 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /**
  * 请求上游并返回 JSON。
  *
- * 关于「撞上风控要不要自动重试」：**默认不重试**，因为实测在 Cloudflare
- * Pages Functions 上重试是负收益。
+ * 关于「撞上风控要不要自动重试」：**默认不重试**，原因是实测重试没用。
  *
- * 现象是：撞上 -462 之后如果继续发第二次、第三次，函数会在返回之前被平台掐掉，
- * 客户端拿到的是 Cloudflare 自己的纯文本 `error code: 502`，
- * 而不是我们构造的那条 JSON 错误 —— 说明根本没走到返回语句。
- * 带重试的版本实测 12 次只过 3 次；不重试的版本 3 次过 2 次。重试反而更差。
+ * 风控是按**出口 IP** 判定的，而**同一次函数调用里的多个请求会复用同一条连接、
+ * 也就是同一个出口 IP**。所以在一个请求里连发三次，三次撞的是同一个被标记的 IP，
+ * 结果几乎一样（实测 `/diag?n=6` 六次全部 -462）。
+ * 反过来，**跨请求**的出口 IP 是会变的：连着打 8 次真实接口，
+ * 结果是「过、拦、过、拦、拦、拦、拦、拦」——所以正确的做法是让用户隔几秒再点一次，
+ * 那是一次新调用、一个新出口 IP，有实打实的概率命中干净的节点。
  *
- * 免费计划的 CPU 预算是 10ms/请求，而重试等于把上游响应多解析两遍，
- * 最可能的原因就是撞在 CPU 上限上（网络等待不算 CPU，解析算）。
+ * 结论：**失败就快速失败，把原因说清楚，别在一个请求里空转。**
+ * 想自己试重试：Pages 环境变量 `RISK_RETRIES=1`，或者用 `/diag?retries=N` 先量一量。
  *
- * 所以策略改成「一次就一次」：失败就快速失败、把话说清楚，让用户自己再点一次。
- * 人手动重试是隔几秒的，跟同一请求里连发三次完全不是一回事。
- * 想自己验证重试有没有用：Pages 环境变量 `RISK_RETRIES=1`，
- * 或者直接打 `/diag` 看它连续请求的结果。
- *
- * 唯一必须守住的一点：**风控响应绝不能进缓存。**
+ * 另一条必须守住的：**风控响应绝不能进缓存。**
  * 一旦把一次偶发的 -462 缓存 5 分钟，等于把瞬时故障钉死成持续故障。
  *
  * @param {string} url
@@ -408,6 +423,7 @@ export async function handleRequest(request, env = {}) {
     //
     //   /diag?path=/album&id=18905&n=3
     //   /diag?path=/album&id=18905&n=3&mode=raw
+    //   /diag?path=/album&id=18905&n=3&retries=2        # 量一量重试到底有没有用
     //   /diag?path=/album&id=18905&n=3&realip=1.2.3.4   # 试 X-Real-IP 有没有用
     if (path === '/diag') {
       const target = url.searchParams.get('path') || '/album';
@@ -420,6 +436,7 @@ export async function handleRequest(request, env = {}) {
       }
       const n = Math.min(Math.max(Number(url.searchParams.get('n')) || 3, 1), 6);
       const raw = url.searchParams.get('mode') === 'raw';
+      const retries = Math.min(Math.max(Number(url.searchParams.get('retries')) || 0, 0), 3);
       const realip = url.searchParams.get('realip') || '';
       const extraHeaders = realip ? { 'X-Real-IP': realip, 'X-Forwarded-For': realip } : undefined;
       const apiUrl = builder(url.searchParams);
@@ -435,7 +452,7 @@ export async function handleRequest(request, env = {}) {
             const text = await res.text();
             attempts.push({ i: i + 1, ms: Date.now() - started, http: res.status, bytes: text.length });
           } else {
-            const data = await fetchUpstream(apiUrl, env, { noCache: true, retries: 0, extraHeaders });
+            const data = await fetchUpstream(apiUrl, env, { noCache: true, retries, extraHeaders });
             attempts.push({
               i: i + 1,
               ms: Date.now() - started,
@@ -454,6 +471,7 @@ export async function handleRequest(request, env = {}) {
         {
           code: 200,
           mode: raw ? 'raw' : 'parse',
+          retries,
           upstream: apiUrl,
           realip: realip || null,
           attempts,
@@ -475,24 +493,34 @@ export async function handleRequest(request, env = {}) {
 
     // 重试完还在风控里，别把 -462 那坨东西原样丢给前端
     // （前端拿到 {code:-462, data:{verifyType...}} 只会显示「没找到内容」，等于没说）
+    //
+    // 状态码用 429 而不是 502：Cloudflare Pages 会把 5xx 换成它自己的错误页，
+    // 我们这条 message 就传不出去了。详见 wireStatus() 的注释。
     if (isRiskControl(data)) {
       return json(
         {
-          code: 502,
+          code: 429,
           message:
-            '网易云风控拦截（-462）：自动重试了几次都没过。这是按出口 IP 临时标记的，' +
-            '等一会儿再点通常就好了；如果一直这样，说明这个边缘节点被网易盯上了。',
+            '网易云风控拦截（-462）：这次请求的出口 IP 被网易临时标记了，跟链接本身没关系。' +
+            '过几秒再点一次解析通常就好了 —— 每次请求走的是不同的边缘节点。',
           upstream: { code: data?.code, verifyUrl: data?.data?.verifyUrl },
         },
-        { status: 502, env },
+        { status: 429, env },
       );
     }
 
     return json(data, { env });
   } catch (err) {
+    const status = err?.status && err.status >= 400 && err.status < 600 ? err.status : 500;
+    const wire = wireStatus(status);
     return json(
-      { code: err?.status || 500, message: err?.message || String(err) },
-      { status: err?.status && err.status >= 400 && err.status < 600 ? err.status : 500, env },
+      {
+        code: wire,
+        message: err?.message || String(err),
+        // 对外被降级过就把真实状态码留下来，免得排查时一头雾水
+        ...(wire !== status ? { upstreamStatus: status } : {}),
+      },
+      { status, env },
     );
   }
 }

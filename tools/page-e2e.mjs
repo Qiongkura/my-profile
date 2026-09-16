@@ -70,7 +70,9 @@ function check(label, ok, detail = '') {
 /**
  * 起一个跑着真实页面的 jsdom。
  * @param {string} search 页面 URL 的 query，例如 '?api=off'
- * @param {{ apiDead?: boolean }} [options] apiDead 模拟「functions/ 还没被识别到」
+ * @param {{ apiDead?: boolean, riskControl?: boolean }} [options]
+ *   apiDead     模拟「functions/ 还没被 Cloudflare 识别到」
+ *   riskControl 模拟「网易云风控」：解析接口回 429 + 中文说明
  */
 function bootPage(search, options = {}) {
   const dom = new JSDOM(html, {
@@ -98,6 +100,22 @@ function bootPage(search, options = {}) {
           status: 404,
           headers: { 'content-type': 'text/html' },
         }),
+      );
+    }
+
+    // 风控只影响解析接口，体检照常通过 —— 这样才能测出「后端是好的，只是这次被拦了」
+    if (options.riskControl && !/\/health(\?|$)/.test(absolute)) {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            code: 429,
+            message:
+              '网易云风控拦截（-462）：这次请求的出口 IP 被网易临时标记了，跟链接本身没关系。' +
+              '过几秒再点一次解析通常就好了 —— 每次请求走的是不同的边缘节点。',
+            upstream: { code: -462 },
+          }),
+          { status: 429, headers: { 'content-type': 'application/json; charset=utf-8' } },
+        ),
       );
     }
 
@@ -214,10 +232,34 @@ console.log(bold('\n[3] 内置代理没部署好 → 自动退回离线，不弹
   dom.window.close();
 }
 
-/* ---------------------------------------- 4. 同源 /api（Pages Function） */
+/* ------------------------------------------------- 4. 风控 429 要能看懂 */
+
+console.log(bold('\n[4] 网易云风控（429）→ 页面要显示中文原因，不能只甩一个状态码'));
+
+{
+  const dom = bootPage('?u=https://music.163.com/%23/song?id=186016', { riskControl: true });
+  await wait(6000);
+  const { document } = dom.window;
+
+  const status = document.getElementById('np-status');
+  check('体检仍然通过（后端本身是好的）', status?.getAttribute('data-state') === 'ok', `state=${status?.getAttribute('data-state')}`);
+
+  // 插件渲染的是 .nmp-card--error，原因写在 .nmp-sub 里。
+  // 别找 .nmp-error —— 那个类名不存在（踩过一次）。
+  const errCard = document.querySelector('#np-result .nmp-card--error');
+  const errText = errCard?.querySelector('.nmp-sub')?.textContent?.trim() || '';
+  check('出现了报错卡', Boolean(errCard), errText.slice(0, 40));
+  check('带上了代理给的中文说明', /风控/.test(errText), errText.slice(0, 110));
+  check('不是光秃秃一个状态码', !/^接口返回 HTTP 429$/.test(errText), errText.slice(0, 70));
+  check('提示了「再点一次」', /再点|重试/.test(errText), errText.slice(0, 110));
+
+  dom.window.close();
+}
+
+/* ---------------------------------------- 5. 同源 /api（Pages Function） */
 
 if (!OFFLINE) {
-  console.log(bold('\n[4] 默认配置 → 走本站自带的 /api（Cloudflare Pages Function）'));
+  console.log(bold('\n[5] 默认配置 → 走本站自带的 /api（Cloudflare Pages Function）'));
 
   {
     const dom = bootPage('?u=https://music.163.com/%23/song?id=186016');
@@ -233,9 +275,9 @@ if (!OFFLINE) {
     dom.window.close();
   }
 
-  /* -------------------------------------- 5. 外部地址（独立 Worker） */
+  /* -------------------------------------- 6. 外部地址（独立 Worker） */
 
-  console.log(bold('\n[5] ?api=<外部地址> → 走独立 Worker 那份 handler（真实网络）'));
+  console.log(bold('\n[6] ?api=<外部地址> → 走独立 Worker 那份 handler（真实网络）'));
 
   const external = [
     ['单曲', 'https://music.163.com/%23/song?id=186016', '晴天'],
@@ -250,7 +292,7 @@ if (!OFFLINE) {
     dom.window.close();
   }
 
-  console.log(bold('\n[6] /health 体检（同源）'));
+  console.log(bold('\n[7] /health 体检（同源）'));
 
   {
     const dom = bootPage('');

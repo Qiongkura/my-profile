@@ -77,4 +77,6 @@ if (CHECK) {
 
 mkdirSync(path.dirname(TARGET), { recursive: true });
 writeFileSync(TARGET, generated, 'utf8');
-console.log(`已生成 ${path.relative(ROOT, TARGET)}（${generated.length} 字节）`);
+// 用 byteLength 而不是 .length —— 后者数的是 UTF-16 码元，中文会少算。
+// 这个数字是用来跟线上 curl 回来的字节数对照的，必须是真的字节数。
+console.log(`已生成 ${path.relative(ROOT, TARGET)}（${Buffer.byteLength(generated, 'utf8')} 字节）`);
