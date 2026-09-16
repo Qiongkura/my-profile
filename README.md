@@ -47,8 +47,7 @@ my-profile/
 │   ├── focus-home.webp        # Focus-time-tracker 主界面
 │   └── focus-stats.webp       # Focus-time-tracker 统计报告
 ├── assets/audio/
-│   ├── cha-tang.flac        # 最近在听「茶汤」的首选音频（你提供的 FLAC，约 35 MB）
-│   └── cha-tang.mp3         # 旧浏览器的站内备用格式（约 5.9 MB）
+│   └── cha-tang.mp3         # 最近在听「茶汤」，由你提供的 FLAC 转出的 320 kbps MP3（13.1 MiB）
 ├── tools/
 │   └── serve.py               # 支持 HTTP Range 的本地预览服务器（音频拖进度条要用它）
 └── README.md
@@ -109,15 +108,23 @@ my-profile/
 
 ### 「茶汤」的试听音频
 
-播放的是你提供、由站点自己托管的 FLAC 文件：`assets/audio/cha-tang.flac`（文件约 34.8 MiB）。页面优先把它作为 `<audio>` 的 `src`，不再跳转网易云或其他外部音乐网站；用 `preload="none"`，没人点播放就不会下载。为了兼容不支持 FLAC 的旧浏览器，`data-fallback-src` 还准备了站内 `assets/audio/cha-tang.mp3`，只有 FLAC 真正加载失败时才回退到它。想换歌就替换这些文件，或改 `index.html` 里 `li.pick--now` 那一行的 `data-src` / `data-fallback-src`。
+站内托管的是 `assets/audio/cha-tang.mp3`（13.1 MiB，320 kbps），由你提供的那份 FLAC 转码而来。页面把它作为 `<audio>` 的 `src`，不再跳转网易云或其他外部音乐网站；用 `preload="none"`，没人点播放就不会下载。想换歌就替换这个文件，或改 `index.html` 里 `li.pick--now` 那一行的 `data-src`。
+
+**为什么站内不是 FLAC**：Cloudflare Pages 对**单个文件**的上限是 **25 MiB**（官方 Limits 文档原文：*The maximum file size for a single Cloudflare Pages site asset is 25 MiB*），你那份 FLAC 是 34.8 MiB，超出后整个部署会失败——现象就是 GitHub 上文件在、但线上仍是旧版本、音频路径返回 404。想放真正无损的原文件，官方给的路子是传 R2（*Larger Files: consider uploading them to R2 and utilizing the public bucket feature*），把 `data-src` 换成 R2 的公网地址即可；也可以用 GitHub Release 附件（单文件上限 2 GB）承载，然后写它的直链。
+
+转码命令（用了本机捆绑的 ffmpeg）：
+
+```bash
+ffmpeg -y -i "茶汤.flac" -c:a libmp3lame -b:a 320k -map_metadata 0 -id3v2_version 3 assets/audio/cha-tang.mp3
+```
 
 文件名和路径要和 `data-src` 完全一致。播放行为：
 
 - ▶ / ❚❚ 播放与暂停
 - 播放时该行下面展开进度条：点击或拖动跳转，键盘 `←` `→` 跳 5 秒、`Home` / `End` 到首尾，右侧显示 `已播 / 总长`
-- 文件不存在或浏览器不支持该格式时，会自动切换到站内 MP3 备用文件；两种格式都无法播放时，只在当前行显示「音频暂时无法播放」，不会打开网易云官网
+- 文件不存在或浏览器不支持该格式时，只在当前行显示「音频暂时无法播放」，不会打开网易云官网
 
-FLAC 文件约 35 MB，首次点击时才请求；线上 Cloudflare 会按 HTTP Range 分段传输，进度条可以拖动。这个仓库是公开的，请确认你有权公开托管这份音频。
+首次点击时才请求；线上 Cloudflare 会按 HTTP Range 分段传输，进度条可以拖动。这个仓库是公开的，请确认你有权公开托管这份音频。
 
 本地预览时记得用 `tools/serve.py` 而不是 `python -m http.server`，否则进度条拖不动，原因见下面「本地预览」。
 
