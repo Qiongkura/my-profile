@@ -333,10 +333,15 @@ export async function handleRequest(request, env = {}) {
       routes: ['/resolve', '/verify', '/diag', '/health', ...Object.keys(ROUTES)],
       hasCookie: Boolean(env.NETEASE_COOKIE),
       cookie: inspectCookie(env),
-      // 一句话说清这个后端现在能干什么
+      // 一句话说清这个后端现在能干什么。
+      //
+      // ⚠️ 别说成「没 Cookie 就放不了」—— 实测热歌榜前 20 首里 11 首
+      // 不带任何 Cookie 也能拿到直链，而且跟 fee 无关（fee:8 的能放，
+      // fee:0 的《晴天》反而不能）。能不能放是**逐首**决定的。
+      // Cookie 的作用是「把能放的集合扩大」，不是「开关」。
       capability: env.NETEASE_COOKIE
-        ? '元数据 + 歌词 + 播放地址（能不能播看具体歌曲）'
-        : '只有元数据和歌词，播放地址拿不到（缺 NETEASE_COOKIE）',
+        ? '元数据 + 歌词 + 播放地址（配了 Cookie，能放的歌更多）'
+        : '元数据 + 歌词 + 部分免费歌曲的播放地址（没配 Cookie，能放的少一些）',
     }, { env });
   }
 
@@ -351,21 +356,52 @@ export async function handleRequest(request, env = {}) {
       const ok = Boolean(item?.url);
       const cookie = inspectCookie(env);
 
+      // 光靠「拿一首歌试」判断不了 Cookie 好不好 ——
+      // 有些歌不带 Cookie 也能放（实测热歌榜约一半），有些歌带了 Cookie 也放不了。
+      // 所以直接问网易「这个 Cookie 是谁」，这才是 Cookie 有没有效的直接答案。
+      let account = null;
+      if (cookie.configured) {
+        try {
+          const res = await fetch(`${UPSTREAM}/api/nuser/account/get`, {
+            headers: upstreamHeaders(env),
+          });
+          const body = await res.json();
+          account = body?.profile
+            ? {
+                loggedIn: true,
+                nickname: body.profile.nickname,
+                userId: body.profile.userId,
+                vipType: body.profile.vipType,
+              }
+            : { loggedIn: false, upstreamCode: body?.code };
+        } catch (err) {
+          account = { loggedIn: false, error: String(err?.message || err) };
+        }
+      }
+
+      const cookieValid = Boolean(account?.loggedIn);
+
       return json(
         {
           code: 200,
           ok,
           probeId,
           cookie,
+          account,
+          cookieValid,
           url: ok ? item.url : null,
           br: item?.br || 0,
+          // 按「最可能的原因」排优先级：先说 Cookie 本身有没有问题，
+          // 再说这首歌的问题。不然用户会拿一首本来就放不了的歌去怀疑 Cookie。
           reason: ok
             ? ''
             : !cookie.configured
-              ? '还没配 NETEASE_COOKIE'
-              : cookie.hasMusicU
-                ? 'Cookie 有了，但这首还是拿不到直链（可能已下架 / 版权受限 / 或 Cookie 过期了）'
-                : 'Cookie 里没有 MUSIC_U',
+              ? '还没配 NETEASE_COOKIE。注意：这首歌不放不代表所有歌都放不了 —— 不带 Cookie 也有一部分歌能放'
+              : !cookie.hasMusicU
+                ? 'Cookie 里没有 MUSIC_U，MUSIC_U 才是登录凭证'
+                : !cookieValid
+                  ? 'Cookie 无效或已过期（网易的账号接口说未登录），重新拿一串'
+                  : 'Cookie 是有效的，但这首歌拿不到直链（VIP 专享 / 已下架 / 版权受限）',
           upstream: ok
             ? undefined
             : {
@@ -436,13 +472,15 @@ export async function handleRequest(request, env = {}) {
               br: direct ? Number(br) : 0,
               size: 0,
               free: Boolean(direct),
-              // 实测：不带登录 Cookie 时，连 fee=0 的免费歌曲也不会返回直链，
-              // 老的外链接口也已经 302 到 /404，所以这里的提示要说实话
+              // 实测：不带登录 Cookie 时，一部分免费歌曲照样能拿到直链
+              // （热歌榜前 20 首里 11 首可以），而且跟 fee 无关 ——
+              // 《晴天》fee:0 拿不到，另一首 fee:8 反而拿得到。
+              // 所以这里不要说「没 Cookie 就一律拿不到」，那是错的。
               reason: direct
                 ? ''
                 : env.NETEASE_COOKIE
-                  ? '这首歌需要 VIP 或已下架，当前 Cookie 也拿不到直链'
-                  : '后端没配登录 Cookie（NETEASE_COOKIE 要填真实登录后的 MUSIC_U），网易对未登录请求一律不返回直链',
+                  ? '这首歌当前 Cookie 也拿不到直链（VIP 专享 / 已下架 / 版权受限，或 Cookie 过期了）'
+                  : '这首歌没配登录 Cookie 时拿不到直链（不是所有歌都这样，这首不行）。配 NETEASE_COOKIE 能多放一些',
             },
           ],
           code: 200,

@@ -16,8 +16,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="../styles.css?v=40" />
-    <link rel="stylesheet" href="../assets/netease-theme.css?v=40" />
+    <link rel="stylesheet" href="../styles.css?v=41" />
+    <link rel="stylesheet" href="../assets/netease-theme.css?v=41" />
     <script>
       /* 在样式生效前确定语言，避免切换时闪烁 */
       (function () {
@@ -543,7 +543,7 @@
       </div>
     </footer>
 
-    <script src="../assets/netease-music.js?v=40"></script>
+    <script src="../assets/netease-music.js?v=41"></script>
     <script>
       /* 网易云解析页 · 页面逻辑
          ------------------------------------------------------------------------
@@ -786,9 +786,6 @@
         var busy = false;
         /* 体检没过的话，解析时直接退回离线识别，别让用户看到一堆报错 */
         var backendDead = false;
-        /* 后端能不能给播放直链。null = 还没体检过，那就先按能放处理（默认行为） */
-        var playbackReady = null;
-        var playbackHint = '';
 
         function notice(zh, en) {
           return '<div class="np-note"><span class="zh">' + zh + '</span><span class="en" lang="en">' + en + '</span></div>';
@@ -870,10 +867,7 @@
               apiBase: apiBase,
               adapter: adapter,
               theme: 'light',
-              type: typeHint || parsed.primary.type || undefined,
-              /* 体检说放不了就别摆播放键，省得用户点了才发现不行 */
-              playback: playbackReady === null ? undefined : playbackReady,
-              playbackHint: playbackHint || undefined
+              type: typeHint || parsed.primary.type || undefined
             });
           } catch (err) {
             result.innerHTML = failNotice((err && err.message) || String(err));
@@ -945,17 +939,10 @@
 
             backendDead = false;
 
-            // 后端有没有登录 Cookie 决定了卡片上要不要摆播放键。
-            // 实测：不带 MUSIC_U 时连 fee=0 的免费歌都拿不到直链，
-            // 所以没 Cookie 就一定放不了，摆个播放键等于骗用户点。
-            var cookieUsable = Boolean(data && data.hasCookie) && !(cookie && !cookie.hasMusicU);
-            playbackReady = cookieUsable;
-            playbackHint = cookieUsable
-              ? ''
-              : cookie && cookie.hasCookie
-                ? '后端 Cookie 里没有 MUSIC_U，播放地址拿不到 · 点右上角去网易云听'
-                : '本站后端还没配登录 Cookie，暂时只能看不能听 · 点右上角去网易云听';
-
+            // 注意：**不要**因为「没配 Cookie」就把播放键藏起来。
+            // 能不能放是逐首决定的 —— 实测热歌榜前 20 首里 11 首不带任何
+            // Cookie 也能拿到直链，而且跟 fee 无关。藏起来等于砍掉一个
+            // 一半情况下都能用的功能。点不动的时候卡片自己会说明原因。
             var isBuiltIn = apiBase.charAt(0) === '/';
             var whereZh = isBuiltIn ? '本站自带的代理' : '后端 <code>' + escapeHtml(apiBase) + '</code>';
             var whereEn = isBuiltIn ? 'The built-in proxy on this site' : 'Backend <code>' + escapeHtml(apiBase) + '</code>';
@@ -963,8 +950,10 @@
             if (cookie && cookie.hasCookie && !cookie.hasMusicU) {
               setStatus(
                 'warn',
-                whereZh + '能连上，但 Cookie 里没有 <code>MUSIC_U</code>，播放地址基本拿不到。元数据和歌词是正常的。',
-                whereEn + ' is reachable, but the cookie has no <code>MUSIC_U</code> — playback URLs will mostly fail. Metadata and lyrics are fine.'
+                whereZh + '能连上，但 Cookie 里没有 <code>MUSIC_U</code>。' +
+                  'MUSIC_U 才是登录凭证，配上之后能放的歌会更多（现在只有一部分免费歌曲能放）。',
+                whereEn + ' is reachable, but the cookie has no <code>MUSIC_U</code>. ' +
+                  'MUSIC_U is the actual login credential — adding it makes more songs playable.'
               );
               return;
             }

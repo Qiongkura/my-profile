@@ -309,13 +309,12 @@ if (!OFFLINE) {
 
     inspectCard(document, '同源 /api 单曲', '晴天');
 
-    // 线上没配 NETEASE_COOKIE，所以后端明确放不了。
-    // 这种情况不该摆一个点了必然失败的播放键 —— 卡片上要直接说清楚。
+    // 没配 Cookie 也**要**有播放键。
+    // 能不能放是逐首决定的（实测热歌榜约一半不带 Cookie 也能放），
+    // 所以不能因为后端没 Cookie 就把它藏起来。
     const result = document.getElementById('np-result');
-    check('没配 Cookie 时不摆播放键', !result.querySelector('.nmp-play'), result.querySelector('.nmp-play') ? '居然有播放键' : '');
-    check('也不留空的 audio 元素', !result.querySelector('audio'));
-    const note = result.querySelector('.nmp-note')?.textContent?.trim() || '';
-    check('卡片上写清了原因', /Cookie|只能看/.test(note), note.slice(0, 80));
+    check('没配 Cookie 也要保留播放键', Boolean(result.querySelector('.nmp-play')));
+    check('不该出现「只能看不能听」那种说明', !result.querySelector('.nmp-note'));
 
     dom.window.close();
   }
