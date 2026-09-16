@@ -16,7 +16,7 @@
       rel="stylesheet"
     />
     <link rel="preload" as="image" href="assets/home-01.webp" />
-    <link rel="stylesheet" href="styles.css?v=35" />
+    <link rel="stylesheet" href="styles.css?v=36" />
     <script>
       /* 在样式生效前确定语言，避免切换时闪烁 */
       (function () {
@@ -597,17 +597,19 @@
                 </ul>
               </div>
 
-              <!-- lyrics:start —— 与 data-lrc 指向的 LRC 文件对应，文件不存在时整块保持隐藏 -->
+              <!-- lyrics:start —— 与 data-lrc 指向的 LRC 文件对应；没有该文件时整块 hidden，暂停时收起 -->
               <div class="lyrics" id="lyrics" hidden>
-                <p class="block-title">
-                  <span class="zh">歌词</span><span class="en" lang="en">LYRICS</span>
-                  <span class="lyrics-hint" data-aria-zh="点某一句可以跳到那一句" data-aria-en="Click a line to jump to it">
-                    <span class="zh">点句子跳转</span><span class="en" lang="en">click to jump</span>
-                  </span>
-                </p>
-                <ol class="lyrics-lines" id="lyrics-lines" tabindex="0"
-                    data-aria-zh="歌词，可滚动" data-aria-en="Lyrics, scrollable"
-                    aria-label="歌词"></ol>
+                <div class="lyrics-body">
+                  <p class="block-title">
+                    <span class="zh">歌词</span><span class="en" lang="en">LYRICS</span>
+                    <span class="lyrics-hint" data-aria-zh="点某一句可以跳到那一句" data-aria-en="Click a line to jump to it">
+                      <span class="zh">点句子跳转</span><span class="en" lang="en">click to jump</span>
+                    </span>
+                  </p>
+                  <ol class="lyrics-lines" id="lyrics-lines" tabindex="0"
+                      data-aria-zh="歌词，可滚动" data-aria-en="Lyrics, scrollable"
+                      aria-label="歌词"></ol>
+                </div>
               </div>
               <!-- lyrics:end -->
 
@@ -718,6 +720,6 @@
       </section>
     </main>
 
-    <script src="script.js?v=35"></script>
+    <script src="script.js?v=36"></script>
   </body>
 </html>

@@ -918,10 +918,13 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
 .scale.is-live .scale-dot { opacity: 1; }
 .scale-live {
   margin-left: .6em;
+  opacity: 0;
+  transition: opacity .35s var(--ease);
   font-variant-numeric: tabular-nums;
   color: var(--ink-2);
   white-space: nowrap;
 }
+.scale.is-live .scale-live { opacity: 1; }
 .scale.is-live [data-scale-max] { display: none; }
 
 .listen-block { margin-bottom: calc(1.04 * var(--u)); }
@@ -1117,8 +1120,21 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
 }
 
 /* 歌词：三行小窗 + 上下渐隐，当前句高亮；没有 LRC 文件时整块 hidden 不占位 */
-.lyrics { margin-top: calc(.9 * var(--u)); }
+/* 没有 LRC 时整块 hidden；有 LRC 但没在播放时平滑收起（不占高度） */
+.lyrics {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin-top: 0;
+  opacity: 0;
+  transition: grid-template-rows .45s var(--ease), opacity .35s var(--ease), margin-top .45s var(--ease);
+}
+.lyrics.is-playing {
+  grid-template-rows: 1fr;
+  margin-top: calc(.9 * var(--u));
+  opacity: 1;
+}
 .lyrics[hidden] { display: none; }
+.lyrics-body { min-height: 0; overflow: hidden; }
 .lyrics .block-title { display: flex; align-items: center; gap: 8px; margin-bottom: calc(.4 * var(--u)); }
 .lyrics-hint {
   font-family: var(--sans);
@@ -1182,7 +1198,7 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
   opacity: .82;
   transform-origin: bottom;
   animation: spec-breathe 3s var(--ease) infinite alternate;
-  transition: height .06s linear;
+  transition: height .45s var(--ease);
 }
 /* 峰值保持的顶标：贴着柱顶，峰值更高时由 --peak-gap 上移 */
 .spectrum span i {
@@ -1197,11 +1213,11 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
   transition: transform .09s linear, opacity .3s var(--ease);
 }
 /* 播放时柱高改由真实频段驱动，暂停时这套呼吸动画照旧 */
-.spectrum.is-live span { animation: none; transform: none; }
+.spectrum.is-live span { animation: none; transform: none; transition: height .06s linear; }
 .spectrum.is-live span i { opacity: .5; }
 .spectrum span:nth-child(2n) { animation-duration: 3.8s; animation-delay: .35s; }
 .spectrum span:nth-child(3n) { animation-duration: 2.4s; animation-delay: .7s; }
-@keyframes spec-breathe { from { transform: scaleY(.74); } to { transform: scaleY(1.04); } }
+@keyframes spec-breathe { from { transform: scaleY(1); } to { transform: scaleY(.72); } }
 
 /* ---------------------------------------------------------------- about */
 
@@ -1433,6 +1449,9 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
   .scroll-line,
   .bars span,
   .spectrum span { animation: none; }
+  .lyrics,
+  .spectrum span,
+  .scale-live,
   .work-panel,
   .work-list,
   .work-brief,

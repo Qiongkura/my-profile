@@ -488,30 +488,23 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    /* 暂停时保持原来那种「自己随便动」的示意波形 */
-    const drawSynthetic = (time) => {
-      const mid = height / 2;
-      const amp = height * 0.34;
+    /* 示意波形（暂停时那条自己随便动的线）的 y 值 */
+    const syntheticY = (x, time) => {
+      const p = x / width;
+      const envelope = Math.sin(Math.PI * p);
       const t = reduced.matches ? 0 : time;
-
-      for (let x = 0; x <= width; x += 2) {
-        const p = x / width;
-        const envelope = Math.sin(Math.PI * p);
-        const y =
-          mid +
-          Math.sin(p * Math.PI * 6 + t * 0.0011) * amp * envelope * 0.72 +
-          Math.sin(p * Math.PI * 17 - t * 0.0016) * amp * envelope * 0.26;
-        if (x === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
+      return (
+        height / 2 +
+        Math.sin(p * Math.PI * 6 + t * 0.0011) * (height * 0.34) * envelope * 0.72 +
+        Math.sin(p * Math.PI * 17 - t * 0.0016) * (height * 0.34) * envelope * 0.26
+      );
     };
 
-    /* 播放时画真实波形：1px 细线示波器 + 自动增益（音量小也画得开） */
-    const drawLive = () => {
+    /* 真实波形：1px 细线示波器 + 自动增益（音量小也画得开） */
+    let liveWave = null;
+    const prepareLive = () => {
       const { analyser, wave } = audioViz;
       analyser.getByteTimeDomainData(wave);
-
       let peak = 0;
       for (let i = 0; i < wave.length; i += 1) {
         const value = Math.abs(wave[i] - 128);
@@ -519,12 +512,26 @@
       }
       const target = peak > 3 ? Math.min(5, 104 / peak) : 1;
       audioViz.gain += (target - audioViz.gain) * 0.12;
-      const gain = audioViz.gain;
-      const mid = height / 2;
+      liveWave = wave;
+    };
+
+    const liveY = (x) => {
+      const wave = liveWave;
+      if (!wave) return height / 2;
+      const index = Math.min(wave.length - 1, Math.floor((x / width) * (wave.length - 1)));
+      return height / 2 + ((wave[index] - 128) / 128) * (height / 2) * 0.94 * audioViz.gain;
+    };
+
+    /* mix：0 = 示意波形，1 = 真实波形。每帧插值，播放/暂停之间平滑过渡而不是硬切 */
+    let mix = 0;
+    const drawWave = (time) => {
+      const target = audioViz.ready && audioViz.playing ? 1 : 0;
+      mix += (target - mix) * 0.08;
+      if (Math.abs(target - mix) < 0.004) mix = target;
+      if (mix > 0) prepareLive();
 
       for (let x = 0; x <= width; x += 2) {
-        const index = Math.min(wave.length - 1, Math.floor((x / width) * (wave.length - 1)));
-        const y = mid + ((wave[index] - 128) / 128) * (height / 2) * 0.94 * gain;
+        const y = mix >= 1 ? liveY(x) : mix <= 0 ? syntheticY(x, time) : liveY(x) * mix + syntheticY(x, time) * (1 - mix);
         if (x === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
@@ -628,12 +635,11 @@
 
       if (audioViz.ready && audioViz.playing) {
         setLive(true);
-        drawLive();
         updateBands();
       } else {
         setLive(false);
-        drawSynthetic(time);
       }
+      drawWave(time);
     };
 
     const loop = (time) => {
@@ -699,7 +705,7 @@
     const counter = slideshow.querySelector('[data-slide-count]');
     const prevBtn = slideshow.querySelector('[data-slide-prev]');
     const nextBtn = slideshow.querySelector('[data-slide-next]');
-    const INTERVAL = 1500;
+    const INTERVAL = 2000;
 
     let slideIndex = 0;
     let slideTimer = null;
@@ -1211,6 +1217,15 @@
         .catch(() => {
           /* 没有歌词文件就什么都不做，整块保持隐藏 */
         });
+
+      /* 没在播放就把歌词收起来（平滑收起，见 styles.css 的 .lyrics） */
+      const setLyricsOpen = (on) => {
+        lyricsBox.classList.toggle('is-playing', on);
+      };
+      hifiAudio.addEventListener('play', () => setLyricsOpen(true));
+      hifiAudio.addEventListener('pause', () => setLyricsOpen(false));
+      hifiAudio.addEventListener('ended', () => setLyricsOpen(false));
+      setLyricsOpen(!hifiAudio.paused);
 
       hifiAudio.addEventListener('timeupdate', syncLyric);
       hifiAudio.addEventListener('seeked', syncLyric);
