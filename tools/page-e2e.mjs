@@ -78,6 +78,8 @@ function check(label, ok, detail = '') {
  */
 function bootPage(search, options = {}) {
   let riskHits = 0;
+  /** 每次走解析接口的请求都记下来，用来按接口分别数次数 */
+  const hits = [];
 
   const dom = new JSDOM(html, {
     url: `${ORIGIN}/netease/${search}`,
@@ -113,6 +115,7 @@ function bootPage(search, options = {}) {
     // 传 'always' = 一直拦（用来验证重试用尽后给用户的提示）。
     if (options.riskControl && !/\/health(\?|$)/.test(absolute)) {
       riskHits += 1;
+      hits.push(absolute);
       const stillBlocked = options.riskControl === 'always' || riskHits <= Number(options.riskControl);
       if (stillBlocked) {
         return Promise.resolve(
@@ -140,6 +143,7 @@ function bootPage(search, options = {}) {
   for (const code of INLINE) window.eval(code);
 
   Object.defineProperty(dom, 'riskHits', { get: () => riskHits });
+  Object.defineProperty(dom, 'hits', { get: () => hits.slice() });
 
   return dom;
 }
@@ -260,8 +264,14 @@ console.log(bold('\n[4] 网易云风控（429）→ 客户端会自动换新请�
   const status = document.getElementById('np-status');
   check('体检仍然通过（后端本身是好的）', status?.getAttribute('data-state') === 'ok', `state=${status?.getAttribute('data-state')}`);
 
-  // riskHits 数的是「一共打了几次」，所以 2 次被拦 + 1 次成功 = 3
-  check('确实发了 3 个请求（前 2 次被拦）', dom.riskHits === 3, `riskHits=${dom.riskHits}`);
+  // 数「解析接口」的次数，不是「所有请求」的次数。
+  // 卡片现在还会顺手拉一次歌词（/lyric），算进总数里会让这条断言莫名其妙地飘。
+  const songHits = dom.hits.filter((url) => /\/song(\?|$)/.test(url)).length;
+  check(
+    '解析接口确实发了 3 次（前 2 次被拦）',
+    songHits === 3,
+    `song ${songHits} 次 / 全部 ${dom.hits.length} 次`,
+  );
 
   // 重试救回来了 → 应该是正常卡片，不该出现报错卡
   const card = document.querySelector('#np-result .nmp-card--song');
@@ -287,7 +297,8 @@ console.log(bold('\n[4b] 风控一直不放行 → 报错卡要说清「已经�
   check('带上了代理给的中文说明', /风控/.test(errText), errText.slice(0, 110));
   check('不是光秃秃一个状态码', !/^接口返回 HTTP 429$/.test(errText), errText.slice(0, 70));
   check('说明已经自动重试过', /自动换新请求重试/.test(errText), errText.slice(0, 130));
-  check('默认一共发了 3 个请求（1 + 2 次重试）', dom.riskHits === 3, `riskHits=${dom.riskHits}`);
+  const songHits = dom.hits.filter((url) => /\/song(\?|$)/.test(url)).length;
+  check('解析接口一共发了 3 次（1 + 2 次重试）', songHits === 3, `song ${songHits} 次`);
 
   dom.window.close();
 }
@@ -315,6 +326,15 @@ if (!OFFLINE) {
     const result = document.getElementById('np-result');
     check('没配 Cookie 也要保留播放键', Boolean(result.querySelector('.nmp-play')));
     check('不该出现「只能看不能听」那种说明', !result.querySelector('.nmp-note'));
+
+    // 播放器控件 + 歌词：这几样都在**打包后的插件**里，页面本身一行都没写，
+    // 所以在这里过一遍才能确认构建产物真的带上了它们。
+    check('有进度条', Boolean(result.querySelector('[data-nmp-seek]')));
+    check('有音量条和静音键', Boolean(result.querySelector('[data-nmp-volume]') && result.querySelector('[data-nmp-action="mute"]')));
+    check('时间显示是初始值', result.querySelector('.nmp-time-cur')?.textContent?.trim() === '0:00');
+    const lyricLines = result.querySelectorAll('.nmp-lyric-line');
+    check('歌词自动加载出来了', lyricLines.length > 0, `${lyricLines.length} 行`);
+    check('歌词第一行有时间戳', /^\d/.test(lyricLines[0]?.dataset.nmpTime || ''), lyricLines[0]?.dataset.nmpTime);
 
     dom.window.close();
   }
