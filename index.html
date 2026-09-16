@@ -16,7 +16,7 @@
       rel="stylesheet"
     />
     <link rel="preload" as="image" href="assets/home-01.webp" />
-    <link rel="stylesheet" href="styles.css?v=36" />
+    <link rel="stylesheet" href="styles.css?v=37" />
     <script>
       /* 在样式生效前确定语言，避免切换时闪烁 */
       (function () {
@@ -597,6 +597,14 @@
                 </ul>
               </div>
 
+              <!-- 网易云解析是独立页面，主页这里只放一个入口链接 -->
+              <p class="hifi-jump">
+                <span class="zh">想听点别的？</span><span class="en" lang="en">Want something else?</span>
+                <a class="ghost-link" href="/netease/">
+                  <span class="zh">网易云解析 ↗</span><span class="en" lang="en">NetEase parser ↗</span>
+                </a>
+              </p>
+
               <!-- lyrics:start —— 与 data-lrc 指向的 LRC 文件对应；没有该文件时整块 hidden，暂停时收起 -->
               <div class="lyrics" id="lyrics" hidden>
                 <div class="lyrics-body">
@@ -720,6 +728,6 @@
       </section>
     </main>
 
-    <script src="script.js?v=36"></script>
+    <script src="script.js?v=37"></script>
   </body>
 </html>

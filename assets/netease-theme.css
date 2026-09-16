@@ -1,0 +1,107 @@
+/* ==========================================================================
+   让解析卡片贴合 my-profile 的视觉语言
+   --------------------------------------------------------------------------
+   直接复用主页 styles.css 里已有的设计变量，不重复定义颜色。
+
+   为什么选择器都写了两遍 `.nmp-root.nmp-root`：
+   插件运行时会把内置样式 appendChild 到 <head> 末尾，
+   而这份文件是通过 <link> 加载的。两边选择器权重一样时，谁在后面谁生效，
+   而这个先后顺序会随引入位置变化 —— 太脆了。
+   把权重抬高一级就彻底不受顺序影响，也不用 !important。
+
+   注意：这个文件名不能叫 netease-music.css。
+   插件靠文件名判断「内置样式注入过没有」，撞名会导致内置样式被跳过。
+
+   想改观感只动下面这一段，不用碰插件源码。
+   ========================================================================== */
+
+.nmp-root.nmp-root {
+  /* 配色：全部继承主页的变量，主页换主题这里跟着变 */
+  --nmp-bg: var(--white, #ffffff);
+  --nmp-bg-soft: var(--bg-warm, #f7f6f3);
+  --nmp-border: var(--line-2, #ebebe8);
+  --nmp-text: var(--ink, #111111);
+  --nmp-text-dim: var(--ink-3, #8e8e8e);
+  --nmp-accent: var(--red, #d71920);
+
+  /* 形状：主页偏克制的编辑风，所以直角 + 细描边 + 不要阴影 */
+  --nmp-radius: 2px;
+  --nmp-shadow: none;
+
+  --nmp-font: var(--sans, 'Inter', 'Noto Sans SC', sans-serif);
+
+  /* 宽度交给父容器决定 */
+  max-width: none;
+  width: 100%;
+}
+
+/* 主页是浅色底，默认走 light */
+.nmp-root.nmp-root[data-nmp-theme='dark'] {
+  --nmp-bg: #16161a;
+  --nmp-bg-soft: #1f1f24;
+  --nmp-border: #2e2e34;
+  --nmp-text: #f2f2f4;
+  --nmp-text-dim: #9a9aa6;
+}
+
+/* 卡片：hover 只换描边颜色，不做位移，跟主页其它块保持一致 */
+.nmp-root.nmp-root .nmp-card {
+  background: var(--nmp-bg);
+  border: 1px solid var(--nmp-border);
+}
+
+.nmp-root.nmp-root .nmp-card:hover {
+  transform: none;
+  border-color: var(--nmp-text);
+}
+
+/* 类型标签用主页的等宽字体 + 字距，看起来像「标注」而不是按钮 */
+.nmp-root.nmp-root .nmp-kind {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+.nmp-root.nmp-root .nmp-title {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* 展开按钮做成文字链接的感觉，别像按钮 */
+.nmp-root.nmp-root .nmp-toggle {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--nmp-border);
+  border-radius: 0;
+  padding: 2px 0;
+}
+
+.nmp-root.nmp-root .nmp-toggle:hover {
+  border-bottom-color: var(--nmp-accent);
+}
+
+/* 曲目行 hover 只加一条左边线，轻一点 */
+.nmp-root.nmp-root .nmp-track {
+  border-radius: 0;
+  padding-left: 8px;
+  border-left: 2px solid transparent;
+}
+
+.nmp-root.nmp-root .nmp-track:hover {
+  background: transparent;
+  border-left-color: var(--nmp-border);
+}
+
+.nmp-root.nmp-root .nmp-track[data-nmp-active='1'] {
+  border-left-color: var(--nmp-accent);
+}
+
+/* 提示条也收一收 */
+.nmp-root.nmp-root .nmp-notice {
+  border-radius: 2px;
+}
+
+/* 封面：编辑风不喜欢大圆角，内置是 10px，这里收到 2px */
+.nmp-root.nmp-root .nmp-cover-wrap {
+  border-radius: 2px;
+}

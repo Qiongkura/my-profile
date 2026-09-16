@@ -397,7 +397,7 @@ html[data-lang='en'] .zh { display: none !important; }
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity .4s var(--ease);
+  transition: opacity .55s var(--ease);
 }
 .slides .slide.is-active { opacity: 1; }
 
@@ -883,6 +883,18 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
   letter-spacing: .02em;
 }
 .hifi-note { margin: 11px 0 11px; font-size: 11px; color: var(--ink-2); }
+
+/* 网易云解析是独立页面，主页只留一个入口，不内嵌解析器 */
+.hifi-jump {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: calc(0.9 * var(--u)) 0 0;
+  font-size: 11px;
+  letter-spacing: .04em;
+  color: var(--ink-3);
+}
 
 .waveform {
   padding: 7px;

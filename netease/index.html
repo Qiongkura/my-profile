@@ -1,0 +1,987 @@
+<!doctype html>
+<html lang="zh-CN" data-lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>网易云解析 · Qiongkura</title>
+    <meta
+      name="description"
+      content="把网易云音乐的分享文案、链接或 ID 解析成卡片：单曲、歌单、专辑、歌手、电台、声音、短链都支持。"
+    />
+    <meta name="theme-color" content="#fafaf8" />
+    <meta name="robots" content="noindex" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles.css?v=37" />
+    <link rel="stylesheet" href="../assets/netease-theme.css?v=37" />
+    <script>
+      /* 在样式生效前确定语言，避免切换时闪烁 */
+      (function () {
+        var root = document.documentElement;
+        root.classList.add('js');
+        try {
+          var saved = localStorage.getItem('qiongkura-lang');
+          if (saved === 'en' || saved === 'zh') root.setAttribute('data-lang', saved);
+        } catch (e) {}
+        if (!root.getAttribute('data-lang')) root.setAttribute('data-lang', 'zh');
+      })();
+    </script>
+    <style>
+      /* ==========================================================================
+         网易云解析 · 独立页面
+         --------------------------------------------------------------------------
+         复用主页 styles.css 的设计变量与组件（topbar / kicker / display / ghost-link），
+         但不要它的「一节一屏」章节行为 —— 这页内容长度不定，要能正常连续滚动。
+         ========================================================================== */
+
+      html {
+        scroll-snap-type: none;
+        scroll-behavior: auto;
+      }
+
+      body { background: var(--bg); }
+
+      /* 这页导航只有一两个链接，不需要主页那套移动端下拉菜单 */
+      @media (max-width: 900px), (max-width: 1180px) and (orientation: portrait) {
+        .menu-toggle { display: none; }
+        .nav {
+          position: static;
+          flex-direction: row;
+          align-items: center;
+          gap: 14px;
+          padding: 0;
+          background: none;
+          backdrop-filter: none;
+          border: 0;
+          opacity: 1;
+          pointer-events: auto;
+          transform: none;
+        }
+        .nav-link { padding: 0; border-bottom: 0; }
+      }
+
+      /* --------------------------------------------------------------- 页面骨架 */
+
+      .np-main {
+        padding-top: calc(var(--bar-h) + clamp(30px, 7vh, 84px));
+        padding-bottom: clamp(44px, 9vh, 110px);
+      }
+
+      .np-head { max-width: 780px; }
+
+      .np-lede {
+        margin-top: 15px;
+        max-width: 60ch;
+        font-size: clamp(13px, calc(0.86 * var(--u)), 54px);
+        line-height: 1.78;
+        color: var(--ink-2);
+      }
+
+      .np-sections { margin-top: clamp(28px, 5vh, 56px); }
+
+      /* ------------------------------------------------------------- 后端状态条 */
+
+      .np-status {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 6px 12px;
+        margin-top: clamp(20px, 3.4vh, 36px);
+        padding: 12px 14px;
+        background: var(--white);
+        border: 1px solid var(--line-2);
+        border-left: 2px solid var(--line);
+        font-size: 12px;
+        line-height: 1.7;
+        color: var(--ink-2);
+      }
+      .np-status[data-state='ok'] { border-left-color: var(--red); }
+      .np-status[data-state='warn'] { border-left-color: var(--ink-3); }
+      .np-status[data-state='bad'] { border-left-color: #c0392b; }
+
+      .np-status-dot {
+        flex: 0 0 auto;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--line);
+        transform: translateY(-1px);
+      }
+      .np-status[data-state='ok'] .np-status-dot { background: var(--red); }
+      .np-status[data-state='warn'] .np-status-dot { background: var(--ink-3); }
+      .np-status[data-state='bad'] .np-status-dot { background: #c0392b; }
+
+      .np-status-text { flex: 1 1 260px; min-width: 0; }
+      .np-status-text b { font-weight: 600; color: var(--ink); }
+      .np-status code {
+        font-family: var(--mono);
+        font-size: 11px;
+        padding: 1px 5px;
+        background: var(--bg-warm);
+        border: 1px solid var(--line-2);
+        border-radius: 2px;
+        word-break: break-all;
+      }
+
+      /* ----------------------------------------------------------------- 输入区 */
+
+      .np-label {
+        display: block;
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        color: var(--ink-3);
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+
+      .np-field {
+        display: block;
+        width: 100%;
+        min-height: 78px;
+        padding: 12px 13px;
+        font-family: var(--sans);
+        font-size: 14px;
+        line-height: 1.7;
+        color: var(--ink);
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        resize: vertical;
+        transition: border-color 0.22s var(--ease);
+      }
+      .np-field::placeholder { color: var(--ink-3); }
+      .np-field:focus { outline: none; border-color: var(--ink); }
+
+      .np-actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 9px;
+        margin-top: 11px;
+      }
+
+      .np-btn {
+        padding: 9px 19px;
+        font-family: var(--sans);
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        color: var(--ink);
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        cursor: pointer;
+        transition: color 0.22s var(--ease), background-color 0.22s var(--ease),
+          border-color 0.22s var(--ease);
+      }
+      .np-btn:hover { border-color: var(--ink); }
+      .np-btn--primary {
+        color: var(--white);
+        background: var(--ink);
+        border-color: var(--ink);
+      }
+      .np-btn--primary:hover { background: var(--red); border-color: var(--red); }
+      .np-btn[disabled] { opacity: 0.5; cursor: default; }
+      .np-btn--slim { padding: 6px 12px; font-size: 11px; }
+
+      .np-hint {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.06em;
+        color: var(--ink-3);
+      }
+
+      /* ------------------------------------------------------------ 示例小按钮 */
+
+      .np-chips {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 7px;
+        margin-top: 15px;
+      }
+      .np-chips-label {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        color: var(--ink-3);
+        margin-right: 2px;
+      }
+      .np-chip {
+        padding: 4px 10px;
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.02em;
+        color: var(--ink-2);
+        background: none;
+        border: 1px solid var(--line-2);
+        border-radius: 2px;
+        cursor: pointer;
+        transition: color 0.2s var(--ease), border-color 0.2s var(--ease);
+      }
+      .np-chip:hover { color: var(--ink); border-color: var(--ink-3); }
+
+      /* --------------------------------------------------------------- 结果区 */
+
+      .np-result { margin-top: clamp(22px, 4vh, 42px); }
+      .np-result:empty { margin-top: 0; }
+
+      .np-note {
+        padding: 13px 15px;
+        font-size: 13px;
+        line-height: 1.75;
+        color: var(--ink-2);
+        background: var(--white);
+        border: 1px solid var(--line-2);
+        border-left: 2px solid var(--ink-3);
+      }
+      .np-note b { color: var(--ink); font-weight: 600; }
+      .np-note + .np-note { margin-top: 9px; }
+
+      /* 离线识别出来的一张「结果卡」 */
+      .np-hit {
+        padding: 15px 16px;
+        background: var(--white);
+        border: 1px solid var(--line-2);
+      }
+      .np-hit-top {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .np-hit-kind {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        padding: 2px 7px;
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 2px;
+      }
+      .np-hit-id {
+        font-family: var(--mono);
+        font-size: 13px;
+        letter-spacing: 0.02em;
+        color: var(--ink);
+      }
+      .np-hit-title { font-size: 13px; color: var(--ink-2); }
+      .np-hit-url {
+        margin-top: 9px;
+        font-family: var(--mono);
+        font-size: 11px;
+        line-height: 1.7;
+        color: var(--ink-3);
+        word-break: break-all;
+      }
+      .np-hit-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 9px;
+        margin-top: 13px;
+      }
+      .np-hit-extra { margin-top: 11px; font-size: 12px; color: var(--ink-3); }
+
+      /* ---------------------------------------------------------------- 设置区 */
+
+      .np-adv {
+        margin-top: clamp(34px, 6vh, 66px);
+        border-top: 1px solid var(--line-2);
+        padding-top: 16px;
+      }
+      .np-adv > summary {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        color: var(--ink-2);
+        cursor: pointer;
+        list-style: none;
+      }
+      .np-adv > summary::-webkit-details-marker { display: none; }
+      .np-adv > summary::before { content: '+ '; color: var(--red); }
+      .np-adv[open] > summary::before { content: '− '; }
+      .np-adv > summary:hover { color: var(--ink); }
+
+      .np-adv-body { margin-top: 15px; max-width: 720px; }
+
+      .np-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 9px;
+        margin-bottom: 11px;
+      }
+      .np-row-label {
+        flex: 0 0 82px;
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        color: var(--ink-3);
+      }
+      .np-input {
+        flex: 1 1 240px;
+        min-width: 0;
+        padding: 8px 11px;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--ink);
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: 2px;
+      }
+      .np-input:focus { outline: none; border-color: var(--ink); }
+      .np-select {
+        padding: 8px 11px;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--ink);
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: 2px;
+      }
+      .np-select:focus { outline: none; border-color: var(--ink); }
+
+      .np-adv-note {
+        margin-top: 13px;
+        font-size: 12px;
+        line-height: 1.75;
+        color: var(--ink-3);
+      }
+      .np-adv-note code {
+        font-family: var(--mono);
+        font-size: 11px;
+        padding: 1px 5px;
+        background: var(--bg-warm);
+        border: 1px solid var(--line-2);
+        border-radius: 2px;
+      }
+
+      /* ------------------------------------------------------------------ 页脚 */
+
+      .np-foot { border-top: 1px solid var(--line-2); }
+      .np-foot-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        padding: 16px 0;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        color: var(--ink-3);
+      }
+
+      /* 打印/无障碍：状态色不靠颜色单独传达 */
+      .np-status[data-state='bad'] .np-status-dot { outline: 1px solid var(--ink-3); }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#np-input"><span class="zh">跳到输入框</span><span class="en" lang="en">Skip to the input</span></a>
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="logo" href="../" data-aria-zh="回到主页" data-aria-en="Back to home">
+          <span class="logo-mark" aria-hidden="true"></span>
+          <span class="logo-text">QIONGKURA</span>
+        </a>
+
+        <div class="topbar-end">
+          <nav class="nav" data-aria-zh="页面导航" data-aria-en="Page navigation">
+            <a class="nav-link" href="../#hifi"><span class="zh">返回 HI-FI</span><span class="en" lang="en">Back to HI-FI</span></a>
+            <a class="nav-link nav-link--out" href="https://github.com/Qiongkura" target="_blank" rel="noreferrer">GitHub ↗</a>
+          </nav>
+
+          <div class="lang-switch" role="group" data-aria-zh="语言选择" data-aria-en="Language selection">
+            <button class="lang-btn is-active" type="button" data-lang-set="zh" aria-pressed="true">中文</button>
+            <button class="lang-btn" type="button" data-lang-set="en" aria-pressed="false">EN</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="np-main" id="main-content">
+      <div class="wrap">
+        <header class="np-head">
+          <p class="kicker">TOOL / <span class="zh">网易云解析</span><span class="en" lang="en">NETEASE</span></p>
+          <h1 class="display" id="np-title"><span class="zh">网易云解析</span><span class="en" lang="en">NETEASE PARSER</span></h1>
+          <p class="subtitle">
+            <span class="zh">单曲 / 歌单 / 专辑 / 歌手 / 电台 / 声音</span>
+            <span class="en" lang="en">Songs / Playlists / Albums / Artists / Radio</span>
+          </p>
+          <p class="np-lede">
+            <span class="zh">
+              贴一条网易云音乐的分享文案、链接或者纯 ID，解析成一张卡片，能展开曲目、看歌词、直接试听。
+              客户端分享出来的那段「分享单曲……来自@网易云音乐」整段粘进来也行。
+            </span>
+            <span class="en" lang="en">
+              Paste a NetEase Cloud Music share snippet, link or bare ID and it becomes a card — expand the track list,
+              read the lyrics, play it right here. Pasting the whole &ldquo;share&rdquo; text works too.
+            </span>
+          </p>
+        </header>
+
+        <!-- 后端状态：能不能拉到数据全靠它 -->
+        <div class="np-status" id="np-status" data-state="warn" role="status" aria-live="polite">
+          <span class="np-status-dot" aria-hidden="true"></span>
+          <span class="np-status-text" id="np-status-text">
+            <span class="zh">正在检查后端……</span><span class="en" lang="en">Checking backend…</span>
+          </span>
+        </div>
+
+        <div class="np-sections">
+          <label class="np-label" for="np-input">
+            <span class="zh">分享内容</span><span class="en" lang="en">Share text</span>
+          </label>
+          <textarea
+            class="np-field"
+            id="np-input"
+            rows="3"
+            spellcheck="false"
+            autocomplete="off"
+            placeholder="分享单曲 晴天 (http://music.163.com/song/186016/?userid=1) 来自@网易云音乐&#10;或者直接贴 https://music.163.com/#/song?id=186016"
+            data-aria-zh="粘贴网易云音乐分享文案或链接"
+            data-aria-en="Paste a NetEase Cloud Music share text or link"
+            aria-label="分享内容"
+          ></textarea>
+
+          <div class="np-actions">
+            <button class="np-btn np-btn--primary" id="np-go" type="button">
+              <span class="zh">解析</span><span class="en" lang="en">Parse</span>
+            </button>
+            <button class="np-btn" id="np-clear" type="button">
+              <span class="zh">清空</span><span class="en" lang="en">Clear</span>
+            </button>
+            <span class="np-hint">Ctrl / ⌘ + Enter</span>
+          </div>
+
+          <div class="np-chips" id="np-chips">
+            <span class="np-chips-label"><span class="zh">试试</span><span class="en" lang="en">TRY</span></span>
+            <button class="np-chip" type="button" data-np-example="https://music.163.com/#/song?id=186016">单曲</button>
+            <button class="np-chip" type="button" data-np-example="https://music.163.com/album?id=18905">专辑</button>
+            <button class="np-chip" type="button" data-np-example="https://music.163.com/#/playlist?id=2884035">歌单</button>
+            <button class="np-chip" type="button" data-np-example="https://music.163.com/discover/toplist?id=3778678">排行榜</button>
+            <button class="np-chip" type="button" data-np-example="https://music.163.com/#/artist?id=6452">歌手</button>
+            <button class="np-chip" type="button" data-np-example="https://music.163.com/#/djradio?id=316038">电台</button>
+            <button class="np-chip" type="button" data-np-example="https://music.163.com/#/program?id=3728304229">声音</button>
+            <button class="np-chip" type="button" data-np-example="186016">纯 ID</button>
+          </div>
+        </div>
+
+        <div class="np-result" id="np-result" aria-live="polite"></div>
+
+        <!-- 后端设置：默认收起，需要的时候展开 -->
+        <details class="np-adv" id="np-adv">
+          <summary>
+            <span class="zh">后端设置</span><span class="en" lang="en">BACKEND SETTINGS</span>
+          </summary>
+          <div class="np-adv-body">
+            <div class="np-row">
+              <label class="np-row-label" for="np-api">API BASE</label>
+              <input
+                class="np-input"
+                id="np-api"
+                type="text"
+                spellcheck="false"
+                autocomplete="off"
+                placeholder="https://netease-music-proxy.xxx.workers.dev"
+                data-aria-zh="代理地址"
+                data-aria-en="Proxy address"
+              />
+              <button class="np-btn np-btn--slim" id="np-check" type="button">
+                <span class="zh">检测</span><span class="en" lang="en">Check</span>
+              </button>
+            </div>
+
+            <div class="np-row">
+              <label class="np-row-label" for="np-adapter">ADAPTER</label>
+              <select class="np-select" id="np-adapter">
+                <option value="official">official · 内置代理（GET）</option>
+                <option value="netease-url">netease-url · Netease_url 服务（POST）</option>
+              </select>
+              <button class="np-btn np-btn--slim" id="np-save" type="button">
+                <span class="zh">保存</span><span class="en" lang="en">Save</span>
+              </button>
+              <button class="np-btn np-btn--slim" id="np-reset" type="button">
+                <span class="zh">重置</span><span class="en" lang="en">Reset</span>
+              </button>
+            </div>
+
+            <p class="np-adv-note">
+              <span class="zh">
+                浏览器直连 <code>music.163.com</code> 会被 CORS 和 Referer 校验拦掉，所以必须要有一个代理。
+                这个地址只存在你自己的浏览器里（<code>localStorage</code>），不会上传到任何地方。
+                也可以用 <code>?api=</code> 参数临时指定，例如 <code>?api=https://xxx.workers.dev</code>。
+              </span>
+              <span class="en" lang="en">
+                Browsers cannot call <code>music.163.com</code> directly — CORS and the Referer check block it, so a proxy
+                is required. This address is kept in your own browser (<code>localStorage</code>) and is never uploaded.
+                You can also pass it per-visit with <code>?api=https://xxx.workers.dev</code>.
+              </span>
+            </p>
+          </div>
+        </details>
+      </div>
+    </main>
+
+    <footer class="np-foot">
+      <div class="wrap np-foot-inner">
+        <span class="meta-note">© <span id="current-year">2026</span> Qiongkura</span>
+        <span class="meta-note">
+          <span class="zh">解析结果只用于个人试听，版权归网易云音乐与原作者所有</span>
+          <span class="en" lang="en">For personal preview only — all rights belong to NetEase Cloud Music and the artists</span>
+        </span>
+      </div>
+    </footer>
+
+    <script src="../assets/netease-music.js?v=37"></script>
+    <script>
+      /* 网易云解析页 · 页面逻辑
+         ------------------------------------------------------------------------
+         插件本身负责「拿数据 + 渲染卡片」，这里只做三件事：
+         1. 输入 → 交给插件
+         2. 没配后端时，退化成「离线识别」（只认链接，不请求接口）
+         3. 后端地址的存取与体检
+         插件不可用时页面依然能打开，只是提示一句，不会白屏。 */
+      (function () {
+        var STORE_API = 'qiongkura-netease-api';
+        var STORE_ADAPTER = 'qiongkura-netease-adapter';
+
+        /* 部署好代理之后，把地址填在这里当默认值（也可以留空，用下面的设置面板临时填） */
+        var DEFAULT_API = '';
+        var DEFAULT_ADAPTER = 'official';
+
+        var doc = document;
+        var params = new URLSearchParams(location.search);
+
+        var input = doc.getElementById('np-input');
+        var result = doc.getElementById('np-result');
+        var goBtn = doc.getElementById('np-go');
+        var clearBtn = doc.getElementById('np-clear');
+        var chips = doc.getElementById('np-chips');
+        var statusBox = doc.getElementById('np-status');
+        var statusText = doc.getElementById('np-status-text');
+        var apiInput = doc.getElementById('np-api');
+        var adapterSelect = doc.getElementById('np-adapter');
+        var checkBtn = doc.getElementById('np-check');
+        var saveBtn = doc.getElementById('np-save');
+        var resetBtn = doc.getElementById('np-reset');
+        var yearEl = doc.getElementById('current-year');
+
+        var plugin = window.NeteaseMusic || null;
+
+        /* ------------------------------------------------------------ 小工具 */
+
+        function readStore(key) {
+          try {
+            return localStorage.getItem(key) || '';
+          } catch (e) {
+            return '';
+          }
+        }
+
+        function writeStore(key, value) {
+          try {
+            if (value) localStorage.setItem(key, value);
+            else localStorage.removeItem(key);
+          } catch (e) {
+            /* 隐私模式下写不进去，忽略即可 */
+          }
+        }
+
+        function trimBase(value) {
+          return String(value || '').trim().replace(/\/+$/, '');
+        }
+
+        function escapeHtml(value) {
+          return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+          });
+        }
+
+        /* ---------------------------------------------------------- 语言切换 */
+
+        var TITLES = {
+          zh: '网易云解析 · Qiongkura',
+          en: 'NetEase Parser · Qiongkura'
+        };
+
+        function applyLang(lang) {
+          var next = lang === 'en' ? 'en' : 'zh';
+          var root = doc.documentElement;
+          root.setAttribute('data-lang', next);
+          root.setAttribute('lang', next === 'en' ? 'en' : 'zh-CN');
+          doc.title = TITLES[next];
+          Array.prototype.forEach.call(doc.querySelectorAll('[data-lang-set]'), function (btn) {
+            var on = btn.getAttribute('data-lang-set') === next;
+            btn.classList.toggle('is-active', on);
+            btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
+          writeStore('qiongkura-lang', next);
+        }
+
+        Array.prototype.forEach.call(doc.querySelectorAll('[data-lang-set]'), function (btn) {
+          btn.addEventListener('click', function () {
+            applyLang(btn.getAttribute('data-lang-set'));
+          });
+        });
+
+        /* --------------------------------------------------------- 后端配置 */
+
+        var urlApi = trimBase(params.get('api'));
+        if (urlApi) writeStore(STORE_API, urlApi);
+
+        var urlAdapter = params.get('adapter');
+        if (urlAdapter) writeStore(STORE_ADAPTER, urlAdapter);
+
+        var apiBase = urlApi || trimBase(readStore(STORE_API)) || trimBase(DEFAULT_API);
+        var adapter = urlAdapter || readStore(STORE_ADAPTER) || DEFAULT_ADAPTER;
+
+        if (apiInput) apiInput.value = apiBase;
+        if (adapterSelect) adapterSelect.value = adapter;
+
+        /* ------------------------------------------------------- 状态条渲染 */
+
+        function setStatus(state, zhHtml, enHtml) {
+          if (!statusBox || !statusText) return;
+          statusBox.setAttribute('data-state', state);
+          statusText.innerHTML =
+            '<span class="zh">' + zhHtml + '</span><span class="en" lang="en">' + enHtml + '</span>';
+        }
+
+        function renderStatus() {
+          if (!plugin) {
+            setStatus(
+              'bad',
+              '解析插件没加载出来，页面只能看不能解析。检查一下 <code>assets/netease-music.js</code> 是不是 404 了。',
+              'The parser plugin did not load — check whether <code>assets/netease-music.js</code> returns 404.'
+            );
+            return;
+          }
+          if (!apiBase) {
+            setStatus(
+              'warn',
+              '还没配后端。现在只能离线认出链接和 ID，拿不到歌名、封面、歌词。展开下面的「后端设置」填上代理地址就能完整解析。',
+              'No backend configured. Links and IDs are recognised offline only — expand “Backend settings” to enable full parsing.'
+            );
+            return;
+          }
+          setStatus(
+            'ok',
+            '后端：<code>' + escapeHtml(apiBase) + '</code> · 适配器 <b>' + escapeHtml(adapter) + '</b>。点「检测」确认一下能不能连上。',
+            'Backend: <code>' + escapeHtml(apiBase) + '</code> · adapter <b>' + escapeHtml(adapter) + '</b>. Hit “Check” to verify.'
+          );
+        }
+
+        /* ------------------------------------------------- 离线识别（无后端） */
+
+        function offlineHit(parsed) {
+          var p = parsed.primary;
+          var labels = (plugin && plugin.TYPE_LABELS) || {};
+          var kind = labels[p.type] || (p.type ? p.type : '未知');
+          var url = p.url || (plugin && plugin.buildWebUrl ? plugin.buildWebUrl(p.type, p.id) : '');
+
+          var titleLine = parsed.titleHint
+            ? '<span class="np-hit-title">' + escapeHtml(parsed.titleHint) + '</span>'
+            : '';
+
+          var extra = '';
+          if (p.type === 'short') {
+            extra =
+              '<p class="np-hit-extra">' +
+              '<span class="zh">短链要先让后端跟一次 302 才能知道指向什么，配好代理再解析。</span>' +
+              '<span class="en" lang="en">Short links need the backend to follow one redirect first.</span>' +
+              '</p>';
+          } else if (parsed.resources.length > 1) {
+            extra =
+              '<p class="np-hit-extra">' +
+              '<span class="zh">这段文本里一共有 ' + parsed.resources.length + ' 个链接，配好代理后会全部解析出来。</span>' +
+              '<span class="en" lang="en">' + parsed.resources.length + ' links found in this text; all of them will be parsed once a backend is set.</span>' +
+              '</p>';
+          }
+
+          return (
+            '<div class="np-hit">' +
+            '<div class="np-hit-top">' +
+            '<span class="np-hit-kind">' + escapeHtml(kind) + '</span>' +
+            '<span class="np-hit-id">' + escapeHtml(p.id) + '</span>' +
+            titleLine +
+            '</div>' +
+            (url ? '<p class="np-hit-url">' + escapeHtml(url) + '</p>' : '') +
+            '<div class="np-hit-actions">' +
+            (url
+              ? '<a class="ghost-link" href="' + escapeHtml(url) + '" target="_blank" rel="noreferrer">' +
+                '<span class="zh">去网易云打开 ↗</span><span class="en" lang="en">Open on NetEase ↗</span></a>'
+              : '') +
+            '<button class="np-btn np-btn--slim" type="button" id="np-hit-config">' +
+            '<span class="zh">配置后端</span><span class="en" lang="en">Configure backend</span></button>' +
+            '</div>' +
+            extra +
+            '</div>'
+          );
+        }
+
+        /* --------------------------------------- 纯 ID 没带类型时的类型选择 */
+
+        var TYPE_ORDER = ['song', 'playlist', 'album', 'artist', 'djradio', 'program'];
+
+        function typePicker(parsed) {
+          var labels = (plugin && plugin.TYPE_LABELS) || {};
+          var options = TYPE_ORDER.map(function (type) {
+            return '<option value="' + type + '">' + escapeHtml(labels[type] || type) + '</option>';
+          }).join('');
+
+          return (
+            '<div class="np-hit">' +
+            '<div class="np-hit-top">' +
+            '<span class="np-hit-kind"><span class="zh">纯 ID</span><span class="en" lang="en">BARE ID</span></span>' +
+            '<span class="np-hit-id">' + escapeHtml(parsed.primary.id) + '</span>' +
+            '</div>' +
+            '<p class="np-hit-extra">' +
+            '<span class="zh">只有 ID 看不出是哪一类资源，选一个再继续。</span>' +
+            '<span class="en" lang="en">A bare ID does not tell us the resource type — pick one to continue.</span>' +
+            '</p>' +
+            '<div class="np-hit-actions">' +
+            '<select class="np-select" id="np-type">' + options + '</select>' +
+            '<button class="np-btn np-btn--slim np-btn--primary" type="button" id="np-type-go">' +
+            '<span class="zh">继续解析</span><span class="en" lang="en">Continue</span></button>' +
+            '</div>' +
+            '</div>'
+          );
+        }
+
+        /* ------------------------------------------------------------- 解析 */
+
+        var busy = false;
+
+        function notice(zh, en) {
+          return '<div class="np-note"><span class="zh">' + zh + '</span><span class="en" lang="en">' + en + '</span></div>';
+        }
+
+        function failNotice(message) {
+          return (
+            '<div class="np-note">' +
+            '<span class="zh"><b>没解析成功：</b>' + escapeHtml(message) + '</span>' +
+            '<span class="en" lang="en"><b>Failed:</b> ' + escapeHtml(message) + '</span>' +
+            '</div>'
+          );
+        }
+
+        async function run(typeHint) {
+          if (!input || !result) return;
+          var value = input.value.trim();
+
+          if (!value) {
+            result.innerHTML = notice('先贴一条链接或者 ID 再点解析。', 'Paste a link or ID first.');
+            input.focus();
+            return;
+          }
+
+          if (!plugin) {
+            result.innerHTML = notice(
+              '插件没加载成功，解析功能用不了。',
+              'The plugin failed to load, so parsing is unavailable.'
+            );
+            return;
+          }
+
+          var parsed = plugin.parseShare(value, typeHint ? { type: typeHint } : {});
+          if (!parsed.primary) {
+            result.innerHTML = notice(
+              '没认出这是网易云的链接或 ID，检查一下是不是粘全了。',
+              'That does not look like a NetEase link or ID — check that you pasted the whole thing.'
+            );
+            return;
+          }
+
+          // 纯 ID 且没有类型提示：先让用户选类型
+          if (!typeHint && parsed.kind === 'id' && !parsed.primary.type) {
+            result.innerHTML = typePicker(parsed);
+            var pickerGo = doc.getElementById('np-type-go');
+            var picker = doc.getElementById('np-type');
+            if (pickerGo && picker) {
+              pickerGo.addEventListener('click', function () {
+                run(picker.value);
+              });
+            }
+            return;
+          }
+
+          // 没后端：只做离线识别，不发请求
+          if (!apiBase) {
+            result.innerHTML = offlineHit(parsed);
+            var configBtn = doc.getElementById('np-hit-config');
+            var adv = doc.getElementById('np-adv');
+            if (configBtn && adv) {
+              configBtn.addEventListener('click', function () {
+                adv.open = true;
+                if (apiInput) apiInput.focus();
+                adv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              });
+            }
+            return;
+          }
+
+          if (busy) return;
+          busy = true;
+          if (goBtn) goBtn.disabled = true;
+
+          plugin.unmount(result);
+          var data = null;
+          try {
+            data = await plugin.mount(result, {
+              src: value,
+              apiBase: apiBase,
+              adapter: adapter,
+              theme: 'light',
+              type: typeHint || parsed.primary.type || undefined
+            });
+          } catch (err) {
+            result.innerHTML = failNotice((err && err.message) || String(err));
+          } finally {
+            busy = false;
+            if (goBtn) goBtn.disabled = false;
+          }
+
+          if (!data && !result.innerHTML.trim()) {
+            result.innerHTML = failNotice('后端没有返回可用数据。');
+          }
+        }
+
+        /* ------------------------------------------------------------ 事件 */
+
+        if (goBtn) goBtn.addEventListener('click', function () { run(); });
+
+        if (clearBtn) {
+          clearBtn.addEventListener('click', function () {
+            if (!input) return;
+            input.value = '';
+            if (result) result.innerHTML = '';
+            input.focus();
+          });
+        }
+
+        if (input) {
+          input.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+              event.preventDefault();
+              run();
+            }
+          });
+        }
+
+        if (chips) {
+          chips.addEventListener('click', function (event) {
+            var chip = event.target.closest('[data-np-example]');
+            if (!chip || !input) return;
+            input.value = chip.getAttribute('data-np-example');
+            run();
+          });
+        }
+
+        /* ------------------------------------------------------- 后端体检 */
+
+        async function checkBackend() {
+          if (!apiBase) {
+            setStatus(
+              'warn',
+              '还没填地址，没什么可检测的。',
+              'No address yet — nothing to check.'
+            );
+            return;
+          }
+          setStatus('warn', '正在请求 <code>' + escapeHtml(apiBase) + '/health</code>……', 'Requesting <code>' + escapeHtml(apiBase) + '/health</code>…');
+
+          try {
+            var controller = new AbortController();
+            var timer = setTimeout(function () { controller.abort(); }, 10000);
+            var response = await fetch(apiBase + '/health', { signal: controller.signal });
+            clearTimeout(timer);
+
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            var data = await response.json();
+
+            var capability = data && data.capability ? String(data.capability) : '';
+            var cookie = data && data.cookie;
+
+            if (cookie && cookie.hasCookie && !cookie.hasMusicU) {
+              setStatus(
+                'warn',
+                '后端能连上，但 Cookie 里没有 <code>MUSIC_U</code>，播放地址基本拿不到。元数据和歌词是正常的。',
+                'Backend reachable, but the cookie has no <code>MUSIC_U</code> — playback URLs will mostly fail. Metadata and lyrics are fine.'
+              );
+              return;
+            }
+
+            setStatus(
+              'ok',
+              '后端正常。能力：' + (escapeHtml(capability) || '未知') + '。',
+              'Backend OK. Capability: ' + (escapeHtml(capability) || 'unknown') + '.'
+            );
+          } catch (err) {
+            var reason = err && err.name === 'AbortError' ? '请求超时（10s）' : (err && err.message) || String(err);
+            setStatus(
+              'bad',
+              '连不上后端：' + escapeHtml(reason) + '。检查地址、CORS 的 <code>ALLOW_ORIGIN</code>，以及代理是否在线。',
+              'Cannot reach the backend: ' + escapeHtml(reason) + '. Check the address, the CORS <code>ALLOW_ORIGIN</code> and whether the proxy is up.'
+            );
+          }
+        }
+
+        if (checkBtn) checkBtn.addEventListener('click', checkBackend);
+
+        if (saveBtn) {
+          saveBtn.addEventListener('click', function () {
+            apiBase = trimBase(apiInput && apiInput.value);
+            adapter = (adapterSelect && adapterSelect.value) || DEFAULT_ADAPTER;
+            writeStore(STORE_API, apiBase);
+            writeStore(STORE_ADAPTER, adapter);
+            renderStatus();
+          });
+        }
+
+        if (resetBtn) {
+          resetBtn.addEventListener('click', function () {
+            apiBase = trimBase(DEFAULT_API);
+            adapter = DEFAULT_ADAPTER;
+            writeStore(STORE_API, '');
+            writeStore(STORE_ADAPTER, '');
+            if (apiInput) apiInput.value = apiBase;
+            if (adapterSelect) adapterSelect.value = adapter;
+            renderStatus();
+          });
+        }
+
+        if (adapterSelect) {
+          adapterSelect.addEventListener('change', function () {
+            adapter = adapterSelect.value;
+            writeStore(STORE_ADAPTER, adapter);
+            renderStatus();
+          });
+        }
+
+        /* ---------------------------------------------------------- 初始化 */
+
+        if (yearEl) yearEl.textContent = String(new Date().getFullYear());
+
+        renderStatus();
+
+        // 深链：?u=<分享文本> 或 #u=<分享文本> 直接解析
+        var deep = params.get('u') || params.get('url') || '';
+        if (!deep && location.hash.indexOf('#u=') === 0) {
+          deep = decodeURIComponent(location.hash.slice(3));
+        }
+        if (deep && input) {
+          input.value = deep;
+          run();
+        }
+
+        if (apiBase) checkBackend();
+      })();
+    </script>
+  </body>
+</html>
