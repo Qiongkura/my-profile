@@ -940,6 +940,7 @@
 
       const lyricLines = [];
       let lyricIndex = -1;
+      let lyricFallback = null;
 
       const paintLyric = (index) => {
         if (index === lyricIndex) return;
@@ -949,8 +950,18 @@
         const line = lyricLines[index];
         if (!line) return;
         line.el.classList.add('is-active');
-        const target = line.el.offsetTop - (lyricsList.clientHeight - line.el.offsetHeight) / 2;
-        lyricsList.scrollTo({ top: Math.max(0, target), behavior: reduced.matches ? 'auto' : 'smooth' });
+        const target = Math.max(0, line.el.offsetTop - (lyricsList.clientHeight - line.el.offsetHeight) / 2);
+        const from = lyricsList.scrollTop;
+        lyricsList.scrollTo({ top: target, behavior: reduced.matches ? 'auto' : 'smooth' });
+        /* 有些环境（后台标签页、节流或禁用平滑滚动）里 smooth 完全不生效，
+           这种情况下直接跳位，避免「高亮了但歌词不动」 */
+        if (reduced.matches) return;
+        window.clearTimeout(lyricFallback);
+        lyricFallback = window.setTimeout(() => {
+          if (Math.abs(lyricsList.scrollTop - from) < 1 && Math.abs(lyricsList.scrollTop - target) > 4) {
+            lyricsList.scrollTop = target;
+          }
+        }, 600);
       };
 
       /* 二分找出当前时间对应的那一句；只在句子变化时才滚动 */
