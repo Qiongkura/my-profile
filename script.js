@@ -699,7 +699,7 @@
     const counter = slideshow.querySelector('[data-slide-count]');
     const prevBtn = slideshow.querySelector('[data-slide-prev]');
     const nextBtn = slideshow.querySelector('[data-slide-next]');
-    const INTERVAL = 4800;
+    const INTERVAL = 1500;
 
     let slideIndex = 0;
     let slideTimer = null;

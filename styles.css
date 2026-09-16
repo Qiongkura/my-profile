@@ -397,7 +397,7 @@ html[data-lang='en'] .zh { display: none !important; }
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity .55s var(--ease);
+  transition: opacity .4s var(--ease);
 }
 .slides .slide.is-active { opacity: 1; }
 
