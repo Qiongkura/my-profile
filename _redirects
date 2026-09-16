@@ -1,0 +1,6 @@
+# 内部文件不对外静态分发：重写到占位页，避免 README / 构建脚本 / 工具源码被当作站点资源下载
+/README.md      /hidden.html  200
+/publish.cmd    /hidden.html  200
+/.gitignore     /hidden.html  200
+/tools/*        /hidden.html  200
+/_routes.json   /hidden.html  200

@@ -95,10 +95,23 @@ function wireStatus(status) {
   return status >= 500 ? 429 : status;
 }
 
+/**
+ * 允许的来源：默认只允许本站，这样别人把本代理挂到自己网页上也读不到响应。
+ * 需要多个来源就设环境变量 ALLOW_ORIGIN（逗号分隔），例如：
+ *   ALLOW_ORIGIN=https://qiongkura.xyz,https://my-profile-1qe.pages.dev
+ * 显式写成 * 仍然表示完全放开（不推荐）。
+ */
+function allowedOrigins(env = {}) {
+  const raw = String(env.ALLOW_ORIGIN || 'https://qiongkura.xyz');
+  return raw.split(',').map((item) => item.trim()).filter(Boolean);
+}
+
 /** 统一响应头 */
 function corsHeaders(env = {}) {
+  const origins = allowedOrigins(env);
   return {
-    'Access-Control-Allow-Origin': env.ALLOW_ORIGIN || '*',
+    'Access-Control-Allow-Origin': origins[0] || 'https://qiongkura.xyz',
+    Vary: 'Origin',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age': '86400',

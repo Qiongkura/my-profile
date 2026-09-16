@@ -164,6 +164,16 @@ ffmpeg -y -i "茶汤.flac" -c:a libmp3lame -b:a 320k -map_metadata 0 -id3v2_vers
 
 本地预览时记得用 `tools/serve.py` 而不是 `python -m http.server`，否则进度条拖不动，原因见下面「本地预览」。
 
+## 安全响应头与不可公开文件
+
+三个文件只管线上行为，本地预览（`tools/serve.py`）不读它们，所以改完必须部署才能验证：
+
+- `_headers`：给全站加 HSTS、`X-Content-Type-Options: nosniff`、`Referrer-Policy`、`X-Frame-Options: DENY`（禁止被 iframe 嵌套）和 `Permissions-Policy`。另外用 `Content-Security-Policy-Report-Only` 先观察 CSP 是否会拦截正常资源——**是 Report-Only，不会拦任何请求**；等浏览器控制台连续几天没有 violation 报告后，把那一行改成 `Content-Security-Policy` 才真正生效。注意站点和 `netease/` 页里有内联 `<script>` 与内联样式，所以 CSP 必须保留 `'unsafe-inline'`，要彻底收紧得先把内联脚本抽成外部文件。
+- `_redirects`：把 `README.md`、`publish.cmd`、`.gitignore`、`tools/*`、`_routes.json` 重写到 `hidden.html`，不再作为站点资源被下载。注意这些内容本来就在公开仓库里，这一步只是让站点不再单独分发它们。
+- `hidden.html`：上面这些路径的占位页，`noindex`。
+
+API 代理默认只允许本站来源（`functions/api/[[path]].js` 的 `ALLOW_ORIGIN`，默认值 `https://qiongkura.xyz`）。要让预览域名也能调用，在 Cloudflare Pages 的环境变量里设 `ALLOW_ORIGIN=https://qiongkura.xyz,https://my-profile-1qe.pages.dev`。
+
 ## 窗口尺寸适配
 
 版式不再用「某个宽度对应某一档尺寸」的写法，而是用一个统一的缩放单位跟视口比例联动，因此**任何分辨率、任何系统缩放（Windows 100% / 125% / 150% / 175%）下，内容占屏的比例都一致**。
