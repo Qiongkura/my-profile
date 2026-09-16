@@ -488,7 +488,7 @@
                 type="text"
                 spellcheck="false"
                 autocomplete="off"
-                placeholder="https://netease-music-proxy.xxx.workers.dev"
+                placeholder="/api（本站自带）或者 https://xxx.workers.dev"
                 data-aria-zh="代理地址"
                 data-aria-en="Proxy address"
               />
@@ -514,13 +514,18 @@
             <p class="np-adv-note">
               <span class="zh">
                 浏览器直连 <code>music.163.com</code> 会被 CORS 和 Referer 校验拦掉，所以必须要有一个代理。
-                这个地址只存在你自己的浏览器里（<code>localStorage</code>），不会上传到任何地方。
+                <b>默认的 <code>/api</code> 就是本站自带的那个</b> —— 它随站点一起部署在 Cloudflare Pages 上，
+                跟页面同源，不用配任何东西。想换成自己另外部署的 Worker 或者 <code>Netease_url</code> 服务，
+                把地址填在这里就行；它只存在你自己的浏览器里（<code>localStorage</code>），不会上传到任何地方。
                 也可以用 <code>?api=</code> 参数临时指定，例如 <code>?api=https://xxx.workers.dev</code>。
               </span>
               <span class="en" lang="en">
                 Browsers cannot call <code>music.163.com</code> directly — CORS and the Referer check block it, so a proxy
-                is required. This address is kept in your own browser (<code>localStorage</code>) and is never uploaded.
-                You can also pass it per-visit with <code>?api=https://xxx.workers.dev</code>.
+                is required. <b>The default <code>/api</code> is the built-in one</b>: it deploys with this site on
+                Cloudflare Pages and is same-origin, so it needs no configuration. To use a separately deployed Worker
+                or a <code>Netease_url</code> service instead, put its address here — it is kept in your own browser
+                (<code>localStorage</code>) and never uploaded. You can also pass it per-visit with
+                <code>?api=https://xxx.workers.dev</code>.
               </span>
             </p>
           </div>
@@ -551,8 +556,10 @@
         var STORE_API = 'qiongkura-netease-api';
         var STORE_ADAPTER = 'qiongkura-netease-adapter';
 
-        /* 部署好代理之后，把地址填在这里当默认值（也可以留空，用下面的设置面板临时填） */
-        var DEFAULT_API = '';
+        /* 默认用本站自带的代理：functions/api/[[path]].js 会随站点一起部署到
+           Cloudflare Pages，和页面同源，所以相对路径 /api 就够了，不用配任何东西。
+           想换成自己另外部署的 Worker，把地址填在这里即可。 */
+        var DEFAULT_API = '/api';
         var DEFAULT_ADAPTER = 'official';
 
         var doc = document;
@@ -632,13 +639,19 @@
 
         /* --------------------------------------------------------- 后端配置 */
 
-        var urlApi = trimBase(params.get('api'));
+        // ?api=off 可以强制走「没配后端」的降级状态，方便看离线长什么样
+        var urlApiRaw = params.get('api');
+        var forceOffline = urlApiRaw !== null && (urlApiRaw === '' || urlApiRaw === 'off' || urlApiRaw === 'none');
+
+        var urlApi = forceOffline ? '' : trimBase(urlApiRaw);
         if (urlApi) writeStore(STORE_API, urlApi);
 
         var urlAdapter = params.get('adapter');
         if (urlAdapter) writeStore(STORE_ADAPTER, urlAdapter);
 
-        var apiBase = urlApi || trimBase(readStore(STORE_API)) || trimBase(DEFAULT_API);
+        var apiBase = forceOffline
+          ? ''
+          : urlApi || trimBase(readStore(STORE_API)) || trimBase(DEFAULT_API);
         var adapter = urlAdapter || readStore(STORE_ADAPTER) || DEFAULT_ADAPTER;
 
         if (apiInput) apiInput.value = apiBase;
@@ -670,6 +683,14 @@
             );
             return;
           }
+          if (apiBase.charAt(0) === '/') {
+            setStatus(
+              'ok',
+              '用的是本站自带的代理（<code>' + escapeHtml(apiBase) + '</code>，跟页面同源，随站点一起部署）。点「检测」确认一下。',
+              'Using the built-in proxy on this site (<code>' + escapeHtml(apiBase) + '</code>, same origin, deployed with the site). Hit “Check” to verify.'
+            );
+            return;
+          }
           setStatus(
             'ok',
             '后端：<code>' + escapeHtml(apiBase) + '</code> · 适配器 <b>' + escapeHtml(adapter) + '</b>。点「检测」确认一下能不能连上。',
@@ -690,7 +711,13 @@
             : '';
 
           var extra = '';
-          if (p.type === 'short') {
+          if (backendDead) {
+            extra =
+              '<p class="np-hit-extra">' +
+              '<span class="zh">后端连不上，先按离线模式帮你认一下。等代理恢复再点一次解析就有完整信息了。</span>' +
+              '<span class="en" lang="en">The backend is unreachable, so this is the offline result. Try again once the proxy is back for full details.</span>' +
+              '</p>';
+          } else if (p.type === 'short') {
             extra =
               '<p class="np-hit-extra">' +
               '<span class="zh">短链要先让后端跟一次 302 才能知道指向什么，配好代理再解析。</span>' +
@@ -757,6 +784,8 @@
         /* ------------------------------------------------------------- 解析 */
 
         var busy = false;
+        /* 体检没过的话，解析时直接退回离线识别，别让用户看到一堆报错 */
+        var backendDead = false;
 
         function notice(zh, en) {
           return '<div class="np-note"><span class="zh">' + zh + '</span><span class="en" lang="en">' + en + '</span></div>';
@@ -811,8 +840,8 @@
             return;
           }
 
-          // 没后端：只做离线识别，不发请求
-          if (!apiBase) {
+          // 没后端（或后端挂了）：只做离线识别，不发请求
+          if (!apiBase || backendDead) {
             result.innerHTML = offlineHit(parsed);
             var configBtn = doc.getElementById('np-hit-config');
             var adv = doc.getElementById('np-adv');
@@ -908,22 +937,42 @@
             var capability = data && data.capability ? String(data.capability) : '';
             var cookie = data && data.cookie;
 
+            backendDead = false;
+            var isBuiltIn = apiBase.charAt(0) === '/';
+            var whereZh = isBuiltIn ? '本站自带的代理' : '后端 <code>' + escapeHtml(apiBase) + '</code>';
+            var whereEn = isBuiltIn ? 'The built-in proxy on this site' : 'Backend <code>' + escapeHtml(apiBase) + '</code>';
+
             if (cookie && cookie.hasCookie && !cookie.hasMusicU) {
               setStatus(
                 'warn',
-                '后端能连上，但 Cookie 里没有 <code>MUSIC_U</code>，播放地址基本拿不到。元数据和歌词是正常的。',
-                'Backend reachable, but the cookie has no <code>MUSIC_U</code> — playback URLs will mostly fail. Metadata and lyrics are fine.'
+                whereZh + '能连上，但 Cookie 里没有 <code>MUSIC_U</code>，播放地址基本拿不到。元数据和歌词是正常的。',
+                whereEn + ' is reachable, but the cookie has no <code>MUSIC_U</code> — playback URLs will mostly fail. Metadata and lyrics are fine.'
               );
               return;
             }
 
             setStatus(
               'ok',
-              '后端正常。能力：' + (escapeHtml(capability) || '未知') + '。',
-              'Backend OK. Capability: ' + (escapeHtml(capability) || 'unknown') + '.'
+              whereZh + '正常。能力：' + (escapeHtml(capability) || '未知') + '。',
+              whereEn + ' OK. Capability: ' + (escapeHtml(capability) || 'unknown') + '.'
             );
           } catch (err) {
+            backendDead = true;
             var reason = err && err.name === 'AbortError' ? '请求超时（10s）' : (err && err.message) || String(err);
+
+            if (apiBase.charAt(0) === '/') {
+              setStatus(
+                'bad',
+                '本站自带的代理（<code>' + escapeHtml(apiBase) + '</code>）没响应：' + escapeHtml(reason) +
+                  '。可能刚 push 完 Cloudflare 还在部署（大约一分钟），也可能是 <code>functions/</code> 没被识别到。' +
+                  '这段时间解析会自动走离线识别。',
+                'The built-in proxy (<code>' + escapeHtml(apiBase) + '</code>) did not respond: ' + escapeHtml(reason) +
+                  '. Cloudflare may still be deploying (about a minute), or the <code>functions/</code> directory was not picked up.' +
+                  ' Parsing falls back to offline recognition meanwhile.'
+              );
+              return;
+            }
+
             setStatus(
               'bad',
               '连不上后端：' + escapeHtml(reason) + '。检查地址、CORS 的 <code>ALLOW_ORIGIN</code>，以及代理是否在线。',
@@ -975,12 +1024,15 @@
         if (!deep && location.hash.indexOf('#u=') === 0) {
           deep = decodeURIComponent(location.hash.slice(3));
         }
-        if (deep && input) {
-          input.value = deep;
-          run();
-        }
-
-        if (apiBase) checkBackend();
+        // 先体检再解析：不然深链会在「还不知道后端死活」的时候就发请求，
+        // 内置代理还没部署好的时候会弹一个没必要的报错。
+        (async function boot() {
+          if (apiBase) await checkBackend();
+          if (deep && input) {
+            input.value = deep;
+            run();
+          }
+        })();
       })();
     </script>
   </body>
