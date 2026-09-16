@@ -804,6 +804,17 @@ html[data-lang='en'] .zh { display: none !important; }
   color: var(--ink-3);
 }
 
+/* 试听片段版权声明：一行小字，别抢戏 */
+.pick-note {
+  margin-top: calc(.5 * var(--u));
+  font-family: var(--mono);
+  font-size: clamp(10px, calc(.56 * var(--u)), 30px);
+  line-height: 1.5;
+  letter-spacing: .02em;
+  color: var(--ink-3);
+}
+.pick-note .ghost-link { margin-left: .35em; }
+
 /* 无 JS 时简介直接铺开显示，不依赖交互 */
 html:not(.js) .works { flex-wrap: wrap; }
 html:not(.js) .work-list { width: 100%; }

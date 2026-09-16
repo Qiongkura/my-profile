@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /assets/audio/
+Disallow: /tools/
+Disallow: /hidden.html

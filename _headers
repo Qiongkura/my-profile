@@ -8,3 +8,6 @@
 
 /_headers
   Cache-Control: public, max-age=0, must-revalidate
+
+/assets/audio/*
+  X-Robots-Tag: noindex

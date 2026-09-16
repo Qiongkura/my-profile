@@ -108,71 +108,17 @@ my-profile/
 
 ### 「茶汤」的试听音频
 
-站内托管的是 `assets/audio/cha-tang.mp3`（13.1 MiB，320 kbps），由你提供的那份 FLAC 转码而来。页面把它作为 `<audio>` 的 `src`，不再跳转网易云或其他外部音乐网站；用 `preload="none"`，没人点播放就不会下载。想换歌就替换这个文件，或改 `index.html` 里 `li.pick--now` 那一行的 `data-src`。
+站内提供的是**30 秒无损试听片段**，不是整首：`assets/audio/cha-tang-30s.flac`（3.34 MiB，FLAC 44.1kHz/16bit 立体声）。这样做有两个原因——整首公开托管涉及公开传播受版权保护内容，且 13 MiB 的整轨占了 `assets/` 八成体积。片段本身是**完整连续**的（从 46 秒处截取 30 秒），带 1.5 秒淡入淡出，听感是完整的。
 
-**为什么站内不是 FLAC**：Cloudflare Pages 对**单个文件**的上限是 **25 MiB**（官方 Limits 文档原文：*The maximum file size for a single Cloudflare Pages site asset is 25 MiB*），你那份 FLAC 是 34.8 MiB，超出后整个部署会失败——现象就是 GitHub 上文件在、但线上仍是旧版本、音频路径返回 404。想放真正无损的原文件，官方给的路子是传 R2（*Larger Files: consider uploading them to R2 and utilizing the public bucket feature*），把 `data-src` 换成 R2 的公网地址即可；也可以用 GitHub Release 附件（单文件上限 2 GB）承载，然后写它的直链。
-
-转码命令（用了本机捆绑的 ffmpeg）：
+生成命令（本机 ffmpeg，注意 `-ss` 必须放在 `-i` **之前**——这个捆绑版放在后面会输出静音）：
 
 ```bash
-ffmpeg -y -i "茶汤.flac" -c:a libmp3lame -b:a 320k -map_metadata 0 -id3v2_version 3 assets/audio/cha-tang.mp3
+ffmpeg -y -ss 46 -t 30 -i "茶汤.flac"   -af "afade=t=in:st=0:d=1.5,afade=t=out:st=28.5:d=1.5"   -c:a flac -compression_level 8 assets/audio/cha-tang-30s.flac
 ```
 
-文件名和路径要和 `data-src` 完全一致。播放器行为：
+歌词 `assets/audio/cha-tang.lrc` 只保留与该片段对应的 7 句，并且**时间轴整体前移 46 秒**（片段从 0 秒开始播放，不重排时间轴就会全部错位）。改片段起点时这两件事要一起改。
 
-- **播放键**是 27px 圆形描边按钮，图标是内联 SVG（播放三角 / 暂停双杠），由行的 `.is-playing` 类切换，脚本不再往按钮里写文字
-- **音量条**在单曲行的右侧：默认落在 **50%**（约 **−12dB**），拖动即时生效，点小喇叭静音 / 恢复，键盘 `←` `→` 每次 5%、`Home` / `End` 到 0 / 100%。悬停滑块会显示当前位置对应的 dB
-  滑块存的是**位置**，实际增益走**平方映射**（`gain = 位置²`）：位置 50% ≈ −12dB、25% ≈ −24dB、100% 才等于文件原始电平。线性映射下 50% 只有 −6dB，对响度做满的流行母带来说依然很吵，所以没用线性。改动写进 `localStorage` 的 `qiongkura-volume-v2`，下次打开沿用（隐私模式下写不进去也不影响播放）
-- **进度条**只在正在播放的那一行展开：点击或拖动跳转，键盘 `←` `→` 跳 5 秒、`Home` / `End` 到首尾，右侧显示 `已播 / 总长`
-- 文件不存在或浏览器不支持该格式时，只在当前行显示「音频暂时无法播放」，不会打开网易云官网
-
-进度条与音量条共用 `script.js` 里的 `bindDrag(bar, onRatio)`：按下即定位、拖动跟随、抬起释放（指针捕获 + `pointercancel` 兜底）。要再加一根类似的条，直接调它即可，不用重写一遍指针逻辑。
-
-### 歌词滚动
-
-单曲行上的 `data-lrc` 指向歌词文件（当前是 `assets/audio/cha-tang.lrc`）。**这个文件不存在时歌词整块保持 `hidden`、不占任何空间**，页面与没有这个功能时完全一样；放进文件后自动出现。
-
-- 格式就是标准 LRC：`[mm:ss.xx]歌词`。一行带多个时间戳都认，`[ar:]` `[ti:]` 这类标签行会被忽略
-- 播放时按 `timeupdate` 同步，当前句高亮并居中滚动；只在句子变化时才滚一次，不会每帧抖动
-- 点某一句跳到那一句（暂停状态下点会直接开始播放）
-- **没在播放时整块收起**（平滑收起、不占高度），播放时才展开；暂停或播完自动收起
-- 三行小窗 + 上下渐隐遮罩；矮窗口（高 ≤ 820px）收成两行，保证 HI-FI 仍是一节一屏
-- 开启「减少动态效果」时不做平滑滚动，直接跳位
-- 平滑滚动在后台标签页或某些节流环境里可能完全不生效，这里做了兜底：若 600ms 内滚动位置一动没动，就直接跳到目标位置，避免「高亮走了但歌词不动」
-
-歌词文件就在 `assets/audio/cha-tang.lrc`：52 句，UTF-8 无 BOM，时间轴 0:25–4:36，时间戳严格升序。换歌时 `data-src` 与 `data-lrc` 一起改，LRC 保持 UTF-8 即可（从播放器歌词页复制来的多半是 GBK，需要先转成 UTF-8，否则会乱码）。
-
-> 歌词文本受版权保护，公开仓库里托管歌词属于公开传播，是否放由你自己判断；这份是你提供并确认要用的。以后如果网易云解析插件配好了代理（`API_BASE`），也可以让歌词直接从那边取，不必放在仓库里。
-
-首次点击播放时才请求音频；线上 Cloudflare 会按 HTTP Range 分段传输，进度条可以拖动。这个仓库是公开的，请确认你有权公开托管这份音频。
-
-### 播放时的频谱
-
-顶部波形和底部频谱条分两种状态，互不干扰：
-
-- **不播放时**：保持原来的示意效果——波形是画出来的正弦曲线，柱子走 CSS 呼吸动画，与音频完全无关
-- **播放时**：接进 Web Audio（`source → analyser → destination`），波形改画这首歌的真实示波器数据（1px 细线 + 自动增益，音量小也画得开）；48 根柱子走真实频段（40Hz–16kHz 对数分档，做法参考 audio-visualizer 项目），并带峰值保持；刻度线右侧显示实时主频与电平，线上的黑点按对数位置滑动
-
-实现要点：
-
-- 柱子高度写成 `height: var(--live, var(--h))`：`--live` 是真实数据，`--h` 是闲置高度。暂停时移除 `--live`，呼吸动画自动回来，不用改 DOM 结构
-- 数据刷新**同时挂在 rAF 和 `timeupdate`** 上：标签页切到后台或动画帧被节流时 rAF 会停，靠 `timeupdate` 这条路径仍能更新；暂停/播完立刻退回示意状态（不等下一帧）
-- 峰值顶标用 `--peak-gap` 上移，只有变化了才写 DOM，48 根柱子下每帧写入量可控
-- 拿不到 AudioContext（老浏览器、上下文被占用、被拦截）时静默退回示意效果，不影响播放
-- 播放/暂停切换是**插值过渡**而不是硬切：波形在「真实数据」与「示意曲线」之间按 mix 逐帧插值；柱子从当前高度用 0.45s 过渡落回闲置高度；呼吸动画起始帧对齐 `scaleY(1)`，避免动画重新开始时回跳
-- 配色沿用站点黑白，没有引入 audio-visualizer 里的紫粉橙渐变
-
-本地预览时记得用 `tools/serve.py` 而不是 `python -m http.server`，否则进度条拖不动，原因见下面「本地预览」。
-
-## 安全响应头与不可公开文件
-
-三个文件只管线上行为，本地预览（`tools/serve.py`）不读它们，所以改完必须部署才能验证：
-
-- `_headers`：给全站加 HSTS、`X-Content-Type-Options: nosniff`、`Referrer-Policy`、`X-Frame-Options: DENY`（禁止被 iframe 嵌套）和 `Permissions-Policy`。另外用 `Content-Security-Policy-Report-Only` 先观察 CSP 是否会拦截正常资源——**是 Report-Only，不会拦任何请求**；等浏览器控制台连续几天没有 violation 报告后，把那一行改成 `Content-Security-Policy` 才真正生效。注意站点和 `netease/` 页里有内联 `<script>` 与内联样式，所以 CSP 必须保留 `'unsafe-inline'`，要彻底收紧得先把内联脚本抽成外部文件。
-- `_redirects`：把 `README.md`、`publish.cmd`、`.gitignore`、`tools/*`、`_routes.json` 重写到 `hidden.html`，不再作为站点资源被下载。注意这些内容本来就在公开仓库里，这一步只是让站点不再单独分发它们。
-- `hidden.html`：上面这些路径的占位页，`noindex`。
-
-API 代理默认只允许本站来源（`functions/api/[[path]].js` 的 `ALLOW_ORIGIN`，默认值 `https://qiongkura.xyz`）。要让预览域名也能调用，在 Cloudflare Pages 的环境变量里设 `ALLOW_ORIGIN=https://qiongkura.xyz,https://my-profile-1qe.pages.dev`。
+播放器行为不变（播放键 / 音量条 / 进度条 / 点击歌词跳转 / 暂停收起歌词），只是总长变成 0:30。音频目录另外做了降暴露处理：`robots.txt` 里 `Disallow: /assets/audio/`，`_headers` 里给 `/assets/audio/*` 加了 `X-Robots-Tag: noindex`，并在 Cloudflare 面板建议开启 Hotlink Protection。这些只是降低被自动扫描到的概率，不改变版权性质。
 
 ## 窗口尺寸适配
 
