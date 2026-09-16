@@ -31,6 +31,28 @@ const BASE_HEADERS = {
   'Accept-Language': 'zh-CN,zh;q=0.9',
 };
 
+/**
+ * 桌面客户端的身份，抄自 Netease_url（Suxiaoqinx）那个 Python 项目。
+ *
+ * 它那边请求的是同一批 `music.163.com/api/...` 接口，但从头到尾**没有任何风控处理**
+ * （全库搜不到 462 / verify / captcha），说明它压根不触发。
+ * 它跟我们的差别有三处，这是其中一处：UA 是桌面客户端而不是浏览器。
+ *
+ * 这里只作为**可选**身份，用 `/diag?ua=desktop` 做 A/B 实测，
+ * 验证有用再改默认值 —— 别凭感觉换。
+ */
+const DESKTOP_UA =
+  'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) ' +
+  'Safari/537.36 Chrome/91.0.4472.164 NeteaseMusicDesktop/2.10.2.200154';
+
+/**
+ * 桌面客户端那套匿名指纹 cookie。
+ *
+ * 注意：这**不是**登录态，`MUSIC_U` 才是。它只是让请求看起来像客户端发的。
+ * 拿不到播放直链跟这个无关（那个必须 MUSIC_U）。
+ */
+const DESKTOP_COOKIE = 'os=pc; appver=8.9.75; osver=; deviceId=pyncm!';
+
 /** 极简内存缓存，边缘节点上足够用了 */
 const cache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
@@ -120,10 +142,23 @@ export function inspectCookie(env = {}) {
   };
 }
 
-/** 带上 cookie（配了 NETEASE_COOKIE 才能拿到 VIP 歌曲的直链） */
-function upstreamHeaders(env = {}) {
+/**
+ * 组装上游请求头。
+ *
+ * @param {object} env
+ * @param {'browser'|'desktop'} [identity] 见 DESKTOP_UA 的注释，默认浏览器身份
+ */
+function upstreamHeaders(env = {}, identity = 'browser') {
   const headers = { ...BASE_HEADERS };
-  if (env.NETEASE_COOKIE) headers.Cookie = env.NETEASE_COOKIE;
+  if (identity === 'desktop') headers['User-Agent'] = DESKTOP_UA;
+
+  // 登录态永远优先。没有登录态时，客户端身份会带一份匿名设备指纹 cookie
+  // （那玩意儿不是登录态，拿不到直链，只是让请求看起来像客户端发的）
+  if (env.NETEASE_COOKIE) {
+    headers.Cookie = env.NETEASE_COOKIE;
+  } else if (identity === 'desktop') {
+    headers.Cookie = DESKTOP_COOKIE;
+  }
   return headers;
 }
 
@@ -161,7 +196,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  *
  * @param {string} url
  * @param {object} env
- * @param {{ noCache?: boolean, retries?: number, extraHeaders?: Record<string,string> }} [options]
+ * @param {{ noCache?: boolean, retries?: number, extraHeaders?: Record<string,string>, identity?: 'browser'|'desktop' }} [options]
  */
 async function fetchUpstream(url, env = {}, options = {}) {
   const cached = options.noCache ? null : cacheGet(url);
@@ -173,7 +208,10 @@ async function fetchUpstream(url, env = {}, options = {}) {
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     const res = await fetch(url, {
-      headers: { ...upstreamHeaders(env), ...(options.extraHeaders || {}) },
+      headers: {
+        ...upstreamHeaders(env, options.identity),
+        ...(options.extraHeaders || {}),
+      },
     });
     if (!res.ok) {
       throw Object.assign(new Error(`上游返回 HTTP ${res.status}`), { status: res.status });
@@ -425,6 +463,7 @@ export async function handleRequest(request, env = {}) {
     //   /diag?path=/album&id=18905&n=3&mode=raw
     //   /diag?path=/album&id=18905&n=3&retries=2        # 量一量重试到底有没有用
     //   /diag?path=/album&id=18905&n=3&realip=1.2.3.4   # 试 X-Real-IP 有没有用
+    //   /diag?path=/album&id=18905&n=3&ua=compare       # 浏览器 UA vs 桌面客户端 UA，交替 A/B
     if (path === '/diag') {
       const target = url.searchParams.get('path') || '/album';
       const builder = ROUTES[target];
@@ -437,47 +476,84 @@ export async function handleRequest(request, env = {}) {
       const n = Math.min(Math.max(Number(url.searchParams.get('n')) || 3, 1), 6);
       const raw = url.searchParams.get('mode') === 'raw';
       const retries = Math.min(Math.max(Number(url.searchParams.get('retries')) || 0, 0), 3);
+      const ua = ['browser', 'desktop', 'compare'].includes(url.searchParams.get('ua'))
+        ? url.searchParams.get('ua')
+        : 'browser';
       const realip = url.searchParams.get('realip') || '';
       const extraHeaders = realip ? { 'X-Real-IP': realip, 'X-Forwarded-For': realip } : undefined;
       const apiUrl = builder(url.searchParams);
 
       const attempts = [];
       for (let i = 0; i < n; i++) {
+        // compare 模式：同一个时间窗口里交替用两种身份，避开「出口 IP 自己在漂」
+        // 这个混淆因素。分开跑两批是测不准的，因为风控是随机的。
+        const identity = ua === 'compare' ? (i % 2 === 0 ? 'browser' : 'desktop') : ua;
         const started = Date.now();
         try {
           if (raw) {
             const res = await fetch(apiUrl, {
-              headers: { ...upstreamHeaders(env), ...(extraHeaders || {}) },
+              headers: { ...upstreamHeaders(env, identity), ...(extraHeaders || {}) },
             });
             const text = await res.text();
-            attempts.push({ i: i + 1, ms: Date.now() - started, http: res.status, bytes: text.length });
-          } else {
-            const data = await fetchUpstream(apiUrl, env, { noCache: true, retries, extraHeaders });
             attempts.push({
               i: i + 1,
+              identity,
+              ms: Date.now() - started,
+              http: res.status,
+              bytes: text.length,
+            });
+          } else {
+            const data = await fetchUpstream(apiUrl, env, {
+              noCache: true,
+              retries,
+              identity,
+              extraHeaders,
+            });
+            attempts.push({
+              i: i + 1,
+              identity,
               ms: Date.now() - started,
               code: data?.code ?? null,
               riskControl: isRiskControl(data),
             });
           }
         } catch (err) {
-          attempts.push({ i: i + 1, ms: Date.now() - started, error: err?.message || String(err) });
+          attempts.push({ i: i + 1, identity, ms: Date.now() - started, error: err?.message || String(err) });
         }
         if (i < n - 1) await sleep(200);
       }
 
-      const blocked = attempts.filter((a) => a.riskControl).length;
+      const tally = (who) => {
+        const of = attempts.filter((a) => a.identity === who);
+        const blocked = of.filter((a) => a.riskControl).length;
+        return { total: of.length, blocked, passed: of.length - blocked };
+      };
+
+      let summary;
+      if (raw) {
+        summary = `${n} 次请求都完成了（不解析响应体）`;
+      } else if (ua === 'compare') {
+        const b = tally('browser');
+        const d = tally('desktop');
+        summary =
+          `浏览器 UA ${b.passed}/${b.total} 通过，桌面客户端 UA ${d.passed}/${d.total} 通过` +
+          (d.passed > b.passed ? ' —— 桌面身份明显更好，值得改成默认' : ' —— 没有明显差别，别改');
+      } else {
+        const t = tally(ua);
+        summary = `${ua} 身份：${n} 次里 ${t.blocked} 次被风控${t.blocked ? '' : '，这个出口 IP 目前是干净的'}`;
+      }
+
       return json(
         {
           code: 200,
           mode: raw ? 'raw' : 'parse',
           retries,
+          ua,
           upstream: apiUrl,
           realip: realip || null,
           attempts,
-          summary: raw
-            ? `${n} 次请求都完成了（不解析响应体）`
-            : `${n} 次里 ${blocked} 次被风控${blocked ? '' : '，这个出口 IP 目前是干净的'}`,
+          ...(ua === 'compare' && !raw ? { browser: tally('browser'), desktop: tally('desktop') } : {}),
+          summary,
         },
         { env, extra: { 'Cache-Control': 'no-store' } },
       );
