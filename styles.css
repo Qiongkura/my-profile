@@ -1095,6 +1095,56 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
   color: var(--ink);
 }
 
+/* 歌词：三行小窗 + 上下渐隐，当前句高亮；没有 LRC 文件时整块 hidden 不占位 */
+.lyrics { margin-top: calc(.9 * var(--u)); }
+.lyrics[hidden] { display: none; }
+.lyrics .block-title { display: flex; align-items: center; gap: 8px; margin-bottom: calc(.4 * var(--u)); }
+.lyrics-hint {
+  font-family: var(--sans);
+  font-size: clamp(10px, calc(.58 * var(--u)), 30px);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-3);
+}
+.lyrics-lines {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  height: calc(4.4 * var(--u));
+  min-height: 62px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 26%, #000 74%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 26%, #000 74%, transparent);
+}
+.lyrics-lines::-webkit-scrollbar { width: 0; height: 0; }
+.lyrics-lines li {
+  position: relative;
+  padding-left: calc(.9 * var(--u));
+  font-size: clamp(12px, calc(.86 * var(--u)), 46px);
+  line-height: 1.75;
+  letter-spacing: .01em;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color .3s var(--ease);
+}
+.lyrics-lines li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: .85em;
+  width: calc(.42 * var(--u));
+  height: 1px;
+  background: var(--line);
+  transition: background-color .3s var(--ease);
+}
+.lyrics-lines li:hover { color: var(--ink-2); }
+.lyrics-lines li.is-active { color: var(--ink); }
+.lyrics-lines li.is-active::before { background: var(--red); }
+.lyrics-lines:focus-visible { outline: 1px solid var(--ink-3); outline-offset: 3px; }
+
 .spectrum {
   display: flex;
   align-items: flex-end;
@@ -1199,6 +1249,8 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
 @media (max-height: 820px) {
   /* 矮窗口：字号有可读性下限不会再缩，这里把图片高度让出一部分，保证一节仍是一屏 */
   html { scroll-snap-type: y proximity; }
+  .lyrics { margin-top: calc(.6 * var(--u)); }
+  .lyrics-lines { height: calc(3.2 * var(--u)); min-height: 46px; }
   .frame { --frame-h: clamp(90px, min(17vh, 21vw), 600px); }
   .frame--hero { --frame-h: clamp(100px, min(38vh, 35vw), 800px); }
   .frame--slides { --frame-h: clamp(110px, min(26vh, 37vw), 700px); }

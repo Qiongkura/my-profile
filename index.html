@@ -16,7 +16,7 @@
       rel="stylesheet"
     />
     <link rel="preload" as="image" href="assets/home-01.webp" />
-    <link rel="stylesheet" href="styles.css?v=26" />
+    <link rel="stylesheet" href="styles.css?v=27" />
     <script>
       /* 在样式生效前确定语言，避免切换时闪烁 */
       (function () {
@@ -575,7 +575,7 @@
               <div class="listen-block">
                 <p class="block-title"><span class="zh">最近在听</span><span class="en" lang="en">CURRENTLY LISTENING</span></p>
                 <ul class="listen-list listen-list--now">
-                  <li class="pick pick--now" data-track data-src="assets/audio/cha-tang.mp3" data-query="茶汤 郁可唯">
+                  <li class="pick pick--now" data-track data-src="assets/audio/cha-tang.mp3" data-lrc="assets/audio/cha-tang.lrc" data-query="茶汤 郁可唯">
                     <button class="pick-btn" type="button" data-pick-btn data-aria-zh="播放 茶汤 · 郁可唯" data-aria-en="Play 茶汤 · Yisa Yu">
                       <svg class="pick-icon pick-icon--play" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8.6 5.3v13.4L19.2 12z" /></svg>
                       <svg class="pick-icon pick-icon--pause" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8.7 5.4h2.8v13.2H8.7zM12.5 5.4h2.8v13.2h-2.8z" /></svg>
@@ -596,6 +596,20 @@
                   </li>
                 </ul>
               </div>
+
+              <!-- lyrics:start —— 与 data-lrc 指向的 LRC 文件对应，文件不存在时整块保持隐藏 -->
+              <div class="lyrics" id="lyrics" hidden>
+                <p class="block-title">
+                  <span class="zh">歌词</span><span class="en" lang="en">LYRICS</span>
+                  <span class="lyrics-hint" data-aria-zh="点某一句可以跳到那一句" data-aria-en="Click a line to jump to it">
+                    <span class="zh">点句子跳转</span><span class="en" lang="en">click to jump</span>
+                  </span>
+                </p>
+                <ol class="lyrics-lines" id="lyrics-lines" tabindex="0"
+                    data-aria-zh="歌词，可滚动" data-aria-en="Lyrics, scrollable"
+                    aria-label="歌词"></ol>
+              </div>
+              <!-- lyrics:end -->
 
               <audio id="hifi-audio" preload="none"></audio>
 
@@ -704,6 +718,6 @@
       </section>
     </main>
 
-    <script src="script.js?v=26"></script>
+    <script src="script.js?v=27"></script>
   </body>
 </html>

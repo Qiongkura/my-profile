@@ -900,6 +900,95 @@
         update();
       });
     });
+
+    /* -------------------------------------------------------------- 歌词 */
+
+    const lyricsBox = doc.getElementById('lyrics');
+    const lyricsList = doc.getElementById('lyrics-lines');
+    const lrcTrack = tracks.find((item) => item.row.getAttribute('data-lrc'));
+    const lrcUrl = lrcTrack ? lrcTrack.row.getAttribute('data-lrc') : '';
+
+    if (lyricsBox && lyricsList && lrcUrl) {
+      /* 解析 LRC：支持一行多个时间戳，忽略 [ar:] [ti:] 这类标签行 */
+      const parseLrc = (text) =>
+        text
+          .split(/\r?\n/)
+          .flatMap((raw) => {
+            const stamps = raw.match(/\[(\d{1,3}):(\d{1,2}(?:[.:]\d{1,3})?)\]/g);
+            if (!stamps) return [];
+            const content = raw.replace(/\[[^\]]*\]/g, '').trim();
+            if (!content) return [];
+            return stamps.map((stamp) => {
+              const parts = /\[(\d{1,3}):(\d{1,2}(?:[.:]\d{1,3})?)\]/.exec(stamp);
+              const minutes = parseInt(parts[1], 10);
+              const seconds = parseFloat(parts[2].replace(':', '.'));
+              return { time: minutes * 60 + seconds, text: content };
+            });
+          })
+          .sort((a, b) => a.time - b.time);
+
+      const lyricLines = [];
+      let lyricIndex = -1;
+
+      const paintLyric = (index) => {
+        if (index === lyricIndex) return;
+        const previous = lyricLines[lyricIndex];
+        if (previous) previous.el.classList.remove('is-active');
+        lyricIndex = index;
+        const line = lyricLines[index];
+        if (!line) return;
+        line.el.classList.add('is-active');
+        const target = line.el.offsetTop - (lyricsList.clientHeight - line.el.offsetHeight) / 2;
+        lyricsList.scrollTo({ top: Math.max(0, target), behavior: reduced.matches ? 'auto' : 'smooth' });
+      };
+
+      /* 二分找出当前时间对应的那一句；只在句子变化时才滚动 */
+      const syncLyric = () => {
+        if (!lyricLines.length) return;
+        const time = hifiAudio.currentTime + 0.15;
+        let low = 0;
+        let high = lyricLines.length - 1;
+        let found = -1;
+        while (low <= high) {
+          const mid = (low + high) >> 1;
+          if (lyricLines[mid].time <= time) {
+            found = mid;
+            low = mid + 1;
+          } else {
+            high = mid - 1;
+          }
+        }
+        paintLyric(found);
+      };
+
+      fetch(lrcUrl, { cache: 'no-cache' })
+        .then((response) => (response.ok ? response.text() : ''))
+        .then((text) => {
+          const parsed = parseLrc(text || '');
+          if (!parsed.length) return;
+          parsed.forEach((line, index) => {
+            const item = doc.createElement('li');
+            item.textContent = line.text;
+            item.addEventListener('click', () => {
+              if (!lrcTrack) return;
+              hifiAudio.currentTime = line.time;
+              if (hifiAudio.paused) start(lrcTrack);
+              paintLyric(index);
+            });
+            lyricsList.appendChild(item);
+            lyricLines.push({ time: line.time, el: item });
+          });
+          lyricsBox.hidden = false;
+          syncLyric();
+        })
+        .catch(() => {
+          /* 没有歌词文件就什么都不做，整块保持隐藏 */
+        });
+
+      hifiAudio.addEventListener('timeupdate', syncLyric);
+      hifiAudio.addEventListener('seeked', syncLyric);
+      hifiAudio.addEventListener('loadedmetadata', syncLyric);
+    }
   }
 
   /* ------------------------------------------------------------- 年份 */
