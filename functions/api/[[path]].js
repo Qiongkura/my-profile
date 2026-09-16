@@ -127,7 +127,8 @@ export function inspectCookie(env = {}) {
       hasMusicU: false,
       length: 0,
       verdict: '还没配 NETEASE_COOKIE',
-      hint: '网易现在对未登录请求一律不返回播放直链，配了才有机会。步骤见 docs/playback.md',
+      // 别说成「没配就一定放不了」—— 实测不带 Cookie 也有一部分歌能放。
+      hint: '配了能放的歌更多，但不是必须的（不带 Cookie 也有一部分歌能放）。步骤见 docs/playback.md',
     };
   }
   const hasMusicU = /(^|;\s*)MUSIC_U=/.test(raw);
@@ -137,8 +138,9 @@ export function inspectCookie(env = {}) {
     length: raw.length,
     verdict: hasMusicU ? '找到了 MUSIC_U，格式看着是对的' : '没有 MUSIC_U，这个 Cookie 基本是无效的',
     hint: hasMusicU
-      ? '格式对不代表能播，还得看具体歌曲的版权，可以用 /verify 实测'
-      : '只填 os=pc 之类的没用，MUSIC_U 才是登录凭证。步骤见 docs/playback.md',
+      ? '格式对不代表有效（可能已经过期），看 /verify 的 cookieValid 才是准的'
+      : '最常见的错：只复制了 Application 面板里的 Value，漏掉了 MUSIC_U= 前缀。' +
+        '整行复制 Request Headers 里的 Cookie: 最保险。步骤见 docs/playback.md',
   };
 }
 
