@@ -18,6 +18,22 @@
 
   const langButtons = Array.from(doc.querySelectorAll('[data-lang-set]'));
   const langChangeHooks = [];
+
+  /* 播放时用这首歌的真实音频数据驱动频谱；拿不到就把音频上下文退回去、继续用示意动画。
+     声明必须在声波绘制之前，那里会读它。 */
+  const audioViz = {
+    ready: false,
+    playing: false,
+    context: null,
+    analyser: null,
+    freq: null,
+    wave: null,
+    peak: 0,
+    gain: 1,
+    topHz: 0,
+    onTick: null,
+    onIdle: null
+  };
   const metas = {
     zh: {
       title: 'Qiongkura · 个人主页',
@@ -450,6 +466,18 @@
     let width = 520;
     let frame = null;
     let running = false;
+    let liveOn = false;
+
+    const bars = Array.from(doc.querySelectorAll('.spectrum span'));
+    const spectrum = doc.querySelector('.spectrum');
+    const scaleEl = doc.querySelector('.scale');
+    const scaleDot = doc.querySelector('[data-scale-dot]');
+    const scaleLive = doc.querySelector('[data-scale-live]');
+    const peaks = bars.map(() => 0);
+    const lastGaps = bars.map(() => -1);
+    const BANDS = bars.length || 12;
+    const F_MIN = 40;
+    const F_MAX = 16000;
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -460,12 +488,8 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    const draw = (time) => {
-      ctx.clearRect(0, 0, width, height);
-      ctx.strokeStyle = '#111111';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-
+    /* 暂停时保持原来那种「自己随便动」的示意波形 */
+    const drawSynthetic = (time) => {
       const mid = height / 2;
       const amp = height * 0.34;
       const t = reduced.matches ? 0 : time;
@@ -480,8 +504,136 @@
         if (x === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
-
       ctx.stroke();
+    };
+
+    /* 播放时画真实波形：1px 细线示波器 + 自动增益（音量小也画得开） */
+    const drawLive = () => {
+      const { analyser, wave } = audioViz;
+      analyser.getByteTimeDomainData(wave);
+
+      let peak = 0;
+      for (let i = 0; i < wave.length; i += 1) {
+        const value = Math.abs(wave[i] - 128);
+        if (value > peak) peak = value;
+      }
+      const target = peak > 3 ? Math.min(5, 104 / peak) : 1;
+      audioViz.gain += (target - audioViz.gain) * 0.12;
+      const gain = audioViz.gain;
+      const mid = height / 2;
+
+      for (let x = 0; x <= width; x += 2) {
+        const index = Math.min(wave.length - 1, Math.floor((x / width) * (wave.length - 1)));
+        const y = mid + ((wave[index] - 128) / 128) * (height / 2) * 0.94 * gain;
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    };
+
+    const updateBands = () => {
+      const { analyser, freq, context } = audioViz;
+      analyser.getByteFrequencyData(freq);
+      const nyquist = (context ? context.sampleRate : 48000) / 2;
+      const boxHeight = spectrum ? spectrum.clientHeight : 0;
+      const levels = [];
+      let loudest = 0;
+
+      for (let band = 0; band < BANDS; band += 1) {
+        const low = F_MIN * Math.pow(F_MAX / F_MIN, band / BANDS);
+        const high = F_MIN * Math.pow(F_MAX / F_MIN, (band + 1) / BANDS);
+        const from = Math.max(1, Math.floor((low / nyquist) * freq.length));
+        const to = Math.min(freq.length - 1, Math.ceil((high / nyquist) * freq.length));
+        let top = 0;
+        for (let i = from; i <= to; i += 1) if (freq[i] > top) top = freq[i];
+        const level = top / 255;
+        levels.push(level);
+        if (level > loudest) loudest = level;
+      }
+
+      /* 自动增益：按整体峰值归一，这样音量大小不影响观感；
+         频段值本身是对数（dB）刻度，直接线性归一会出现「要么贴底要么满格」，
+         所以再开一次方压一下，让中间段也能看出来 */
+      audioViz.peak = Math.max(loudest, audioViz.peak * 0.93);
+      const normal = audioViz.peak > 0.05 ? 1 / audioViz.peak : 1;
+
+      levels.forEach((level, index) => {
+        const bar = bars[index];
+        if (!bar) return;
+        const shaped = Math.pow(Math.min(1, level * normal), 0.55);
+        const percent = Math.max(4, Math.min(100, shaped * 100));
+        bar.style.setProperty('--live', `${percent.toFixed(1)}%`);
+        peaks[index] = Math.max(percent, peaks[index] - 0.9);      /* 峰值保持 */
+        const cap = bar.firstElementChild;
+        if (cap) {
+          const gap = Math.round(((peaks[index] - percent) / 100) * boxHeight);
+          if (gap !== lastGaps[index]) {
+            lastGaps[index] = gap;
+            cap.style.setProperty('--peak-gap', `${gap}px`);
+          }
+        }
+      });
+
+      /* 主频：频谱峰值位置，平滑一下避免跳得太快，再映射到 20Hz–20kHz 的对数刻度 */
+      let topIndex = 1;
+      let topValue = 0;
+      for (let i = 1; i < freq.length; i += 1) if (freq[i] > topValue) { topValue = freq[i]; topIndex = i; }
+      const hz = (topIndex / freq.length) * nyquist;
+      audioViz.topHz = audioViz.topHz ? audioViz.topHz * 0.75 + hz * 0.25 : hz;
+      if (scaleDot) {
+        const position = Math.log(Math.max(20, audioViz.topHz) / 20) / Math.log(20000 / 20);
+        scaleDot.style.left = `${Math.min(100, Math.max(0, position * 100)).toFixed(1)}%`;
+      }
+      if (scaleLive) {
+        const shown = audioViz.topHz >= 1000 ? `${(audioViz.topHz / 1000).toFixed(2)} kHz` : `${Math.round(audioViz.topHz)} Hz`;
+        const db = Math.round(-100 + (topValue / 255) * 70);
+        scaleLive.textContent = `${shown} · ${db} dB`;
+      }
+    };
+
+    const setLive = (on) => {
+      if (liveOn === on) return;
+      liveOn = on;
+      if (spectrum) spectrum.classList.toggle('is-live', on);
+      if (scaleEl) scaleEl.classList.toggle('is-live', on);
+      if (!on) {
+        bars.forEach((bar) => {
+          bar.style.removeProperty('--live');
+          if (bar.firstElementChild) bar.firstElementChild.style.removeProperty('--peak-gap');
+        });
+        peaks.fill(0);
+        lastGaps.fill(-1);
+        audioViz.peak = 0;
+        audioViz.gain = 1;
+        audioViz.topHz = 0;
+        if (scaleDot) scaleDot.style.removeProperty('left');
+        if (scaleLive) scaleLive.textContent = '';
+      }
+    };
+
+    /* 供 rAF 与播放事件共用：播放时刷新频段柱与刻度读数 */
+    const tickLive = () => {
+      if (!audioViz.ready || !audioViz.playing) return;
+      setLive(true);
+      updateBands();
+    };
+    audioViz.onTick = tickLive;
+    audioViz.onIdle = () => setLive(false);
+
+    const draw = (time) => {
+      ctx.clearRect(0, 0, width, height);
+      ctx.strokeStyle = '#111111';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+
+      if (audioViz.ready && audioViz.playing) {
+        setLive(true);
+        drawLive();
+        updateBands();
+      } else {
+        setLive(false);
+        drawSynthetic(time);
+      }
     };
 
     const loop = (time) => {
@@ -840,11 +992,64 @@
       return null;
     };
 
-    hifiAudio.addEventListener('play', () => { if (playing) setButton(playing, true); });
-    hifiAudio.addEventListener('pause', () => { if (playing) setButton(playing, false); });
-    hifiAudio.addEventListener('timeupdate', update);
-    hifiAudio.addEventListener('loadedmetadata', update);
-    hifiAudio.addEventListener('ended', () => { if (playing) paint(playing, 1); });
+    /* 第一次播放时把音频接进 Web Audio：source → analyser → destination。
+       失败就保持原样（示意动画继续用），不影响播放本身。 */
+    const initViz = () => {
+      if (audioViz.ready) return true;
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return false;
+      try {
+        const context = new Ctx();
+        const analyser = context.createAnalyser();
+        analyser.fftSize = 2048;
+        analyser.smoothingTimeConstant = 0.74;
+        const source = context.createMediaElementSource(hifiAudio);
+        source.connect(analyser);
+        analyser.connect(context.destination);
+        audioViz.context = context;
+        audioViz.analyser = analyser;
+        audioViz.freq = new Uint8Array(analyser.frequencyBinCount);
+        audioViz.wave = new Uint8Array(analyser.fftSize);
+        audioViz.ready = true;
+        return true;
+      } catch (error) {
+        /* 老浏览器或上下文被占用：静默退回示意动画，不影响播放 */
+        return false;
+      }
+    };
+
+    const setVizPlaying = (on) => {
+      if (on) {
+        initViz();
+        if (audioViz.context && audioViz.context.state === 'suspended') {
+          const resumed = audioViz.context.resume();
+          if (resumed && typeof resumed.catch === 'function') resumed.catch(() => {});
+        }
+      }
+      audioViz.playing = Boolean(on) && audioViz.ready;
+      if (!audioViz.playing && audioViz.onIdle) audioViz.onIdle();
+    };
+
+    hifiAudio.addEventListener('play', () => {
+      setVizPlaying(true);
+      if (playing) setButton(playing, true);
+    });
+    hifiAudio.addEventListener('pause', () => {
+      setVizPlaying(false);
+      if (playing) setButton(playing, false);
+    });
+    hifiAudio.addEventListener('ended', () => {
+      setVizPlaying(false);
+      if (playing) paint(playing, 1);
+    });
+    /* 柱子和读数除了 rAF，还挂在 timeupdate 上：
+       标签页在后台或动画帧被节流时 rAF 会停，这条路径保证数据仍在刷新 */
+    const tickViz = () => {
+      update();
+      if (audioViz.onTick) audioViz.onTick();
+    };
+    hifiAudio.addEventListener('timeupdate', tickViz);
+    hifiAudio.addEventListener('loadedmetadata', tickViz);
 
     setVolume(readVolume(), false);
 

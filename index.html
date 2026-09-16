@@ -16,7 +16,7 @@
       rel="stylesheet"
     />
     <link rel="preload" as="image" href="assets/home-01.webp" />
-    <link rel="stylesheet" href="styles.css?v=29" />
+    <link rel="stylesheet" href="styles.css?v=34" />
     <script>
       /* 在样式生效前确定语言，避免切换时闪烁 */
       (function () {
@@ -548,7 +548,7 @@
               <div class="waveform" id="waveform" aria-hidden="true">
                 <canvas width="520" height="90"></canvas>
               </div>
-              <p class="scale" aria-hidden="true"><span>20Hz</span><span class="scale-line"></span><span>20kHz</span></p>
+              <p class="scale" aria-hidden="true"><span>20Hz</span><span class="scale-line"><span class="scale-dot" data-scale-dot></span></span><span data-scale-max>20kHz</span><span class="scale-live" data-scale-live></span></p>
 
               <div class="listen-block">
                 <p class="block-title"><span class="zh">常听类型</span><span class="en" lang="en">LISTENING</span></p>
@@ -613,11 +613,11 @@
 
               <audio id="hifi-audio" preload="none"></audio>
 
-              <div class="spectrum" aria-hidden="true">
-                <span style="--h: 22%"></span><span style="--h: 46%"></span><span style="--h: 72%"></span>
-                <span style="--h: 38%"></span><span style="--h: 88%"></span><span style="--h: 54%"></span>
-                <span style="--h: 30%"></span><span style="--h: 66%"></span><span style="--h: 92%"></span>
-                <span style="--h: 44%"></span><span style="--h: 26%"></span><span style="--h: 58%"></span>
+              <div class="spectrum" data-spectrum aria-hidden="true">
+                <span style="--h: 97%"><i></i></span><span style="--h: 97%"><i></i></span><span style="--h: 91%"><i></i></span><span style="--h: 84%"><i></i></span><span style="--h: 77%"><i></i></span><span style="--h: 72%"><i></i></span><span style="--h: 68%"><i></i></span><span style="--h: 65%"><i></i></span><span style="--h: 61%"><i></i></span><span style="--h: 56%"><i></i></span><span style="--h: 48%"><i></i></span><span style="--h: 40%"><i></i></span>
+                <span style="--h: 34%"><i></i></span><span style="--h: 30%"><i></i></span><span style="--h: 30%"><i></i></span><span style="--h: 32%"><i></i></span><span style="--h: 35%"><i></i></span><span style="--h: 37%"><i></i></span><span style="--h: 36%"><i></i></span><span style="--h: 34%"><i></i></span><span style="--h: 31%"><i></i></span><span style="--h: 29%"><i></i></span><span style="--h: 29%"><i></i></span><span style="--h: 29%"><i></i></span>
+                <span style="--h: 29%"><i></i></span><span style="--h: 27%"><i></i></span><span style="--h: 23%"><i></i></span><span style="--h: 17%"><i></i></span><span style="--h: 12%"><i></i></span><span style="--h: 12%"><i></i></span><span style="--h: 12%"><i></i></span><span style="--h: 12%"><i></i></span><span style="--h: 14%"><i></i></span><span style="--h: 17%"><i></i></span><span style="--h: 19%"><i></i></span><span style="--h: 19%"><i></i></span>
+                <span style="--h: 18%"><i></i></span><span style="--h: 17%"><i></i></span><span style="--h: 17%"><i></i></span><span style="--h: 18%"><i></i></span><span style="--h: 20%"><i></i></span><span style="--h: 20%"><i></i></span><span style="--h: 17%"><i></i></span><span style="--h: 13%"><i></i></span><span style="--h: 12%"><i></i></span><span style="--h: 12%"><i></i></span><span style="--h: 12%"><i></i></span><span style="--h: 12%"><i></i></span>
               </div>
             </aside>
           </div>
@@ -718,6 +718,6 @@
       </section>
     </main>
 
-    <script src="script.js?v=29"></script>
+    <script src="script.js?v=34"></script>
   </body>
 </html>
