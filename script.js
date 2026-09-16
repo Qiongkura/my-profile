@@ -678,10 +678,61 @@
       seek: row.querySelector('[data-pick-seek]'),
       bar: row.querySelector('[data-pick-bar]'),
       fill: row.querySelector('[data-pick-fill]'),
-      knob: row.querySelector('[data-pick-knob]')
+      knob: row.querySelector('[data-pick-knob]'),
+      volBar: row.querySelector('[data-pick-vol-bar]'),
+      volFill: row.querySelector('[data-pick-vol-fill]'),
+      volKnob: row.querySelector('[data-pick-vol-knob]'),
+      volBtn: row.querySelector('[data-pick-vol-btn]')
     }));
 
     let playing = null;
+
+    /* 音量：默认 80%，改动写进 localStorage，下次打开还是这个音量 */
+    const VOLUME_KEY = 'qiongkura-volume';
+    const VOLUME_DEFAULT = 0.8;
+    let lastVolume = VOLUME_DEFAULT;
+
+    const readVolume = () => {
+      try {
+        const saved = parseFloat(window.localStorage.getItem(VOLUME_KEY));
+        if (isFinite(saved) && saved >= 0 && saved <= 1) return saved;
+      } catch (error) {
+        /* 隐私模式下 localStorage 不可用，用默认值 */
+      }
+      return VOLUME_DEFAULT;
+    };
+
+    const paintVolume = (value) => {
+      const percent = `${(value * 100).toFixed(0)}%`;
+      tracks.forEach((track) => {
+        if (!track.volBar) return;
+        track.volFill.style.width = percent;
+        track.volKnob.style.left = percent;
+        track.volBar.setAttribute('aria-valuenow', String(Math.round(value * 100)));
+        track.row.classList.toggle('is-muted', value === 0);
+        if (track.volBtn) {
+          const zh = value === 0 ? '恢复音量' : '静音';
+          const en = value === 0 ? 'Unmute' : 'Mute';
+          track.volBtn.setAttribute('data-aria-zh', zh);
+          track.volBtn.setAttribute('data-aria-en', en);
+          track.volBtn.setAttribute('aria-label', root.getAttribute('data-lang') === 'en' ? en : zh);
+        }
+      });
+    };
+
+    const setVolume = (value, persist) => {
+      const clamped = Math.min(1, Math.max(0, value));
+      hifiAudio.volume = clamped;
+      if (clamped > 0) lastVolume = clamped;
+      paintVolume(clamped);
+      if (persist !== false) {
+        try {
+          window.localStorage.setItem(VOLUME_KEY, String(Math.round(clamped * 1000) / 1000));
+        } catch (error) {
+          /* 写不进去就算了，不影响播放 */
+        }
+      }
+    };
 
     const clock = (seconds) => {
       if (!isFinite(seconds) || seconds < 0) return '0:00';
@@ -692,7 +743,6 @@
     const setButton = (track, on) => {
       const zh = `${on ? '暂停' : '播放'} ${track.query}`.trim();
       const en = `${on ? 'Pause' : 'Play'} ${track.query}`.trim();
-      track.btn.textContent = on ? '❚❚' : '▶';
       track.btn.setAttribute('data-aria-zh', zh);
       track.btn.setAttribute('data-aria-en', en);
       track.btn.setAttribute('aria-label', root.getAttribute('data-lang') === 'en' ? en : zh);
@@ -737,15 +787,46 @@
       if (played && typeof played.catch === 'function') played.catch(() => {});
     };
 
-    const seekTo = (track, clientX) => {
-      const box = track.bar.getBoundingClientRect();
-      if (!box.width) return;
-      const ratio = Math.min(1, Math.max(0, (clientX - box.left) / box.width));
-      const duration = hifiAudio.duration;
-      if (playing === track && isFinite(duration) && duration > 0) {
-        hifiAudio.currentTime = ratio * duration;
-      }
-      paint(track, ratio);
+    /* 进度条与音量条共用同一套拖动逻辑：按下即定位，拖动跟随，抬起释放 */
+    const ratioFromX = (bar, clientX) => {
+      const box = bar.getBoundingClientRect();
+      if (!box.width) return 0;
+      return Math.min(1, Math.max(0, (clientX - box.left) / box.width));
+    };
+
+    const bindDrag = (bar, onRatio) => {
+      if (!bar) return;
+      bar.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        bar.dataset.dragging = '1';
+        bar.classList.add('is-dragging');
+        try {
+          bar.setPointerCapture(event.pointerId);
+        } catch (error) {
+          /* 指针已经释放时忽略：按 clientX 计算拖动依然成立 */
+        }
+        onRatio(ratioFromX(bar, event.clientX));
+      });
+      bar.addEventListener('pointermove', (event) => {
+        if (bar.dataset.dragging !== '1') return;
+        onRatio(ratioFromX(bar, event.clientX));
+      });
+      const release = (event) => {
+        if (bar.dataset.dragging !== '1') return;
+        delete bar.dataset.dragging;
+        bar.classList.remove('is-dragging');
+        if (bar.hasPointerCapture(event.pointerId)) bar.releasePointerCapture(event.pointerId);
+      };
+      bar.addEventListener('pointerup', release);
+      bar.addEventListener('pointercancel', release);
+    };
+
+    const keyStep = (event) => {
+      if (event.key === 'ArrowRight' || event.key === 'ArrowUp') return 1;
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') return -1;
+      if (event.key === 'Home') return -Infinity;
+      if (event.key === 'End') return Infinity;
+      return null;
     };
 
     hifiAudio.addEventListener('play', () => { if (playing) setButton(playing, true); });
@@ -753,6 +834,8 @@
     hifiAudio.addEventListener('timeupdate', update);
     hifiAudio.addEventListener('loadedmetadata', update);
     hifiAudio.addEventListener('ended', () => { if (playing) paint(playing, 1); });
+
+    setVolume(readVolume(), false);
 
     /* 优先播放你提供的 FLAC；不支持 FLAC 的旧浏览器自动回退到站内 MP3，不跳外部网站 */
     hifiAudio.addEventListener('error', () => {
@@ -778,41 +861,41 @@
         else start(track);
       });
 
-      track.bar.addEventListener('pointerdown', (event) => {
+      /* 音量：拖条、点喇叭静音、键盘微调，三种都能用 */
+      bindDrag(track.volBar, (ratio) => setVolume(ratio));
+
+      if (track.volBtn) {
+        track.volBtn.addEventListener('click', () => {
+          setVolume(hifiAudio.volume > 0 ? 0 : lastVolume || VOLUME_DEFAULT);
+        });
+      }
+
+      if (track.volBar) {
+        track.volBar.addEventListener('keydown', (event) => {
+          const step = keyStep(event);
+          if (step === null) return;
+          event.preventDefault();
+          if (step === -Infinity) setVolume(0);
+          else if (step === Infinity) setVolume(1);
+          else setVolume(hifiAudio.volume + step * 0.05);
+        });
+      }
+
+      bindDrag(track.bar, (ratio) => {
         if (playing !== track) return;
-        event.preventDefault();
-        track.bar.dataset.dragging = '1';
-        try {
-          track.bar.setPointerCapture(event.pointerId);
-        } catch (error) {
-          /* 指针已经释放时忽略：按 clientX 计算拖动依然成立 */
-        }
-        seekTo(track, event.clientX);
+        const duration = hifiAudio.duration;
+        if (isFinite(duration) && duration > 0) hifiAudio.currentTime = ratio * duration;
+        paint(track, ratio);
       });
-      track.bar.addEventListener('pointermove', (event) => {
-        if (track.bar.dataset.dragging !== '1') return;
-        seekTo(track, event.clientX);
-      });
-      const releaseBar = (event) => {
-        if (track.bar.dataset.dragging !== '1') return;
-        delete track.bar.dataset.dragging;
-        if (track.bar.hasPointerCapture(event.pointerId)) track.bar.releasePointerCapture(event.pointerId);
-      };
-      track.bar.addEventListener('pointerup', releaseBar);
-      track.bar.addEventListener('pointercancel', releaseBar);
 
       track.bar.addEventListener('keydown', (event) => {
         if (playing !== track) return;
         const duration = hifiAudio.duration;
         if (!isFinite(duration) || duration <= 0) return;
-        let step = null;
-        if (event.key === 'ArrowRight' || event.key === 'ArrowUp') step = 5;
-        else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') step = -5;
-        else if (event.key === 'Home') step = -Infinity;
-        else if (event.key === 'End') step = Infinity;
+        const step = keyStep(event);
         if (step === null) return;
         event.preventDefault();
-        const next = step === -Infinity ? 0 : step === Infinity ? duration : hifiAudio.currentTime + step;
+        const next = step === -Infinity ? 0 : step === Infinity ? duration : hifiAudio.currentTime + step * 5;
         hifiAudio.currentTime = Math.min(duration, Math.max(0, next));
         update();
       });

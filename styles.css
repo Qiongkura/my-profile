@@ -930,24 +930,32 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
 }
 .pick {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 2px 7px;
+  gap: 2px 9px;
 }
+/* 播放键：圆形描边 + 矢量图标，播放/暂停两个图标由 .is-playing 切换 */
 .pick-btn {
-  width: 17px;
-  height: 17px;
+  width: 27px;
+  height: 27px;
   display: grid;
   place-items: center;
+  padding: 0;
   border: 1px solid var(--line);
+  border-radius: 50%;
   background: none;
-  cursor: pointer;
-  font-size: 8px;
-  line-height: 1;
   color: var(--ink-2);
-  transition: color .2s var(--ease), border-color .2s var(--ease);
+  cursor: pointer;
+  transition: color .22s var(--ease), border-color .22s var(--ease),
+    background-color .22s var(--ease), transform .18s var(--ease);
 }
 .pick-btn:hover { color: var(--ink); border-color: var(--ink-3); }
+.pick-btn:active { transform: scale(.93); }
+.pick-btn:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.pick-icon { display: block; width: 11px; height: 11px; fill: currentColor; }
+.pick-icon--pause { display: none; }
+.pick.is-playing .pick-icon--play { display: none; }
+.pick.is-playing .pick-icon--pause { display: block; }
 .pick-title {
   min-width: 0;
   overflow: hidden;
@@ -965,8 +973,78 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
   white-space: nowrap;
 }
 .pick.is-playing .pick-title { color: var(--ink); }
-.pick.is-playing .pick-btn { color: var(--red); border-color: var(--red); }
+.pick.is-playing .pick-btn {
+  color: var(--red);
+  border-color: var(--red);
+  background: rgba(215, 25, 32, .06);
+}
 .pick.is-error .pick-time { color: var(--red); }
+
+/* 音量：小喇叭按钮 + 细条，静音时图标打叉；默认 80%，改动记在本地 */
+.pick-vol { display: inline-flex; align-items: center; gap: 6px; }
+.pick-vol-btn {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color .2s var(--ease);
+}
+.pick-vol-btn:hover { color: var(--ink); }
+.pick-vol-btn:focus-visible { outline: 1px solid var(--ink-3); outline-offset: 2px; }
+.pick-vol-btn .pick-icon { width: 13px; height: 13px; }
+.pick-icon--muted { display: none; }
+.pick.is-muted .pick-icon--vol { display: none; }
+.pick.is-muted .pick-icon--muted { display: block; }
+.pick.is-muted .pick-vol-btn { color: var(--ink-3); }
+.pick-vol-bar {
+  position: relative;
+  display: block;
+  width: clamp(44px, calc(4 * var(--u)), 110px);
+  height: 12px;
+  cursor: pointer;
+  touch-action: none;
+}
+.pick-vol-bar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  margin-top: -.5px;
+  background: var(--line);
+}
+.pick-vol-fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 80%;
+  height: 1px;
+  margin-top: -.5px;
+  background: var(--ink-3);
+  transition: background-color .2s var(--ease);
+}
+.pick-vol-knob {
+  position: absolute;
+  top: 50%;
+  left: 80%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: var(--ink-2);
+  transition: background-color .2s var(--ease);
+}
+.pick-vol-bar:hover .pick-vol-fill,
+.pick-vol-bar.is-dragging .pick-vol-fill { background: var(--red); }
+.pick-vol-bar:hover .pick-vol-knob,
+.pick-vol-bar.is-dragging .pick-vol-knob { background: var(--red); }
+.pick-vol-bar:focus-visible { outline: 1px solid var(--ink-3); outline-offset: 2px; }
 
 /* 进度条：只有正在播放的那一行才展开 */
 .pick-seek { grid-column: 1 / -1; padding: 4px 0 1px; }

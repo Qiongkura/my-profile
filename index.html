@@ -16,7 +16,7 @@
       rel="stylesheet"
     />
     <link rel="preload" as="image" href="assets/home-01.webp" />
-    <link rel="stylesheet" href="styles.css?v=25" />
+    <link rel="stylesheet" href="styles.css?v=26" />
     <script>
       /* 在样式生效前确定语言，避免切换时闪烁 */
       (function () {
@@ -576,9 +576,22 @@
                 <p class="block-title"><span class="zh">最近在听</span><span class="en" lang="en">CURRENTLY LISTENING</span></p>
                 <ul class="listen-list listen-list--now">
                   <li class="pick pick--now" data-track data-src="assets/audio/cha-tang.mp3" data-query="茶汤 郁可唯">
-                    <button class="pick-btn" type="button" data-pick-btn data-aria-zh="播放 茶汤 · 郁可唯" data-aria-en="Play 茶汤 · Yisa Yu">▶</button>
+                    <button class="pick-btn" type="button" data-pick-btn data-aria-zh="播放 茶汤 · 郁可唯" data-aria-en="Play 茶汤 · Yisa Yu">
+                      <svg class="pick-icon pick-icon--play" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8.6 5.3v13.4L19.2 12z" /></svg>
+                      <svg class="pick-icon pick-icon--pause" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8.7 5.4h2.8v13.2H8.7zM12.5 5.4h2.8v13.2h-2.8z" /></svg>
+                    </button>
                     <span class="pick-title"><span class="zh">茶汤<span class="pick-artist">郁可唯</span></span><span class="en" lang="en">茶汤<span class="pick-artist">Yisa Yu</span></span></span>
                     <span class="pick-time" data-pick-time></span>
+                    <span class="pick-vol" data-pick-vol>
+                      <button class="pick-vol-btn" type="button" data-pick-vol-btn data-aria-zh="静音" data-aria-en="Mute">
+                        <svg class="pick-icon pick-icon--vol" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.2 9.4h3.1L12 5.5v13l-4.7-3.9H4.2z" /><path d="M15.3 9.5a3.9 3.9 0 0 1 0 5M17.7 7.1a7.1 7.1 0 0 1 0 9.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
+                        <svg class="pick-icon pick-icon--muted" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.2 9.4h3.1L12 5.5v13l-4.7-3.9H4.2z" /><path d="M15.4 9.7l4.3 4.6M19.7 9.7l-4.3 4.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
+                      </button>
+                      <span class="pick-vol-bar" data-pick-vol-bar role="slider" tabindex="0" data-aria-zh="音量" data-aria-en="Volume" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80">
+                        <span class="pick-vol-fill" data-pick-vol-fill></span>
+                        <span class="pick-vol-knob" data-pick-vol-knob aria-hidden="true"></span>
+                      </span>
+                    </span>
                     <span class="pick-seek" data-pick-seek hidden><span class="pick-bar" data-pick-bar role="slider" tabindex="0" data-aria-zh="播放进度" data-aria-en="Playback position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="pick-fill" data-pick-fill></span><span class="pick-knob" data-pick-knob aria-hidden="true"></span></span></span>
                   </li>
                 </ul>
@@ -691,6 +704,6 @@
       </section>
     </main>
 
-    <script src="script.js?v=25"></script>
+    <script src="script.js?v=26"></script>
   </body>
 </html>
