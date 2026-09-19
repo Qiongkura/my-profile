@@ -89,6 +89,14 @@ function bootPage(search, options = {}) {
 
   const { window } = dom;
 
+  // ⚠️ 用 Node 原生的 AbortController 换掉 jsdom 的。
+  // 页面和插件发请求时都会带 signal，而 jsdom 30 的 AbortSignal 传进 Node 的
+  // `new Request(url, { signal })` 会直接抛
+  // "RequestInit: Expected signal ... to be an instance of AbortSignal"
+  // （Node 24 + jsdom 30 实测），所有 fetch 全灭，页面就退化成"后端没响应"。
+  // Node 原生的 signal 两边都认。
+  window.AbortController = AbortController;
+
   // jsdom 不实现媒体播放：play() 只会往控制台吐一句 "Not implemented"，
   // 而且**不派发 play 事件** —— 插件的按钮图标全靠这个事件驱动，
   // 不桩的话「点了之后有没有变成暂停」根本观察不到。
@@ -204,7 +212,7 @@ console.log(dim(`模式 ${OFFLINE ? '离线（不碰网络）' : '真实网络 +
 console.log(bold('\n[1] ?api=off → 强制走离线识别，页面不能白屏'));
 
 {
-  const dom = bootPage('?api=off&u=https://music.163.com/%23/song?id=186016');
+  const dom = bootPage('?api=off&u=https://music.163.com/%23/song?id=3423857646');
   await wait(300);
   const { document } = dom.window;
 
@@ -215,7 +223,7 @@ console.log(bold('\n[1] ?api=off → 强制走离线识别，页面不能白屏'
   check('渲染出离线识别卡', Boolean(hit));
 
   const idText = document.querySelector('#np-result .np-hit-id')?.textContent?.trim();
-  check('识别出 ID 186016', idText === '186016', `id=${idText}`);
+  check('识别出 ID 3423857646', idText === '3423857646', `id=${idText}`);
 
   const kind = document.querySelector('#np-result .np-hit-kind')?.textContent?.trim();
   check('识别出类型「单曲」', kind === '单曲', `kind=${kind}`);
@@ -234,7 +242,7 @@ console.log(bold('\n[1] ?api=off → 强制走离线识别，页面不能白屏'
 console.log(bold('\n[2] 纯 ID 不带类型 → 先让用户选类型'));
 
 {
-  const dom = bootPage(`?api=${encodeURIComponent(WORKER_BASE)}&u=186016`);
+  const dom = bootPage(`?api=${encodeURIComponent(WORKER_BASE)}&u=3423857646`);
   await wait(300);
   const { document } = dom.window;
 
@@ -254,7 +262,7 @@ console.log(bold('\n[2] 纯 ID 不带类型 → 先让用户选类型'));
 console.log(bold('\n[3] 内置代理没部署好 → 自动退回离线，不弹报错'));
 
 {
-  const dom = bootPage('?u=https://music.163.com/%23/song?id=186016', { apiDead: true });
+  const dom = bootPage('?u=https://music.163.com/%23/song?id=3423857646', { apiDead: true });
   await wait(2500);
   const { document } = dom.window;
 
@@ -280,7 +288,7 @@ console.log(bold('\n[4] 网易云风控（429）→ 客户端会自动换新请�
   // 前 2 次被拦、第 3 次放行。
   // 这模拟的是线上的真实情况：风控按出口 IP 判，同一个请求里重试没用，
   // 但换一个新请求（新的 HTTP 往返 → Cloudflare 重新选节点）就等于重新抽签。
-  const dom = bootPage('?u=https://music.163.com/%23/song?id=186016', { riskControl: 2 });
+  const dom = bootPage('?u=https://music.163.com/%23/song?id=3423857646', { riskControl: 2 });
   await wait(9000);
   const { document } = dom.window;
 
@@ -299,7 +307,7 @@ console.log(bold('\n[4] 网易云风控（429）→ 客户端会自动换新请�
   // 重试救回来了 → 应该是正常卡片，不该出现报错卡
   const card = document.querySelector('#np-result .nmp-card--song');
   check('重试之后解析成功', Boolean(card), document.querySelector('#np-result .nmp-card--error') ? '出现了报错卡' : '没有卡片');
-  check('标题是晴天', card?.querySelector('.nmp-title')?.textContent?.trim() === '晴天', card?.querySelector('.nmp-title')?.textContent);
+  check('标题是凡常恩典', card?.querySelector('.nmp-title')?.textContent?.trim() === '凡常恩典', card?.querySelector('.nmp-title')?.textContent);
   check('没有报错块', !document.querySelector('#np-result .nmp-card--error'));
 
   dom.window.close();
@@ -308,7 +316,7 @@ console.log(bold('\n[4] 网易云风控（429）→ 客户端会自动换新请�
 console.log(bold('\n[4b] 风控一直不放行 → 报错卡要说清「已经自动试过几次」'));
 
 {
-  const dom = bootPage('?u=https://music.163.com/%23/song?id=186016', { riskControl: 'always' });
+  const dom = bootPage('?u=https://music.163.com/%23/song?id=3423857646', { riskControl: 'always' });
   await wait(12000);
   const { document } = dom.window;
 
@@ -332,7 +340,7 @@ if (!OFFLINE) {
   console.log(bold('\n[5] 默认配置 → 走本站自带的 /api（Cloudflare Pages Function）'));
 
   {
-    const dom = bootPage('?u=https://music.163.com/%23/song?id=186016');
+    const dom = bootPage('?u=https://music.163.com/%23/song?id=3423857646');
     await wait(9000);
     const { document } = dom.window;
 
@@ -341,7 +349,7 @@ if (!OFFLINE) {
     const statusText = document.getElementById('np-status-text')?.textContent?.trim() || '';
     check('文案提到「本站自带」', statusText.includes('本站自带'), statusText.slice(0, 50));
 
-    inspectCard(document, '同源 /api 单曲', '晴天');
+    inspectCard(document, '同源 /api 单曲', '凡常恩典');
 
     // 没配 Cookie 也**要**有播放键。
     // 能不能放是逐首决定的（实测热歌榜约一半不带 Cookie 也能放），
@@ -415,8 +423,8 @@ if (!OFFLINE) {
   console.log(bold('\n[6] ?api=<外部地址> → 走独立 Worker 那份 handler（真实网络）'));
 
   const external = [
-    ['单曲', 'https://music.163.com/%23/song?id=186016', '晴天'],
-    ['专辑', 'https://music.163.com/album?id=18905', ''],
+    ['单曲', 'https://music.163.com/%23/song?id=3423857646', '凡常恩典'],
+    ['专辑', 'https://music.163.com/album?id=389627625', ''],
     ['歌单', 'https://music.163.com/%23/playlist?id=2884035', ''],
   ];
 

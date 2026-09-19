@@ -16,8 +16,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="../styles.css?v=43" />
-    <link rel="stylesheet" href="../assets/netease-theme.css?v=43" />
+    <link rel="stylesheet" href="../styles.css?v=45" />
+    <link rel="stylesheet" href="../assets/netease-theme.css?v=45" />
     <script>
       /* 在样式生效前确定语言，避免切换时闪烁 */
       (function () {
@@ -417,10 +417,12 @@
             <span class="zh">
               贴一条网易云音乐的分享文案、链接或者纯 ID，解析成一张卡片，能展开曲目、看歌词、直接试听。
               客户端分享出来的那段「分享单曲……来自@网易云音乐」整段粘进来也行。
+              切到别的标签页音乐会继续放；离开页面再回来，会接着上次听到的位置继续。
             </span>
             <span class="en" lang="en">
               Paste a NetEase Cloud Music share snippet, link or bare ID and it becomes a card — expand the track list,
               read the lyrics, play it right here. Pasting the whole &ldquo;share&rdquo; text works too.
+              The music keeps playing in another tab, and coming back to this page picks up where you left off.
             </span>
           </p>
         </header>
@@ -443,7 +445,7 @@
             rows="3"
             spellcheck="false"
             autocomplete="off"
-            placeholder="分享单曲 晴天 (http://music.163.com/song/186016/?userid=1) 来自@网易云音乐&#10;或者直接贴 https://music.163.com/#/song?id=186016"
+            placeholder="分享单曲 凡常恩典 (http://music.163.com/song/3423857646/?userid=1) 来自@网易云音乐&#10;或者直接贴 https://music.163.com/#/song?id=3423857646"
             data-aria-zh="粘贴网易云音乐分享文案或链接"
             data-aria-en="Paste a NetEase Cloud Music share text or link"
             aria-label="分享内容"
@@ -461,14 +463,14 @@
 
           <div class="np-chips" id="np-chips">
             <span class="np-chips-label"><span class="zh">试试</span><span class="en" lang="en">TRY</span></span>
-            <button class="np-chip" type="button" data-np-example="https://music.163.com/#/song?id=186016">单曲</button>
-            <button class="np-chip" type="button" data-np-example="https://music.163.com/album?id=18905">专辑</button>
+            <button class="np-chip" type="button" data-np-example="https://music.163.com/#/song?id=3423857646">单曲</button>
+            <button class="np-chip" type="button" data-np-example="https://music.163.com/album?id=389627625">专辑</button>
             <button class="np-chip" type="button" data-np-example="https://music.163.com/#/playlist?id=2884035">歌单</button>
             <button class="np-chip" type="button" data-np-example="https://music.163.com/discover/toplist?id=3778678">排行榜</button>
-            <button class="np-chip" type="button" data-np-example="https://music.163.com/#/artist?id=6452">歌手</button>
+            <button class="np-chip" type="button" data-np-example="https://music.163.com/#/artist?id=32540734">歌手</button>
             <button class="np-chip" type="button" data-np-example="https://music.163.com/#/djradio?id=316038">电台</button>
             <button class="np-chip" type="button" data-np-example="https://music.163.com/#/program?id=3728304229">声音</button>
-            <button class="np-chip" type="button" data-np-example="186016">纯 ID</button>
+            <button class="np-chip" type="button" data-np-example="3423857646">纯 ID</button>
           </div>
         </div>
 
@@ -543,7 +545,7 @@
       </div>
     </footer>
 
-    <script src="../assets/netease-music.js?v=43"></script>
+    <script src="../assets/netease-music.js?v=45"></script>
     <script>
       /* 网易云解析页 · 页面逻辑
          ------------------------------------------------------------------------
@@ -867,7 +869,10 @@
               apiBase: apiBase,
               adapter: adapter,
               theme: 'light',
-              type: typeHint || parsed.primary.type || undefined
+              type: typeHint || parsed.primary.type || undefined,
+              // 跨页续播：存下来的正是同一个链接时，把上次听到的进度接回来
+              // （歌单/榜单一解析就是几十首，重新点开还能接着听）
+              resume: true
             });
           } catch (err) {
             result.innerHTML = failNotice((err && err.message) || String(err));
@@ -1026,6 +1031,34 @@
 
         renderStatus();
 
+        /**
+         * 跨页续播：上次听到一半就走了的话，进页面直接把那张卡挂回来接着放。
+         *
+         * 插件把「在放哪首、放到哪」存在 sessionStorage 里（只在这一个标签页里有效），
+         * 这里只负责把它挂回去。新文档没有用户手势，浏览器多半会拦掉自动播放 ——
+         * 那种情况插件会在卡片上弹一条「继续播放」，点一下就行，不是坏了。
+         */
+        function resumeIfAny() {
+          if (!plugin || !plugin.readPlayback || !result) return false;
+          var saved = plugin.readPlayback();
+          if (!saved || !saved.src || !saved.songId) return false;
+          // 输入框是空的才接管，别把用户正在打的东西冲掉
+          if (input && !input.value.trim()) input.value = saved.src;
+          plugin.unmount(result);
+          plugin
+            .mount(result, {
+              src: saved.src,
+              apiBase: apiBase,
+              adapter: adapter,
+              theme: 'light',
+              resume: true
+            })
+            .catch(function () {
+              /* 续播失败不该把页面搞难看，解析功能本身还是好的 */
+            });
+          return true;
+        }
+
         // 深链：?u=<分享文本> 或 #u=<分享文本> 直接解析
         var deep = params.get('u') || params.get('url') || '';
         if (!deep && location.hash.indexOf('#u=') === 0) {
@@ -1038,7 +1071,10 @@
           if (deep && input) {
             input.value = deep;
             run();
+            return;
           }
+          // 深链优先：用户明确要看这个链接，就别拿上次的进度来插队
+          if (apiBase && !backendDead) resumeIfAny();
         })();
       })();
     </script>

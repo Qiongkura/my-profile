@@ -26,9 +26,10 @@ var NeteaseMusic = (() => {
     OFFICIAL_BASE: () => OFFICIAL_BASE,
     RESOURCE_TYPES: () => RESOURCE_TYPES,
     TYPE_LABELS: () => TYPE_LABELS,
-    VERSION: () => VERSION,
+    VERSION: () => VERSION2,
     autoInit: () => autoInit,
     buildWebUrl: () => buildWebUrl,
+    clearPlayback: () => clearPlayback,
     createClient: () => createClient,
     default: () => index_default,
     formatCount: () => formatCount,
@@ -36,6 +37,7 @@ var NeteaseMusic = (() => {
     getDefaultClient: () => getDefaultClient,
     highlightLyric: () => highlightLyric,
     injectStyles: () => injectStyles,
+    isMediaSessionSupported: () => isMediaSessionSupported,
     isRiskControlResponse: () => isRiskControlResponse,
     load: () => load,
     looksLikeShare: () => looksLikeShare,
@@ -44,10 +46,14 @@ var NeteaseMusic = (() => {
     normalize: () => normalize_exports,
     parseShare: () => parseShare,
     parseUrl: () => parseUrl,
+    readPlayback: () => readPlayback,
     render: () => render,
     renderError: () => renderError,
     renderLyrics: () => renderLyrics,
     renderSkeleton: () => renderSkeleton,
+    resumeBar: () => resumeBar,
+    resumeLastPlayback: () => resumeLastPlayback,
+    savePlayback: () => savePlayback,
     setDefaultClient: () => setDefaultClient,
     setLyricsState: () => setLyricsState,
     showNotice: () => showNotice,
@@ -605,7 +611,7 @@ var NeteaseMusic = (() => {
   }
   function normalizeSong(raw) {
     if (!raw) return null;
-    const id = String(pick(raw, ["id"], ""));
+    const id = String(pick(raw, ["id", "songId", "trackId", "mainTrackId"], ""));
     const artists = toArtistArray(pick(raw, ["ar", "artists", "artist"], [])).map(normalizeArtist);
     let albumRaw = pick(raw, ["al", "album"], {});
     if (typeof albumRaw === "string") albumRaw = { name: albumRaw };
@@ -706,28 +712,53 @@ var NeteaseMusic = (() => {
     };
   }
   function normalizeProgram(raw) {
-    var _a, _b;
+    var _a, _b, _c, _d, _e, _f;
     const program = (raw == null ? void 0 : raw.program) || raw;
     if (!program) return null;
+    const programId = String((_a = program.id) != null ? _a : "");
+    const mainTrackId = String((_b = program.mainTrackId) != null ? _b : "");
     const song = normalizeSong(program.mainSong || program.song);
-    if (!song) return null;
+    if (!song && !programId && !mainTrackId) return null;
     const radio = program.radio || {};
-    const id = String((_a = program.id) != null ? _a : song.id);
-    const webUrl = `https://music.163.com/#/program?id=${id}`;
+    const id = String(mainTrackId || (song == null ? void 0 : song.id) || programId);
+    const webUrl = `https://music.163.com/#/program?id=${programId || id}`;
+    const artists = ((_c = song == null ? void 0 : song.artists) == null ? void 0 : _c.length) ? song.artists : [{ id: "", name: radio.name || "\u7535\u53F0" }];
     return {
-      ...song,
+      ...song || {},
       type: "song",
-      name: program.name || song.name,
-      radio: { id: String((_b = radio.id) != null ? _b : ""), name: radio.name || "" },
-      cover: normalizeCover(program, 500) || song.cover,
+      // UI 靠它把标签渲染成「声音」而不是「单曲」
+      kind: "program",
+      id,
+      programId,
+      mainTrackId: mainTrackId || id,
+      name: program.name || (song == null ? void 0 : song.name) || "",
+      artists,
+      artistText: joinArtists(artists),
+      radio: { id: String((_d = radio.id) != null ? _d : ""), name: radio.name || "" },
+      cover: normalizeCover(program, 500) || (song == null ? void 0 : song.cover) || "",
+      duration: (_f = (_e = song == null ? void 0 : song.duration) != null ? _e : program.duration) != null ? _f : null,
       webUrl,
       url: webUrl
     };
   }
+  function programTrack(p) {
+    var _a, _b;
+    const song = normalizeSong((p == null ? void 0 : p.mainSong) || (p == null ? void 0 : p.song));
+    if (song) return song;
+    const id = (_a = p == null ? void 0 : p.mainTrackId) != null ? _a : p == null ? void 0 : p.id;
+    if (!id) return null;
+    return normalizeSong({
+      id,
+      name: p == null ? void 0 : p.name,
+      duration: p == null ? void 0 : p.duration,
+      fee: p == null ? void 0 : p.fee,
+      album: { name: (_b = p == null ? void 0 : p.radio) == null ? void 0 : _b.name }
+    });
+  }
   function normalizeDjradio(raw, radioInfo) {
     var _a, _b, _c;
     const programs = (raw == null ? void 0 : raw.programs) || (raw == null ? void 0 : raw.data) || [];
-    const tracks = programs.map((p) => normalizeSong(p.mainSong || p.song || p)).filter(Boolean);
+    const tracks = programs.map(programTrack).filter(Boolean);
     const info = radioInfo || (raw == null ? void 0 : raw.radio) || {};
     const id = String(pick(info, ["id"], ""));
     const webUrl = webUrlOf("djradio", id);
@@ -748,26 +779,71 @@ var NeteaseMusic = (() => {
   function normalizeLyric(raw) {
     var _a, _b, _c;
     if (!raw) return { lyric: "", translated: "", roma: "" };
-    const clean = (text) => String(text || "").split("\n").filter((line) => !/^\[(by|offset|re|ve|ti|ar|al):/i.test(line.trim())).join("\n").trim();
+    const clean = (text) => String(text || "").split("\n").filter((line) => !/^\[(by|re|ve|ti|ar|al):/i.test(line.trim())).join("\n").trim();
     return {
       lyric: clean((_a = raw == null ? void 0 : raw.lrc) == null ? void 0 : _a.lyric),
       translated: clean((_b = raw == null ? void 0 : raw.tlyric) == null ? void 0 : _b.lyric),
       roma: clean((_c = raw == null ? void 0 : raw.romalrc) == null ? void 0 : _c.lyric)
     };
   }
-  function normalizeSongUrl(raw) {
+  function unavailableKind(code, item, raw) {
     var _a, _b;
+    if (code === -462 || ((_a = raw == null ? void 0 : raw.data) == null ? void 0 : _a.verifyType) || (raw == null ? void 0 : raw.verifyType)) return "risk";
+    if (code === 404) return "copyright";
+    if (code === -110) return "vip";
+    if (Number(item == null ? void 0 : item.fee) > 0 || ((_b = item == null ? void 0 : item.freeTrialPrivilege) == null ? void 0 : _b.cannotListenReason)) return "vip";
+    if (/cookie/i.test(String((item == null ? void 0 : item.reason) || ""))) return "nocookie";
+    return "unknown";
+  }
+  var UNAVAILABLE_REASONS = {
+    risk: "\u7F51\u6613\u4E91\u98CE\u63A7\u62E6\u4E86\u4E00\u4E0B\uFF0C\u8FC7\u51E0\u79D2\u518D\u70B9\u4E00\u6B21\u901A\u5E38\u5C31\u597D",
+    copyright: "\u7F51\u6613\u4E91\u6CA1\u6709\u8FD9\u9996\u6B4C\u7684\u64AD\u653E\u7248\u6743\uFF08\u6216\u5DF2\u4E0B\u67B6\uFF09\uFF0C\u914D Cookie \u4E5F\u62FF\u4E0D\u5230",
+    vip: "\u8FD9\u9996\u6B4C\u9700\u8981 VIP / \u4ED8\u8D39\u624D\u80FD\u542C",
+    nocookie: "\u8FD9\u9996\u6B4C\u8981\u914D\u767B\u5F55 Cookie \u624D\u80FD\u62FF\u5230\u76F4\u94FE",
+    unknown: "\u8FD9\u9996\u6B4C\u6682\u65F6\u6CA1\u6709\u53EF\u64AD\u653E\u7684\u5730\u5740"
+  };
+  function normalizeSongUrl(raw) {
+    var _a, _b, _c, _d, _e;
     const item = ((_a = raw == null ? void 0 : raw.data) == null ? void 0 : _a[0]) || (raw == null ? void 0 : raw.data) || raw;
-    if (!item) return { url: "", size: 0, br: 0, free: false, available: false, reason: "\u63A5\u53E3\u6CA1\u6709\u8FD4\u56DE\u6570\u636E" };
+    if (!item) {
+      return {
+        url: "",
+        size: 0,
+        br: 0,
+        free: false,
+        available: false,
+        code: (_b = raw == null ? void 0 : raw.code) != null ? _b : null,
+        kind: "unknown",
+        reason: "\u63A5\u53E3\u6CA1\u6709\u8FD4\u56DE\u6570\u636E"
+      };
+    }
+    const envelope = raw == null ? void 0 : raw.code;
+    const code = (_c = item.code) != null ? _c : typeof envelope === "number" && envelope !== 200 ? envelope : null;
+    const url = item.url || "";
+    if (url) {
+      return {
+        id: String((_d = item.id) != null ? _d : ""),
+        url,
+        size: item.size || 0,
+        br: item.br || 0,
+        free: Boolean(item.free),
+        available: true,
+        code: code != null ? code : 200,
+        kind: "ok",
+        reason: ""
+      };
+    }
+    const kind = unavailableKind(code, item, raw);
     return {
-      id: String((_b = item.id) != null ? _b : ""),
-      url: item.url || "",
+      id: String((_e = item.id) != null ? _e : ""),
+      url: "",
       size: item.size || 0,
       br: item.br || 0,
-      free: Boolean(item.free),
-      // url 为空通常意味着需要 VIP / 版权受限 / 后端没配 Cookie
-      available: Boolean(item.url),
-      reason: item.url ? "" : item.reason || "\u8FD9\u9996\u6B4C\u6682\u65F6\u6CA1\u6709\u53EF\u64AD\u653E\u7684\u5730\u5740\uFF08\u591A\u534A\u662F VIP \u6216\u7248\u6743\u53D7\u9650\uFF09"
+      free: false,
+      available: false,
+      code: code != null ? code : null,
+      kind,
+      reason: item.reason || UNAVAILABLE_REASONS[kind]
     };
   }
   function normalizeSearch(raw) {
@@ -848,13 +924,15 @@ var NeteaseMusic = (() => {
   }
   function trackRow(song, index, playable = true) {
     const id = escapeHtml(song.id);
+    const canPlay = playable && Boolean(song.id);
     return `
-    <li class="nmp-track" data-nmp-song="${id}" ${playable ? 'data-nmp-playable="1"' : ""}>
+    <li class="nmp-track" data-nmp-song="${id}" ${canPlay ? 'data-nmp-playable="1"' : ""}
+        ${canPlay ? "" : `title="${playable ? "\u8FD9\u4E00\u884C\u6CA1\u6709\u53EF\u7528\u7684 id\uFF0C\u70B9\u4E0D\u4E86" : "\u5F53\u524D\u540E\u7AEF\u62FF\u4E0D\u5230\u64AD\u653E\u76F4\u94FE"}"`}>
       <span class="nmp-track-index">${String(index + 1).padStart(2, "0")}</span>
       <span class="nmp-track-name" title="${escapeHtml(song.name)}">${escapeHtml(song.name)}</span>
       <span class="nmp-track-artist">${escapeHtml(song.artistText)}</span>
       <span class="nmp-track-time">${formatDuration(song.duration)}</span>
-      ${playable ? `<button class="nmp-track-play" type="button" data-nmp-action="toggle" data-nmp-song="${id}"
+      ${canPlay ? `<button class="nmp-track-play" type="button" data-nmp-action="toggle" data-nmp-song="${id}"
                      aria-label="\u64AD\u653E ${escapeHtml(song.name)}">${ICONS.play}</button>` : ""}
     </li>`;
   }
@@ -888,6 +966,7 @@ var NeteaseMusic = (() => {
   function renderSong(container, song, options = {}) {
     var _a;
     const playback = options.playback !== false;
+    const label = TYPE_LABELS[song.kind] || TYPE_LABELS.song;
     container.dataset.nmpState = "ready";
     container.dataset.nmpType = "song";
     container.innerHTML = `
@@ -900,7 +979,7 @@ var NeteaseMusic = (() => {
         </button>` : ""}
       </div>
       <div class="nmp-body">
-        <div class="nmp-kind">${TYPE_LABELS.song}</div>
+        <div class="nmp-kind">${label}</div>
         <div class="nmp-title">${escapeHtml(song.name)}</div>
         <div class="nmp-sub">${escapeHtml(song.artistText)}${((_a = song.album) == null ? void 0 : _a.name) ? `<span class="nmp-dot">\xB7</span>${escapeHtml(song.album.name)}` : ""}</div>
         <div class="nmp-meta">
@@ -942,7 +1021,7 @@ var NeteaseMusic = (() => {
         ${isPlaylist && data.playCount ? `<div class="nmp-meta"><span>${formatCount(data.playCount)} \u6B21\u64AD\u653E</span></div>` : ""}
         ${tracks.length ? `<button class="nmp-toggle" type="button" data-nmp-action="expand" aria-expanded="false">
                  \u5C55\u5F00\u5168\u90E8 ${tracks.length} \u9996
-               </button>` : ""}
+               </button>` : `<div class="nmp-note">\u8FD9\u4E2A\u5408\u96C6\u6CA1\u6709\u8FD4\u56DE\u53EF\u64AD\u7684\u66F2\u76EE\uFF08\u540E\u7AEF\u53EF\u80FD\u53EA\u7ED9\u4E86\u66F2\u76EE id \u5217\u8868\uFF09</div>`}
         ${playback ? "" : playNote(options)}
       </div>
       <a class="nmp-link" href="${escapeHtml(data.url)}" target="_blank" rel="noopener noreferrer" title="\u5728\u7F51\u6613\u4E91\u6253\u5F00">
@@ -1048,6 +1127,16 @@ var NeteaseMusic = (() => {
     }, duration);
     return notice;
   }
+  function resumeBar(state = {}) {
+    const name = state.songName || state.listName || "\u4E0A\u6B21\u90A3\u9996";
+    const artist = state.artistText ? `<span class="nmp-dot">\xB7</span>${escapeHtml(state.artistText)}` : "";
+    return `
+    <div class="nmp-resume" data-nmp-resume="1">
+      <span class="nmp-resume-text">\u4E0A\u6B21\u6CA1\u542C\u5B8C\uFF1A<b>${escapeHtml(name)}</b>${artist}</span>
+      <button class="nmp-resume-go" type="button" data-nmp-action="resume">\u7EE7\u7EED\u64AD\u653E</button>
+      <button class="nmp-resume-close" type="button" data-nmp-action="resume-dismiss" aria-label="\u5FFD\u7565\u8FD9\u6B21\u7EED\u64AD">\xD7</button>
+    </div>`;
+  }
 
   // src/lyric.js
   var lyric_exports = {};
@@ -1129,8 +1218,172 @@ var NeteaseMusic = (() => {
   }
   var lyric_default = { parseLrc, mergeTranslation, findLineIndex, hasTimestamp };
 
+  // src/mediasession.js
+  function session() {
+    if (typeof navigator === "undefined") return null;
+    try {
+      return navigator.mediaSession || null;
+    } catch {
+      return null;
+    }
+  }
+  function isMediaSessionSupported() {
+    return Boolean(session());
+  }
+  function syncMediaSession({ meta, handlers } = {}) {
+    const api = session();
+    if (!api) return false;
+    try {
+      if (meta && typeof MediaMetadata === "function") {
+        api.metadata = new MediaMetadata({
+          title: meta.title || "",
+          artist: meta.artist || "",
+          album: meta.album || "",
+          artwork: meta.artwork ? [{ src: meta.artwork, sizes: "500x500" }] : []
+        });
+      }
+    } catch {
+    }
+    for (const [action, handler] of Object.entries(handlers || {})) {
+      try {
+        api.setActionHandler(action, typeof handler === "function" ? handler : null);
+      } catch {
+      }
+    }
+    return true;
+  }
+  function setPlaybackState(state) {
+    const api = session();
+    if (!api || !state) return;
+    try {
+      api.playbackState = state;
+    } catch {
+    }
+  }
+  function setPositionState({ duration, position, playbackRate = 1 } = {}) {
+    const api = session();
+    if (!api || typeof api.setPositionState !== "function") return;
+    try {
+      if (!Number.isFinite(duration) || duration <= 0) {
+        api.setPositionState();
+        return;
+      }
+      const pos = Number.isFinite(position) ? Math.min(Math.max(position, 0), duration) : 0;
+      api.setPositionState({ duration, playbackRate, position: pos });
+    } catch {
+    }
+  }
+  function clearMediaSession() {
+    const api = session();
+    if (!api) return;
+    try {
+      api.metadata = null;
+      api.playbackState = "none";
+    } catch {
+    }
+    for (const action of ["play", "pause", "seekto", "nexttrack", "previoustrack"]) {
+      try {
+        api.setActionHandler(action, null);
+      } catch {
+      }
+    }
+  }
+
+  // src/resume.js
+  var KEY = "nmp-session";
+  var VERSION = 1;
+  var DEFAULT_MAX_AGE = 30 * 60 * 1e3;
+  function store() {
+    try {
+      if (typeof sessionStorage === "undefined") return null;
+      return sessionStorage;
+    } catch {
+      return null;
+    }
+  }
+  function savePlayback(state) {
+    const s = store();
+    if (!s || !state) return false;
+    try {
+      s.setItem(KEY, JSON.stringify({ ...state, v: VERSION, at: Date.now() }));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  function readPlayback(options = {}) {
+    const maxAge = Number.isFinite(options.maxAge) ? Number(options.maxAge) : DEFAULT_MAX_AGE;
+    const s = store();
+    if (!s) return null;
+    try {
+      const raw = s.getItem(KEY);
+      if (!raw) return null;
+      const state = JSON.parse(raw);
+      if (!state || state.v !== VERSION) return null;
+      if (!Number.isFinite(state.at) || Date.now() - state.at > maxAge) {
+        s.removeItem(KEY);
+        return null;
+      }
+      return state;
+    } catch {
+      return null;
+    }
+  }
+  function clearPlayback() {
+    const s = store();
+    if (!s) return;
+    try {
+      s.removeItem(KEY);
+    } catch {
+    }
+  }
+  function createThrottledSave(delay = 1e3) {
+    let last = 0;
+    let pending = null;
+    let timer = null;
+    const write = () => {
+      timer = null;
+      const state = pending;
+      pending = null;
+      if (!state) return;
+      last = Date.now();
+      savePlayback(state);
+    };
+    return {
+      save(state, { force = false } = {}) {
+        if (!state) return;
+        const now = Date.now();
+        if (force || now - last >= delay) {
+          if (timer) {
+            clearTimeout(timer);
+            timer = null;
+          }
+          pending = state;
+          write();
+          return;
+        }
+        pending = state;
+        if (!timer) timer = setTimeout(write, Math.max(0, delay - (now - last)));
+      },
+      /** 立刻把待写的状态写下去（pagehide / beforeunload 用） */
+      flush() {
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+        if (pending) write();
+      }
+    };
+  }
+  function shouldResume(state, target = {}) {
+    if (!(state == null ? void 0 : state.songId)) return false;
+    if (target.force) return true;
+    if (!target.src) return false;
+    return String(state.src || "") === String(target.src || "");
+  }
+
   // src/index.js
-  var VERSION = "0.1.0";
+  var VERSION2 = "0.1.0";
   var BUNDLED_CSS = true ? `/* ==========================================================================
    netease-music-parser \u2014\u2014 \u5185\u7F6E\u6837\u5F0F
    \u5168\u90E8\u8D70 CSS \u53D8\u91CF\uFF0C\u5728\u4F60\u7684\u4E3B\u9875\u91CC\u53EF\u4EE5\u6574\u4E2A\u8986\u76D6\u6389\u3002
@@ -1502,6 +1755,91 @@ var NeteaseMusic = (() => {
   opacity: 0.85;
 }
 
+/* ---------- \u653E\u4E0D\u51FA\u6765\u7684\u90A3\u4E00\u9996 ---------- */
+
+/* \u70B9\u4E86\u624D\u77E5\u9053\u653E\u4E0D\u4E86\uFF0C\u90A3\u5C31\u628A"\u5DF2\u7ECF\u77E5\u9053\u653E\u4E0D\u4E86"\u753B\u51FA\u6765\uFF1A
+   \u5F31\u5316\u6574\u884C\uFF0C\u64AD\u653E\u952E\u6362\u6210\u7981\u6B62\u5149\u6807\u3002\u63D0\u793A\u8BED\u5728 title / aria \u4E0A\u3002 */
+.nmp-track[data-nmp-unplayable='1'] {
+  opacity: 0.55;
+}
+
+.nmp-track[data-nmp-unplayable='1'] .nmp-track-play {
+  cursor: not-allowed;
+}
+
+.nmp-card[data-nmp-unplayable='1'] .nmp-play {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ---------- \u8DE8\u9875\u7EED\u64AD\u6761 ---------- */
+
+/* \u4ECE\u522B\u7684\u9875\u9762\u56DE\u5230\u64AD\u653E\u9875\u65F6\uFF0C\u6D4F\u89C8\u5668\u8BA4\u4E3A\u65B0\u6587\u6863\u6CA1\u6709\u7528\u6237\u624B\u52BF\uFF0C
+   audio.play() \u4F1A\u88AB\u81EA\u52A8\u64AD\u653E\u7B56\u7565\u62D2\u6389 \u2014\u2014 \u8FD9\u6761\u5C31\u662F\u90A3\u65F6\u5019\u7684\u843D\u70B9\u3002
+   \u505A\u6210\u6574\u884C\u663E\u773C\u7684\u6A2A\u6761\uFF0C\u56E0\u4E3A\u7528\u6237\u6B64\u523B\u7684\u9884\u671F\u662F"\u97F3\u4E50\u5E94\u8BE5\u81EA\u5DF1\u5728\u54CD"\u3002 */
+.nmp-resume {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -4px 0 4px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  background: var(--nmp-bg-soft);
+  border: 1px solid var(--nmp-border);
+  border-radius: 8px;
+}
+
+.nmp-resume-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--nmp-text-dim);
+}
+
+.nmp-resume-text b {
+  color: var(--nmp-text);
+}
+
+.nmp-resume-go {
+  flex: none;
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--nmp-accent);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.nmp-resume-go:hover {
+  filter: brightness(1.06);
+}
+
+.nmp-resume-close {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--nmp-text-dim);
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.nmp-resume-close:hover {
+  color: var(--nmp-text);
+}
+
 .nmp-link {
   display: grid;
   place-items: center;
@@ -1776,7 +2114,10 @@ var NeteaseMusic = (() => {
   var STYLE_ID = "nmp-styles";
   var VOLUME_KEY = "nmp-volume";
   var activeAudio = null;
+  var mediaTarget = null;
+  var mediaHandlersBound = false;
   var lyricCache = /* @__PURE__ */ new Map();
+  var lyricPending = /* @__PURE__ */ new Map();
   function readStoredVolume() {
     try {
       if (typeof localStorage === "undefined") return 100;
@@ -1878,7 +2219,7 @@ var NeteaseMusic = (() => {
     }
   }
   async function mount(target, options = {}) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d;
     const el = resolveElement(target);
     if (!el) {
       (_a = options.onError) == null ? void 0 : _a.call(options, new Error("\u627E\u4E0D\u5230\u6302\u8F7D\u5BB9\u5668"));
@@ -1900,7 +2241,10 @@ var NeteaseMusic = (() => {
         showNotice(el, `\u7F51\u6613\u4E91\u98CE\u63A7\u62E6\u4E86\u4E00\u4E0B\uFF0C\u6B63\u5728\u6362\u4E2A\u8282\u70B9\u91CD\u8BD5\uFF08${attempt}/${total}\uFF09`, 2500);
       })
     }) : getDefaultClient());
-    const src = (_d = (_c = (_b = options.src) != null ? _b : el.dataset.netease) != null ? _c : el.textContent) != null ? _d : "";
+    const savedState = options.resume ? readPlayback({ maxAge: options.resumeMaxAge }) : null;
+    const explicitSrc = (_c = (_b = options.src) != null ? _b : el.dataset.netease) != null ? _c : "";
+    const srcFromSaved = !explicitSrc && Boolean(savedState == null ? void 0 : savedState.src);
+    const src = explicitSrc || (savedState == null ? void 0 : savedState.src) || el.textContent || "";
     renderSkeleton(el);
     el.dataset.nmpState = "loading";
     try {
@@ -1914,15 +2258,20 @@ var NeteaseMusic = (() => {
         const card = el.querySelector(".nmp-card");
         if (card) card.dataset.nmpSrcUrl = data.playUrl;
       }
+      el.dataset.nmpSrc = src;
+      if (srcFromSaved) el.dataset.nmpSrcFromSaved = "1";
       bind(el, client, options);
       if (data.type === "song" && data.id) {
         loadLyrics(el, client, data.id, { loadingText: "\u6B4C\u8BCD\u52A0\u8F7D\u4E2D\u2026" });
+      }
+      if (options.resume) {
+        el._nmpResume = resumeLastPlayback(el, { ...options, client, saved: savedState }).catch(() => false);
       }
       return data;
     } catch (err) {
       el.dataset.nmpState = "error";
       renderError(el, (err == null ? void 0 : err.message) || String(err));
-      (_e = options.onError) == null ? void 0 : _e.call(options, err);
+      (_d = options.onError) == null ? void 0 : _d.call(options, err);
       return null;
     }
   }
@@ -1970,6 +2319,27 @@ var NeteaseMusic = (() => {
   function isEmptyLyric(raw) {
     return !(raw == null ? void 0 : raw.lyric) && !(raw == null ? void 0 : raw.translated) && !(raw == null ? void 0 : raw.roma);
   }
+  function fetchLyric(client, songId) {
+    const key = String(songId || "");
+    if (!key) return Promise.resolve({ raw: null, failed: true });
+    const cached = lyricCache.get(key);
+    if (cached) return Promise.resolve({ raw: cached, failed: false });
+    const inflight = lyricPending.get(key);
+    if (inflight) return inflight;
+    const job = (async () => {
+      try {
+        const raw = normalizeLyric(await client.lyric(songId));
+        if (!isEmptyLyric(raw)) lyricCache.set(key, raw);
+        return { raw, failed: false };
+      } catch {
+        return { raw: null, failed: true };
+      } finally {
+        lyricPending.delete(key);
+      }
+    })();
+    lyricPending.set(key, job);
+    return job;
+  }
   async function loadLyrics(root, client, songId, options = {}) {
     const panel = root.querySelector(".nmp-lyrics");
     if (!panel || !songId) return null;
@@ -1979,16 +2349,13 @@ var NeteaseMusic = (() => {
     const cached = lyricCache.get(key);
     if (cached) return paintLyrics(panel, cached, key);
     setLyricsState(panel, "loading", options.loadingText || "\u6B4C\u8BCD\u52A0\u8F7D\u4E2D\u2026");
-    try {
-      const raw = normalizeLyric(await client.lyric(songId));
-      if (!isEmptyLyric(raw)) lyricCache.set(key, raw);
-      if (panel.dataset.nmpLyricsSong !== key) return null;
-      return paintLyrics(panel, raw, key);
-    } catch {
-      if (panel.dataset.nmpLyricsSong !== key) return null;
+    const { raw, failed } = options.job ? await options.job : await fetchLyric(client, songId);
+    if (panel.dataset.nmpLyricsSong !== key) return null;
+    if (failed) {
       setLyricsState(panel, "error", "\u6B4C\u8BCD\u6CA1\u62C9\u5230\uFF08\u53EF\u80FD\u88AB\u98CE\u63A7\u62E6\u4E86\u4E00\u4E0B\uFF09\uFF0C\u70B9\u64AD\u653E\u53EF\u4EE5\u518D\u8BD5");
       return null;
     }
+    return paintLyrics(panel, raw, key);
   }
   function paintLyrics(panel, raw, songId) {
     const text = String((raw == null ? void 0 : raw.lyric) || "");
@@ -1999,7 +2366,159 @@ var NeteaseMusic = (() => {
     return renderLyrics(panel, lines, { plain, message: "\u8FD9\u9996\u6B4C\u6CA1\u6709\u6B4C\u8BCD" });
   }
   var playToken = 0;
-  async function playSong(root, client, songId) {
+  function findRow(root, songId) {
+    if (!songId) return null;
+    return Array.from(root.querySelectorAll(".nmp-track[data-nmp-song]")).find(
+      (row) => row.dataset.nmpSong === songId
+    ) || null;
+  }
+  function songNameOf(root, songId) {
+    var _a;
+    const row = findRow(root, songId);
+    const nameEl = row ? row.querySelector(".nmp-track-name") : null;
+    if (nameEl) return nameEl.textContent.trim();
+    const card = root.querySelector(".nmp-card");
+    if (card && card.dataset.nmpSong === songId) {
+      return ((_a = card.querySelector(".nmp-title")) == null ? void 0 : _a.textContent.trim()) || "";
+    }
+    return "";
+  }
+  function knownUnplayableReason(root, songId) {
+    const row = findRow(root, songId);
+    if ((row == null ? void 0 : row.dataset.nmpUnplayable) === "1") return row.dataset.nmpUnplayableReason || "\u8FD9\u9996\u6B4C\u653E\u4E0D\u4E86";
+    const card = root.querySelector(".nmp-card");
+    if ((card == null ? void 0 : card.dataset.nmpUnplayable) === "1") {
+      return card.dataset.nmpUnplayableReason || "\u8FD9\u9996\u6B4C\u653E\u4E0D\u4E86";
+    }
+    return "";
+  }
+  function markUnplayable(root, songId, reason) {
+    var _a;
+    const text = reason || "\u8FD9\u9996\u6B4C\u6682\u65F6\u653E\u4E0D\u4E86";
+    const row = findRow(root, songId);
+    const target = row || (((_a = root.querySelector(".nmp-card")) == null ? void 0 : _a.dataset.nmpSong) === songId ? root.querySelector(".nmp-card") : null);
+    if (!target) return;
+    target.dataset.nmpUnplayable = "1";
+    target.dataset.nmpUnplayableReason = text;
+    if (row) row.title = text;
+  }
+  function failToPlay(root, songId, reason) {
+    const text = reason || "\u8FD9\u9996\u6B4C\u6682\u65F6\u653E\u4E0D\u4E86";
+    markUnplayable(root, songId, text);
+    const name = songNameOf(root, songId);
+    showNotice(root, `${name ? `\u300A${name}\u300B` : "\u8FD9\u9996"}\u653E\u4E0D\u4E86\uFF1A${text}`, 4200);
+  }
+  function playErrorMessage(err) {
+    const name = (err == null ? void 0 : err.name) || "";
+    if (name === "NotAllowedError") return "\u6D4F\u89C8\u5668\u62E6\u4E86\u81EA\u52A8\u64AD\u653E\uFF0C\u70B9\u4E00\u4E0B\u64AD\u653E\u952E\u5C31\u884C";
+    if (name === "NotSupportedError") return "\u8FD9\u4E2A\u5730\u5740\u653E\u4E0D\u4E86\uFF08\u76F4\u94FE\u53EF\u80FD\u5DF2\u7ECF\u8FC7\u671F\u6216\u9632\u76D7\u94FE\uFF09";
+    if (name === "AbortError") return "\u64AD\u653E\u88AB\u6253\u65AD\u4E86\uFF0C\u518D\u70B9\u4E00\u6B21";
+    return (err == null ? void 0 : err.message) || String(err);
+  }
+  function isAutoplayBlocked(err) {
+    return ((err == null ? void 0 : err.name) || "") === "NotAllowedError";
+  }
+  function stopAudio(audio) {
+    if (!audio) return;
+    try {
+      audio.pause();
+    } catch {
+    }
+    try {
+      audio.removeAttribute("src");
+      if (typeof audio.load === "function") audio.load();
+    } catch {
+    }
+    delete audio.dataset.nmpSong;
+    delete audio.dataset.nmpLoading;
+    delete audio.dataset.nmpTarget;
+  }
+  function stopDetachedAudio() {
+    if (!activeAudio) return;
+    if (typeof activeAudio.isConnected === "boolean" && !activeAudio.isConnected) {
+      stopAudio(activeAudio);
+      activeAudio = null;
+    }
+  }
+  function resetLyricsFor(root, songId) {
+    const panel = root.querySelector(".nmp-lyrics");
+    if (!panel) return;
+    if (panel._nmpLyricsFor && panel._nmpLyricsFor !== String(songId)) return;
+    setLyricsState(panel, "error", "\u8FD9\u9996\u6B4C\u653E\u4E0D\u51FA\u6765\uFF0C\u6240\u4EE5\u6CA1\u6709\u6B4C\u8BCD\u53EF\u4EE5\u8DDF");
+    delete panel._nmpLyricsFor;
+    delete panel.dataset.nmpLyricsSong;
+  }
+  function metaFor(root, songId) {
+    var _a, _b, _c, _d, _e;
+    const row = findRow(root, songId);
+    const card = root.querySelector(".nmp-card");
+    const cover = ((_a = card == null ? void 0 : card.querySelector("img.nmp-cover")) == null ? void 0 : _a.getAttribute("src")) || "";
+    if (row) {
+      return {
+        title: ((_b = row.querySelector(".nmp-track-name")) == null ? void 0 : _b.textContent.trim()) || "",
+        artist: ((_c = row.querySelector(".nmp-track-artist")) == null ? void 0 : _c.textContent.trim()) || "",
+        album: ((_d = card == null ? void 0 : card.querySelector(".nmp-title")) == null ? void 0 : _d.textContent.trim()) || "",
+        artwork: cover
+      };
+    }
+    const sub = card == null ? void 0 : card.querySelector(".nmp-sub");
+    const artist = sub ? sub.textContent.split("\xB7")[0].trim() : "";
+    return {
+      title: ((_e = card == null ? void 0 : card.querySelector(".nmp-title")) == null ? void 0 : _e.textContent.trim()) || "",
+      artist,
+      album: "",
+      artwork: cover
+    };
+  }
+  function syncNowPlaying(root, client, state, options = {}) {
+    mediaTarget = { root, client, autoNext: options.autoNext !== false };
+    if (!mediaHandlersBound) {
+      mediaHandlersBound = syncMediaSession({ handlers: mediaActions() });
+    }
+    const audio = root.querySelector(".nmp-audio");
+    const songId = (audio == null ? void 0 : audio.dataset.nmpSong) || "";
+    if (songId) syncMediaSession({ meta: metaFor(root, songId) });
+    setPlaybackState(state);
+    if (state === "playing") {
+      setPositionState({
+        duration: audio == null ? void 0 : audio.duration,
+        position: audio == null ? void 0 : audio.currentTime,
+        playbackRate: (audio == null ? void 0 : audio.playbackRate) || 1
+      });
+    } else if (state === "none") {
+      setPositionState({ duration: 0 });
+    }
+  }
+  function mediaActions() {
+    const targetAudio = () => {
+      var _a;
+      return ((_a = mediaTarget == null ? void 0 : mediaTarget.root) == null ? void 0 : _a.querySelector(".nmp-audio")) || null;
+    };
+    return {
+      play: () => {
+        const audio = targetAudio();
+        const songId = audio == null ? void 0 : audio.dataset.nmpSong;
+        if (!audio) return;
+        if (songId) playSong(mediaTarget.root, mediaTarget.client, songId);
+      },
+      pause: () => {
+        var _a;
+        return (_a = targetAudio()) == null ? void 0 : _a.pause();
+      },
+      seekto: (details) => {
+        const audio = targetAudio();
+        const seconds = details == null ? void 0 : details.seekTime;
+        if (audio && Number.isFinite(seconds)) audio.currentTime = seconds;
+      },
+      nexttrack: () => {
+        if (mediaTarget == null ? void 0 : mediaTarget.autoNext) playNext(mediaTarget.root, mediaTarget.client);
+      },
+      previoustrack: () => {
+        if (mediaTarget == null ? void 0 : mediaTarget.autoNext) playPrev(mediaTarget.root, mediaTarget.client);
+      }
+    };
+  }
+  async function playSong(root, client, songId, options = {}) {
     const card = root.querySelector(".nmp-card");
     const audio = root.querySelector(".nmp-audio");
     if (!card || !audio) return;
@@ -2012,37 +2531,152 @@ var NeteaseMusic = (() => {
       syncPlayButton(root, false);
       return;
     }
+    const known = knownUnplayableReason(root, songId);
+    if (known && !options.resumeAt) {
+      failToPlay(root, songId, known);
+      return;
+    }
+    stopDetachedAudio();
     if (activeAudio && activeAudio !== audio) {
       activeAudio.pause();
     }
     activeAudio = audio;
-    loadLyrics(root, client, songId);
+    const lyricJob = fetchLyric(client, songId);
     if (current && audio.getAttribute("src")) {
       try {
         await audio.play();
       } catch (err) {
-        showNotice(root, `\u64AD\u653E\u5931\u8D25\uFF1A${(err == null ? void 0 : err.message) || err}`);
+        if (isAutoplayBlocked(err)) showResumeBar(root, options.resumeState);
+        else showNotice(root, `\u64AD\u653E\u5931\u8D25\uFF1A${playErrorMessage(err)}`);
       }
       return;
     }
     const token = ++playToken;
     audio.dataset.nmpLoading = songId;
+    audio.dataset.nmpTarget = songId;
+    const abandon = () => {
+      if (audio.dataset.nmpLoading === songId) delete audio.dataset.nmpLoading;
+      if (audio.dataset.nmpTarget === songId) delete audio.dataset.nmpTarget;
+    };
     try {
       const info = normalizeSongUrl(await client.songUrl(songId));
-      if (token !== playToken) return;
+      if (token !== playToken) return abandon();
       delete audio.dataset.nmpLoading;
       if (!info.available) {
-        showNotice(root, `${info.reason}\u3002\u70B9\u53F3\u4E0A\u89D2\u53EF\u4EE5\u53BB\u7F51\u6613\u4E91\u542C`);
+        abandon();
+        failToPlay(root, songId, info.reason);
         return;
       }
       audio.src = info.url;
       audio.dataset.nmpSong = songId;
+      delete audio.dataset.nmpTarget;
+      syncProgress(root, audio);
+      loadLyrics(root, client, songId, { loadingText: "\u6B4C\u8BCD\u52A0\u8F7D\u4E2D\u2026", job: lyricJob });
       await audio.play();
+      if (Number.isFinite(options.resumeAt) && options.resumeAt > 1) {
+        try {
+          audio.currentTime = options.resumeAt;
+        } catch {
+        }
+      }
+      syncNowPlaying(root, client, "playing", options);
     } catch (err) {
-      if (token !== playToken) return;
+      if (token !== playToken) return abandon();
       delete audio.dataset.nmpLoading;
-      showNotice(root, `\u64AD\u653E\u5931\u8D25\uFF1A${(err == null ? void 0 : err.message) || err}`);
+      abandon();
+      if (isAutoplayBlocked(err)) {
+        showResumeBar(root, options.resumeState);
+        return;
+      }
+      stopAudio(audio);
+      resetLyricsFor(root, songId);
+      syncPlayButton(root, false);
+      failToPlay(root, songId, playErrorMessage(err));
     }
+  }
+  function showResumeBar(root, state = {}) {
+    const card = root.querySelector(".nmp-card");
+    if (!card || card.querySelector("[data-nmp-resume]")) return null;
+    card.insertAdjacentHTML("afterbegin", resumeBar(state || {}));
+    return card.querySelector("[data-nmp-resume]");
+  }
+  function resumePlayback(root, client) {
+    var _a;
+    const audio = root.querySelector(".nmp-audio");
+    const bar = root.querySelector("[data-nmp-resume]");
+    if (!audio) return;
+    const dismiss = () => bar == null ? void 0 : bar.remove();
+    if (audio.dataset.nmpSong && audio.getAttribute("src")) {
+      audio.play().then(dismiss, (err) => {
+        showNotice(root, `\u8FD8\u662F\u653E\u4E0D\u4E86\uFF1A${playErrorMessage(err)}`);
+      });
+      return;
+    }
+    const songId = audio.dataset.nmpSong || ((_a = root.querySelector(".nmp-card")) == null ? void 0 : _a.dataset.nmpSong) || "";
+    if (!songId) {
+      dismiss();
+      showNotice(root, "\u4E0D\u77E5\u9053\u8981\u63A5\u7740\u653E\u54EA\u4E00\u9996\uFF0C\u91CD\u65B0\u89E3\u6790\u4E00\u6B21\u5427");
+      return;
+    }
+    Promise.resolve(playSong(root, client, songId)).then(dismiss);
+  }
+  async function playPrev(root, client) {
+    const audio = root.querySelector(".nmp-audio");
+    if (!audio) return false;
+    const rows = Array.from(root.querySelectorAll('.nmp-track[data-nmp-playable="1"]'));
+    const index = rows.findIndex((row) => row.dataset.nmpSong === audio.dataset.nmpSong);
+    if (index <= 0) return false;
+    await playSong(root, client, rows[index - 1].dataset.nmpSong);
+    return true;
+  }
+  function playbackStateOf(root) {
+    var _a, _b, _c;
+    const audio = root.querySelector(".nmp-audio");
+    const card = root.querySelector(".nmp-card");
+    const songId = (audio == null ? void 0 : audio.dataset.nmpSong) || "";
+    const row = songId ? findRow(root, songId) : null;
+    const sub = card == null ? void 0 : card.querySelector(".nmp-sub");
+    return {
+      src: root.dataset.nmpSrc || "",
+      type: root.dataset.nmpType || "",
+      songId,
+      songName: songId ? songNameOf(root, songId) : "",
+      artistText: row ? ((_a = row.querySelector(".nmp-track-artist")) == null ? void 0 : _a.textContent.trim()) || "" : sub ? sub.textContent.split("\xB7")[0].trim() : "",
+      listName: ((_b = card == null ? void 0 : card.querySelector(".nmp-title")) == null ? void 0 : _b.textContent.trim()) || "",
+      cover: ((_c = card == null ? void 0 : card.querySelector("img.nmp-cover")) == null ? void 0 : _c.getAttribute("src")) || "",
+      position: Number.isFinite(audio == null ? void 0 : audio.currentTime) ? audio.currentTime : 0,
+      playing: Boolean(audio && songId && !audio.paused)
+    };
+  }
+  async function resumeLastPlayback(target, options = {}) {
+    var _a;
+    const el = resolveElement(target);
+    if (!el) return false;
+    const saved = options.saved || readPlayback({ maxAge: options.resumeMaxAge });
+    if (!(saved == null ? void 0 : saved.songId)) return false;
+    const mountedSrc = el.dataset.nmpSrc || el.dataset.netease || "";
+    const fromSaved = el.dataset.nmpSrcFromSaved === "1";
+    if (!shouldResume(saved, { src: mountedSrc, force: fromSaved })) return false;
+    const onCard = ((_a = el.querySelector(".nmp-card")) == null ? void 0 : _a.dataset.nmpSong) === String(saved.songId) || Boolean(findRow(el, String(saved.songId)));
+    if (!onCard) return false;
+    const client = options.client || getDefaultClient();
+    await playSong(el, client, String(saved.songId), {
+      resumeAt: Number(saved.position) || 0,
+      resumeState: { songName: saved.songName, listName: saved.listName, artistText: saved.artistText },
+      autoNext: options.autoNext
+    });
+    return true;
+  }
+  async function playNext(root, client) {
+    const audio = root.querySelector(".nmp-audio");
+    if (!audio) return false;
+    const rows = Array.from(root.querySelectorAll('.nmp-track[data-nmp-playable="1"]'));
+    const index = rows.findIndex((row) => row.dataset.nmpSong === audio.dataset.nmpSong);
+    if (index < 0) return false;
+    const next = rows[index + 1];
+    if (!next) return false;
+    await playSong(root, client, next.dataset.nmpSong);
+    return true;
   }
   function syncPlayButton(root, playing) {
     const card = root.querySelector(".nmp-card");
@@ -2073,15 +2707,35 @@ var NeteaseMusic = (() => {
     const card = root.querySelector(".nmp-card");
     return (audio == null ? void 0 : audio.dataset.nmpSong) || (card == null ? void 0 : card.dataset.nmpSong) || action.dataset.nmpSong || "";
   }
+  var boundListeners = /* @__PURE__ */ new WeakMap();
+  function detachListeners(root) {
+    const prev = boundListeners.get(root);
+    if (!prev) return;
+    root.removeEventListener("click", prev.onClick);
+    if (typeof document !== "undefined" && prev.onVisibility) {
+      document.removeEventListener("visibilitychange", prev.onVisibility);
+    }
+    if (typeof window !== "undefined" && prev.onPageHide) {
+      window.removeEventListener("pagehide", prev.onPageHide);
+    }
+    boundListeners.delete(root);
+  }
   function bind(root, client, options = {}) {
     if (root.dataset.nmpBound === "1") return;
+    detachListeners(root);
     root.dataset.nmpBound = "1";
+    const tracked = { onClick: null, onVisibility: null, onPageHide: null };
+    boundListeners.set(root, tracked);
     const audio = root.querySelector(".nmp-audio");
     const seek = root.querySelector("[data-nmp-seek]");
     const volumeInput = root.querySelector("[data-nmp-volume]");
     const lyricPanel = root.querySelector(".nmp-lyrics");
     const playbackOff = options.playback === false;
     const offHint = options.playbackHint || "\u5F53\u524D\u540E\u7AEF\u62FF\u4E0D\u5230\u64AD\u653E\u76F4\u94FE\uFF0C\u53EA\u80FD\u770B\u4FE1\u606F";
+    const autoNext = options.autoNext !== false;
+    const pauseWhenHidden = options.pauseWhenHidden === true;
+    const wantResume = options.resume === true;
+    const saver = wantResume ? createThrottledSave(1e3) : null;
     if (audio) {
       setAudioVolume(root, audio, readStoredVolume());
     }
@@ -2114,13 +2768,23 @@ var NeteaseMusic = (() => {
         setAudioVolume(root, audio, value);
       });
     }
-    root.addEventListener("click", (event) => {
+    const onRootClick = (event) => {
+      var _a;
       const action = event.target.closest("[data-nmp-action]");
       if (action) {
         const name = action.dataset.nmpAction;
         if (name === "toggle") {
           const songId = toggleTarget(root, action);
           if (songId) playSong(root, client, songId);
+          return;
+        }
+        if (name === "resume") {
+          resumePlayback(root, client);
+          return;
+        }
+        if (name === "resume-dismiss") {
+          clearPlayback();
+          (_a = action.closest("[data-nmp-resume]")) == null ? void 0 : _a.remove();
           return;
         }
         if (name === "mute") {
@@ -2167,27 +2831,79 @@ var NeteaseMusic = (() => {
         }
         playSong(root, client, track.dataset.nmpSong);
       }
-    });
+    };
+    tracked.onClick = onRootClick;
+    root.addEventListener("click", onRootClick);
+    const snapshot = (force = false) => {
+      if (!saver) return;
+      const state = playbackStateOf(root);
+      if (!state.songId || !state.playing && state.position < 3) return;
+      saver.save(state, { force });
+    };
     if (audio) {
-      audio.addEventListener("play", () => syncPlayButton(root, true));
-      audio.addEventListener("pause", () => syncPlayButton(root, false));
+      audio.addEventListener("play", () => {
+        syncPlayButton(root, true);
+        syncNowPlaying(root, client, "playing", options);
+        snapshot(true);
+      });
+      audio.addEventListener("pause", () => {
+        syncPlayButton(root, false);
+        syncNowPlaying(root, client, "paused", options);
+        snapshot(true);
+      });
       audio.addEventListener("ended", () => {
         syncPlayButton(root, false);
+        setPlaybackState("paused");
         root.dataset.nmpSeeking = "0";
+        snapshot(true);
+        if (autoNext) playNext(root, client);
       });
       audio.addEventListener("loadedmetadata", () => syncProgress(root, audio));
-      audio.addEventListener("durationchange", () => syncProgress(root, audio));
+      audio.addEventListener("durationchange", () => {
+        syncProgress(root, audio);
+        setPositionState({
+          duration: audio.duration,
+          position: audio.currentTime,
+          playbackRate: audio.playbackRate || 1
+        });
+      });
       audio.addEventListener("timeupdate", () => {
         syncProgress(root, audio);
+        snapshot(false);
+        setPositionState({
+          duration: audio.duration,
+          position: audio.currentTime,
+          playbackRate: audio.playbackRate || 1
+        });
         if ((lyricPanel == null ? void 0 : lyricPanel.dataset.nmpLyrics) !== "ready") return;
         if (lyricPanel._nmpLyricsFor !== audio.dataset.nmpSong) return;
         highlightLyric(root, findLineIndex(lyricPanel._nmpLines || [], audio.currentTime));
       });
       audio.addEventListener("error", () => {
-        if (!audio.src) return;
+        if (!audio.src || !audio.dataset.nmpSong) return;
+        const failedId = audio.dataset.nmpSong;
+        const reason = "\u97F3\u9891\u52A0\u8F7D\u5931\u8D25\uFF08\u76F4\u94FE\u53EF\u80FD\u8FC7\u671F\u4E86\uFF0C\u6216\u8005\u88AB\u9632\u76D7\u94FE\u62E6\u4E86\uFF09";
+        stopAudio(audio);
+        resetLyricsFor(root, failedId);
         syncPlayButton(root, false);
-        showNotice(root, "\u97F3\u9891\u52A0\u8F7D\u5931\u8D25\uFF0C\u53EF\u80FD\u88AB\u9632\u76D7\u94FE\u62E6\u4E86\uFF0C\u8BD5\u8BD5\u8D70\u81EA\u5DF1\u7684\u4EE3\u7406");
+        setPlaybackState("paused");
+        failToPlay(root, failedId, reason);
       });
+    }
+    if (pauseWhenHidden && typeof document !== "undefined") {
+      tracked.onVisibility = () => {
+        if (document.hidden && activeAudio && !activeAudio.paused) activeAudio.pause();
+      };
+      document.addEventListener("visibilitychange", tracked.onVisibility);
+    }
+    if (saver && typeof window !== "undefined") {
+      tracked.onPageHide = () => {
+        const state = playbackStateOf(root);
+        if (state.songId && (state.playing || state.position >= 3)) {
+          saver.save(state, { force: true });
+        }
+      };
+      window.addEventListener("pagehide", tracked.onPageHide);
     }
     if (lyricPanel) {
       lyricPanel.addEventListener("scroll", () => {
@@ -2201,11 +2917,6 @@ var NeteaseMusic = (() => {
             highlightLyric(root, findLineIndex(lyricPanel._nmpLines || [], audio.currentTime));
           }
         }, 4e3);
-      });
-    }
-    if (typeof document !== "undefined") {
-      document.addEventListener("visibilitychange", () => {
-        if (document.hidden && activeAudio && !activeAudio.paused) activeAudio.pause();
       });
     }
     return options;
@@ -2230,20 +2941,34 @@ var NeteaseMusic = (() => {
     return results;
   }
   function unmount(target) {
+    var _a;
     const el = resolveElement(target);
     if (!el) return;
+    const audio = (_a = el.querySelector) == null ? void 0 : _a.call(el, ".nmp-audio");
+    if (audio) {
+      stopAudio(audio);
+      if (activeAudio === audio) activeAudio = null;
+    }
+    if ((mediaTarget == null ? void 0 : mediaTarget.root) === el) {
+      mediaTarget = null;
+      clearMediaSession();
+    }
+    detachListeners(el);
     el.classList.remove("nmp-root");
     el.removeAttribute("data-nmp-bound");
     el.removeAttribute("data-nmp-state");
+    el.removeAttribute("data-nmp-src");
+    el.removeAttribute("data-nmp-src-from-saved");
     el.innerHTML = "";
   }
   var NeteaseMusic = {
-    VERSION,
+    VERSION: VERSION2,
     mount,
     unmount,
     autoInit,
     load,
     injectStyles,
+    resumeLastPlayback,
     createClient,
     getDefaultClient,
     setDefaultClient,
@@ -2257,6 +2982,10 @@ var NeteaseMusic = (() => {
     lyric: lyric_exports,
     renderLyrics,
     highlightLyric,
+    isMediaSessionSupported,
+    readPlayback,
+    savePlayback,
+    clearPlayback,
     ADAPTERS,
     NeteaseApiError,
     isRiskControlResponse

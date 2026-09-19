@@ -105,3 +105,87 @@
 .nmp-root.nmp-root .nmp-cover-wrap {
   border-radius: 2px;
 }
+
+/* ---------- 放不出来的那一首（声音/排行榜/歌单里很常见） ---------- */
+
+/* 已经确认放不了的行：弱化，播放键给禁止光标，原因在 title 上 */
+.nmp-root.nmp-root .nmp-track[data-nmp-unplayable='1'] {
+  opacity: 0.45;
+}
+
+.nmp-root.nmp-root .nmp-track[data-nmp-unplayable='1'] .nmp-track-play {
+  cursor: not-allowed;
+}
+
+.nmp-root.nmp-root .nmp-card[data-nmp-unplayable='1'] .nmp-play {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ---------- 跨页续播条 ---------- */
+
+/* 回到页面时浏览器会拦掉自动播放（新文档没有用户手势），
+   插件会弹这条让你点一下接着放。做成和卡片一体的横条。 */
+.nmp-root.nmp-root .nmp-resume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  font-family: var(--nmp-font);
+  font-size: 12.5px;
+  line-height: 1.5;
+  background: var(--nmp-bg-soft);
+  border: 1px solid var(--nmp-border);
+  border-radius: 2px;
+}
+
+.nmp-root.nmp-root .nmp-resume-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--nmp-text-dim);
+}
+
+.nmp-root.nmp-root .nmp-resume-text b {
+  color: var(--nmp-text);
+  font-weight: 600;
+}
+
+.nmp-root.nmp-root .nmp-resume-go {
+  flex: none;
+  padding: 5px 14px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--nmp-accent);
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.nmp-root.nmp-root .nmp-resume-go:hover {
+  filter: brightness(1.06);
+}
+
+.nmp-root.nmp-root .nmp-resume-close {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--nmp-text-dim);
+  background: none;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.nmp-root.nmp-root .nmp-resume-close:hover {
+  color: var(--nmp-text);
+}

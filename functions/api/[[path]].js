@@ -95,23 +95,10 @@ function wireStatus(status) {
   return status >= 500 ? 429 : status;
 }
 
-/**
- * 允许的来源：默认只允许本站，这样别人把本代理挂到自己网页上也读不到响应。
- * 需要多个来源就设环境变量 ALLOW_ORIGIN（逗号分隔），例如：
- *   ALLOW_ORIGIN=https://qiongkura.xyz,https://my-profile-1qe.pages.dev
- * 显式写成 * 仍然表示完全放开（不推荐）。
- */
-function allowedOrigins(env = {}) {
-  const raw = String(env.ALLOW_ORIGIN || 'https://qiongkura.xyz');
-  return raw.split(',').map((item) => item.trim()).filter(Boolean);
-}
-
 /** 统一响应头 */
 function corsHeaders(env = {}) {
-  const origins = allowedOrigins(env);
   return {
-    'Access-Control-Allow-Origin': origins[0] || 'https://qiongkura.xyz',
-    Vary: 'Origin',
+    'Access-Control-Allow-Origin': env.ALLOW_ORIGIN || '*',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age': '86400',
@@ -189,6 +176,24 @@ export function isRiskControl(data) {
   return Boolean(data && (data.code === -462 || data.data?.verifyType || data.verifyType));
 }
 
+/**
+ * 拿不到直链时给一句**对得上原因**的话。
+ *
+ * 以前这里只有两个分支（配了 Cookie / 没配 Cookie），于是上游明确回 404 的
+ * 《晴天》也被解释成「VIP 专享」—— 用户照着这句话去查会员、去换 Cookie，
+ * 方向全错。上游的 code 才是答案：404 是没开放播放，-110 才是要付费。
+ */
+function urlFailReason(item, env = {}) {
+  const code = item?.code;
+  if (code === 404) return '这首歌在网易云没有开放播放（没版权或已下架），配 Cookie 也拿不到';
+  if (code === -110) return '这首歌需要 VIP / 付费才能听';
+  if (code === -462) return '网易云风控拦了一下，过几秒再点一次通常就好';
+  if (item?.freeTrialPrivilege?.cannotListenReason) return '这首歌只开放试听，完整版需要 VIP / 付费';
+  return env.NETEASE_COOKIE
+    ? '这首歌当前 Cookie 也拿不到直链（VIP 专享 / 已下架 / 版权受限，或 Cookie 过期了）'
+    : '这首歌没配登录 Cookie 时拿不到直链（不是所有歌都这样，这首不行）。配 NETEASE_COOKIE 能多放一些';
+}
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
@@ -211,7 +216,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  *
  * @param {string} url
  * @param {object} env
- * @param {{ noCache?: boolean, retries?: number, extraHeaders?: Record<string,string>, identity?: 'browser'|'desktop' }} [options]
+ * @param {{ noCache?: boolean, retries?: number, extraHeaders?: Record<string,string>, identity?: 'browser'|'desktop', cacheWhen?: (data:any)=>boolean }} [options]
+ *   `cacheWhen` 用来拦掉「传过来了但内容是失败」的响应，
+ *   最典型的就是 `/song/url` 返回 `url: null` —— 那是逐首的即时判定，
+ *   缓存 5 分钟等于把一次偶发失败钉成持续失败。
  */
 async function fetchUpstream(url, env = {}, options = {}) {
   const cached = options.noCache ? null : cacheGet(url);
@@ -240,7 +248,7 @@ async function fetchUpstream(url, env = {}, options = {}) {
     }
 
     if (!isRiskControl(data)) {
-      cacheSet(url, data);
+      if (!options.cacheWhen || options.cacheWhen(data)) cacheSet(url, data);
       return data;
     }
 
@@ -354,6 +362,9 @@ export async function handleRequest(request, env = {}) {
       // 不带任何 Cookie 也能拿到直链，而且跟 fee 无关（fee:8 的能放，
       // fee:0 的《晴天》反而不能）。能不能放是**逐首**决定的。
       // Cookie 的作用是「把能放的集合扩大」，不是「开关」。
+      //
+      // （《晴天》`186016` 只作为这条结论的样本留在注释里，**别拿它当探测曲**：
+      // 上游对它明确回 404，配了 Cookie 也拿不到，见 /verify 的默认曲。）
       capability: env.NETEASE_COOKIE
         ? '元数据 + 歌词 + 播放地址（配了 Cookie，能放的歌更多）'
         : '元数据 + 歌词 + 部分免费歌曲的播放地址（没配 Cookie，能放的少一些）',
@@ -363,7 +374,10 @@ export async function handleRequest(request, env = {}) {
   try {
     // ---- Cookie 体检：拿一首歌实测一下，绕开缓存 ----
     if (path === '/verify') {
-      const probeId = url.searchParams.get('id') || '186016';
+      // 默认探测曲必须是一首**能播**的歌，否则体检永远得出
+      // 「Cookie 有效但这首歌拿不到直链」，把人往错的方向带。
+      // 3423857646（塞壬唱片-MSR《凡常恩典》）已实测可播（2026-09）。
+      const probeId = url.searchParams.get('id') || '3423857646';
       const br = url.searchParams.get('br') || 320000;
       const apiUrl = `${UPSTREAM}/api/song/enhance/player/url?ids=${encodeURIComponent(`[${probeId}]`)}&br=${br}`;
       const data = await fetchUpstream(apiUrl, env, { noCache: true });
@@ -416,7 +430,7 @@ export async function handleRequest(request, env = {}) {
                 ? 'Cookie 里没有 MUSIC_U，MUSIC_U 才是登录凭证'
                 : !cookieValid
                   ? 'Cookie 无效或已过期（网易的账号接口说未登录），重新拿一串'
-                  : 'Cookie 是有效的，但这首歌拿不到直链（VIP 专享 / 已下架 / 版权受限）',
+                  : `Cookie 是有效的，但这首歌拿不到直链：${urlFailReason(item, env)}`,
           upstream: ok
             ? undefined
             : {
@@ -460,9 +474,29 @@ export async function handleRequest(request, env = {}) {
       const br = url.searchParams.get('br') || 320000;
 
       const apiUrl = `${UPSTREAM}/api/song/enhance/player/url?ids=${encodeURIComponent(`[${id}]`)}&br=${br}`;
-      const data = await fetchUpstream(apiUrl, env);
+      // 有直链才缓存。没直链的结果是按出口 IP / 风险状态即时判的，
+      // 缓存下来会让「过几秒再点一次就好了」变成「怎么点都不行」。
+      const data = await fetchUpstream(apiUrl, env, {
+        cacheWhen: (d) => Boolean(d?.data?.[0]?.url),
+      });
       const item = data?.data?.[0];
       if (item?.url) return json(data, { env });
+
+      // 风控必须**原样往上报成 429**，不能像以前那样在下面伪造一个 code:200 的
+      // 「VIP/版权受限」—— 那会让客户端以为这首歌本来就没法播（于是不重试），
+      // 而实际上换个边缘节点再请求一次就好了。api.js 只对 429 / -462 重试。
+      if (isRiskControl(data)) {
+        return json(
+          {
+            code: 429,
+            message:
+              '网易云风控拦截（-462）：这次请求的出口 IP 被网易临时标记了，跟这首歌本身没关系。' +
+              '过几秒再点一次通常就好了 —— 每次请求走的是不同的边缘节点。',
+            upstream: { code: data?.code, verifyUrl: data?.data?.verifyUrl },
+          },
+          { status: 429, env },
+        );
+      }
 
       // 1) 接口没给直链，退回老的外链接口试试
       //    （网易现在多数情况会 302 到 /404，所以必须检查落点）
@@ -487,15 +521,13 @@ export async function handleRequest(request, env = {}) {
               br: direct ? Number(br) : 0,
               size: 0,
               free: Boolean(direct),
-              // 实测：不带登录 Cookie 时，一部分免费歌曲照样能拿到直链
-              // （热歌榜前 20 首里 11 首可以），而且跟 fee 无关 ——
-              // 《晴天》fee:0 拿不到，另一首 fee:8 反而拿得到。
-              // 所以这里不要说「没 Cookie 就一律拿不到」，那是错的。
-              reason: direct
-                ? ''
-                : env.NETEASE_COOKIE
-                  ? '这首歌当前 Cookie 也拿不到直链（VIP 专享 / 已下架 / 版权受限，或 Cookie 过期了）'
-                  : '这首歌没配登录 Cookie 时拿不到直链（不是所有歌都这样，这首不行）。配 NETEASE_COOKIE 能多放一些',
+              // 上游的 code 必须带出去：404 = 没版权/已下架，-110 = 要 VIP/付费。
+              // 全穿成 200 的话，前端只能猜，猜出来的结论就是「多半是 VIP」——
+              // 而《晴天》那种其实是上游明确回 404。
+              code: item?.code ?? null,
+              fee: item?.fee ?? 0,
+              freeTrialPrivilege: item?.freeTrialPrivilege ?? null,
+              reason: direct ? '' : urlFailReason(item, env),
             },
           ],
           code: 200,
@@ -512,11 +544,11 @@ export async function handleRequest(request, env = {}) {
     //   mode=raw          只发请求、只记状态码和字节数，不解析
     // 如果 raw 能跑完而 parse 跑不完，那就是撞了 CPU 上限，不是网络问题。
     //
-    //   /diag?path=/album&id=18905&n=3
-    //   /diag?path=/album&id=18905&n=3&mode=raw
-    //   /diag?path=/album&id=18905&n=3&retries=2        # 量一量重试到底有没有用
-    //   /diag?path=/album&id=18905&n=3&realip=1.2.3.4   # 试 X-Real-IP 有没有用
-    //   /diag?path=/album&id=18905&n=3&ua=compare       # 浏览器 UA vs 桌面客户端 UA，交替 A/B
+    //   /diag?path=/album&id=389627625&n=3
+    //   /diag?path=/album&id=389627625&n=3&mode=raw
+    //   /diag?path=/album&id=389627625&n=3&retries=2        # 量一量重试到底有没有用
+    //   /diag?path=/album&id=389627625&n=3&realip=1.2.3.4   # 试 X-Real-IP 有没有用
+    //   /diag?path=/album&id=389627625&n=3&ua=compare       # 浏览器 UA vs 桌面客户端 UA，交替 A/B
     if (path === '/diag') {
       const target = url.searchParams.get('path') || '/album';
       const builder = ROUTES[target];
