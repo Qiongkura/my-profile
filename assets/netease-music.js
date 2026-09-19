@@ -35,6 +35,7 @@ var NeteaseMusic = (() => {
     formatCount: () => formatCount,
     formatDuration: () => formatDuration,
     getDefaultClient: () => getDefaultClient,
+    getPreferredBr: () => getPreferredBr,
     highlightLyric: () => highlightLyric,
     injectStyles: () => injectStyles,
     isMediaSessionSupported: () => isMediaSessionSupported,
@@ -56,6 +57,7 @@ var NeteaseMusic = (() => {
     savePlayback: () => savePlayback,
     setDefaultClient: () => setDefaultClient,
     setLyricsState: () => setLyricsState,
+    setPreferredBr: () => setPreferredBr,
     showNotice: () => showNotice,
     unmount: () => unmount
   });
@@ -286,13 +288,39 @@ var NeteaseMusic = (() => {
     return `https://music.163.com/#/${type}?id=${id}`;
   }
 
+  // src/quality.js
+  var KEY = "nmp-br";
+  var BR_STANDARD = 32e4;
+  var BR_LOSSLESS = 999e3;
+  function readPreferredBr() {
+    try {
+      if (typeof localStorage === "undefined") return null;
+      const value = Number(localStorage.getItem(KEY));
+      if (!Number.isFinite(value) || value <= 0) return null;
+      return value;
+    } catch {
+      return null;
+    }
+  }
+  function writePreferredBr(br) {
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(KEY, String(Number(br) || BR_STANDARD));
+      }
+    } catch {
+    }
+  }
+
   // src/adapters.js
   function officialAdapter({ get }, options = {}) {
-    const defaultBr = Number(options.br) || 32e4;
+    const defaultBr = Number(options.br) || BR_STANDARD;
     return {
       name: "official",
       song: (id) => get("/song", { id }),
-      songUrl: (id, br = defaultBr) => get("/song/url", { id, br }),
+      songUrl: (id, br) => {
+        var _a;
+        return get("/song/url", { id, br: (_a = br != null ? br : readPreferredBr()) != null ? _a : defaultBr });
+      },
       lyric: (id) => get("/lyric", { id }),
       playlist: (id, limit = 1e3) => get("/playlist", { id, limit }),
       album: (id) => get("/album", { id }),
@@ -954,7 +982,8 @@ var NeteaseMusic = (() => {
           <span class="nmp-time-sep">/</span>
           <span class="nmp-time-total">--:--</span>
         </span>
-        <span class="nmp-quality" data-nmp-quality hidden></span>
+        <button class="nmp-quality" type="button" data-nmp-action="quality" data-nmp-quality hidden
+                title="\u97F3\u8D28\uFF08\u70B9\u4E00\u4E0B\u5728 \u6807\u51C6 320k / \u65E0\u635F \u4E4B\u95F4\u5207\u6362\uFF09"></button>
         <span class="nmp-volume">
           <button class="nmp-mute" type="button" data-nmp-action="mute"
                   aria-label="\u9759\u97F3" aria-pressed="false">${ICONS.volume}</button>
@@ -1292,7 +1321,7 @@ var NeteaseMusic = (() => {
   }
 
   // src/resume.js
-  var KEY = "nmp-session";
+  var KEY2 = "nmp-session";
   var VERSION = 1;
   var DEFAULT_MAX_AGE = 30 * 60 * 1e3;
   function store() {
@@ -1307,7 +1336,7 @@ var NeteaseMusic = (() => {
     const s = store();
     if (!s || !state) return false;
     try {
-      s.setItem(KEY, JSON.stringify({ ...state, v: VERSION, at: Date.now() }));
+      s.setItem(KEY2, JSON.stringify({ ...state, v: VERSION, at: Date.now() }));
       return true;
     } catch {
       return false;
@@ -1318,12 +1347,12 @@ var NeteaseMusic = (() => {
     const s = store();
     if (!s) return null;
     try {
-      const raw = s.getItem(KEY);
+      const raw = s.getItem(KEY2);
       if (!raw) return null;
       const state = JSON.parse(raw);
       if (!state || state.v !== VERSION) return null;
       if (!Number.isFinite(state.at) || Date.now() - state.at > maxAge) {
-        s.removeItem(KEY);
+        s.removeItem(KEY2);
         return null;
       }
       return state;
@@ -1335,7 +1364,7 @@ var NeteaseMusic = (() => {
     const s = store();
     if (!s) return;
     try {
-      s.removeItem(KEY);
+      s.removeItem(KEY2);
     } catch {
     }
   }
@@ -1611,17 +1640,25 @@ var NeteaseMusic = (() => {
   opacity: 0.6;
 }
 
-/* \u54C1\u8D28\u89D2\u6807\uFF1A\u663E\u793A**\u5B9E\u9645\u62FF\u5230**\u7684\u54C1\u8D28\uFF08320k / \u65E0\u635F\uFF09\uFF0C\u62FF\u4E0D\u5230\u5C31\u6574\u4E2A\u9690\u85CF */
+/* \u54C1\u8D28\u89D2\u6807\uFF1A\u663E\u793A**\u5B9E\u9645\u62FF\u5230**\u7684\u54C1\u8D28\uFF08320k / \u65E0\u635F\uFF09\uFF0C\u62FF\u4E0D\u5230\u5C31\u6574\u4E2A\u9690\u85CF\u3002
+   \u662F\u4E2A\u6309\u94AE \u2014\u2014 \u70B9\u4E00\u4E0B\u5728 \u6807\u51C6/\u65E0\u635F \u4E4B\u95F4\u5207\u6362\uFF0C\u5E76\u5F53\u573A\u7528\u65B0\u6863\u4F4D\u91CD\u53D6\u5F53\u524D\u8FD9\u9996\u3002 */
 .nmp-quality {
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.03em;
   color: var(--nmp-text-dim);
+  background: none;
   border: 1px solid currentColor;
   border-radius: 4px;
-  padding: 0 5px;
-  line-height: 1.6;
+  padding: 1px 5px;
+  line-height: 1.5;
   white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.16s ease;
+}
+
+.nmp-quality:hover {
+  color: var(--nmp-text);
 }
 
 .nmp-volume {
@@ -2392,6 +2429,30 @@ var NeteaseMusic = (() => {
     const label = qualityLabel(info);
     badge.textContent = label;
     badge.hidden = !label;
+    if (label) {
+      badge.title = `\u97F3\u8D28\uFF1A${label}\uFF08\u70B9\u4E00\u4E0B\u5207\u6362 \u6807\u51C6 320k / \u65E0\u635F\uFF09`;
+      badge.setAttribute("aria-label", `\u97F3\u8D28 ${label}\uFF0C\u70B9\u4E00\u4E0B\u5207\u6362`);
+    }
+  }
+  async function toggleQuality(root, client) {
+    var _a;
+    const audio = root.querySelector(".nmp-audio");
+    const current = (_a = readPreferredBr()) != null ? _a : BR_STANDARD;
+    const next = current >= BR_LOSSLESS ? BR_STANDARD : BR_LOSSLESS;
+    writePreferredBr(next);
+    const label = next >= BR_LOSSLESS ? "\u65E0\u635F" : "320k";
+    const songId = (audio == null ? void 0 : audio.dataset.nmpSong) || "";
+    if (!songId || !audio.getAttribute("src")) {
+      showNotice(root, `\u5DF2\u5207\u6362\u5230${label}\uFF0C\u4E0B\u4E00\u6B21\u64AD\u653E\u751F\u6548`, 2400);
+      return;
+    }
+    showNotice(root, `\u5207\u6362\u5230${label}\uFF0C\u91CD\u65B0\u53D6\u5730\u5740\u2026\u2026`, 2e3);
+    await playSong(root, client, songId, { forceRefetch: true, resumeAt: audio.currentTime || 0 });
+    const badge = root.querySelector("[data-nmp-quality]");
+    if (badge) {
+      badge.setAttribute("aria-label", `\u97F3\u8D28 ${badge.textContent}\uFF0C\u70B9\u4E00\u4E0B\u5207\u6362`);
+      badge.title = `\u97F3\u8D28\uFF1A${badge.textContent}\uFF08\u70B9\u4E00\u4E0B\u5207\u6362 \u6807\u51C6 320k / \u65E0\u635F\uFF09`;
+    }
   }
   var playToken = 0;
   function findRow(root, songId) {
@@ -2552,7 +2613,7 @@ var NeteaseMusic = (() => {
     if (!card || !audio) return;
     const current = audio.dataset.nmpSong === songId;
     const loading = audio.dataset.nmpLoading === songId;
-    if (current && !audio.paused || loading) {
+    if (!options.forceRefetch && (current && !audio.paused || loading)) {
       delete audio.dataset.nmpLoading;
       playToken += 1;
       audio.pause();
@@ -2570,7 +2631,7 @@ var NeteaseMusic = (() => {
     }
     activeAudio = audio;
     const lyricJob = fetchLyric(client, songId);
-    if (current && audio.getAttribute("src")) {
+    if (!options.forceRefetch && current && audio.getAttribute("src")) {
       try {
         await audio.play();
       } catch (err) {
@@ -2812,6 +2873,10 @@ var NeteaseMusic = (() => {
           resumePlayback(root, client);
           return;
         }
+        if (name === "quality") {
+          toggleQuality(root, client);
+          return;
+        }
         if (name === "resume-dismiss") {
           clearPlayback();
           (_a = action.closest("[data-nmp-resume]")) == null ? void 0 : _a.remove();
@@ -3017,12 +3082,23 @@ var NeteaseMusic = (() => {
     readPlayback,
     savePlayback,
     clearPlayback,
+    getPreferredBr,
+    setPreferredBr,
     formatDuration,
     formatCount,
     ADAPTERS,
     NeteaseApiError,
     isRiskControlResponse
   };
+  function getPreferredBr() {
+    var _a;
+    return (_a = readPreferredBr()) != null ? _a : BR_STANDARD;
+  }
+  function setPreferredBr(br) {
+    const value = Number(br) >= BR_LOSSLESS ? BR_LOSSLESS : BR_STANDARD;
+    writePreferredBr(value);
+    return value;
+  }
   var index_default = NeteaseMusic;
   return __toCommonJS(index_exports);
 })();
