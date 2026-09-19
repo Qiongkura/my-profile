@@ -287,11 +287,12 @@ var NeteaseMusic = (() => {
   }
 
   // src/adapters.js
-  function officialAdapter({ get }) {
+  function officialAdapter({ get }, options = {}) {
+    const defaultBr = Number(options.br) || 32e4;
     return {
       name: "official",
       song: (id) => get("/song", { id }),
-      songUrl: (id, br = 32e4) => get("/song/url", { id, br }),
+      songUrl: (id, br = defaultBr) => get("/song/url", { id, br }),
       lyric: (id) => get("/lyric", { id }),
       playlist: (id, limit = 1e3) => get("/playlist", { id, limit }),
       album: (id) => get("/album", { id }),
@@ -953,6 +954,7 @@ var NeteaseMusic = (() => {
           <span class="nmp-time-sep">/</span>
           <span class="nmp-time-total">--:--</span>
         </span>
+        <span class="nmp-quality" data-nmp-quality hidden></span>
         <span class="nmp-volume">
           <button class="nmp-mute" type="button" data-nmp-action="mute"
                   aria-label="\u9759\u97F3" aria-pressed="false">${ICONS.volume}</button>
@@ -1607,6 +1609,19 @@ var NeteaseMusic = (() => {
 .nmp-time-sep {
   margin: 0 4px;
   opacity: 0.6;
+}
+
+/* \u54C1\u8D28\u89D2\u6807\uFF1A\u663E\u793A**\u5B9E\u9645\u62FF\u5230**\u7684\u54C1\u8D28\uFF08320k / \u65E0\u635F\uFF09\uFF0C\u62FF\u4E0D\u5230\u5C31\u6574\u4E2A\u9690\u85CF */
+.nmp-quality {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  color: var(--nmp-text-dim);
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 0 5px;
+  line-height: 1.6;
+  white-space: nowrap;
 }
 
 .nmp-volume {
@@ -2365,6 +2380,19 @@ var NeteaseMusic = (() => {
     panel._nmpLyricsFor = String(songId);
     return renderLyrics(panel, lines, { plain, message: "\u8FD9\u9996\u6B4C\u6CA1\u6709\u6B4C\u8BCD" });
   }
+  function qualityLabel(info) {
+    if (!info || !info.br || !info.url) return "";
+    if (/\.(flac|ape|wav)(\?|$)/i.test(info.url)) return "\u65E0\u635F";
+    const kbps = Math.round(Number(info.br) / 1e3);
+    return kbps ? `${kbps}k` : "";
+  }
+  function setQualityBadge(root, info) {
+    const badge = root.querySelector("[data-nmp-quality]");
+    if (!badge) return;
+    const label = qualityLabel(info);
+    badge.textContent = label;
+    badge.hidden = !label;
+  }
   var playToken = 0;
   function findRow(root, songId) {
     if (!songId) return null;
@@ -2571,6 +2599,7 @@ var NeteaseMusic = (() => {
       audio.dataset.nmpSong = songId;
       delete audio.dataset.nmpTarget;
       syncProgress(root, audio);
+      setQualityBadge(root, info);
       loadLyrics(root, client, songId, { loadingText: "\u6B4C\u8BCD\u52A0\u8F7D\u4E2D\u2026", job: lyricJob });
       await audio.play();
       if (Number.isFinite(options.resumeAt) && options.resumeAt > 1) {
@@ -2591,6 +2620,7 @@ var NeteaseMusic = (() => {
       stopAudio(audio);
       resetLyricsFor(root, songId);
       syncPlayButton(root, false);
+      setQualityBadge(root, null);
       failToPlay(root, songId, playErrorMessage(err));
     }
   }
@@ -2887,6 +2917,7 @@ var NeteaseMusic = (() => {
         resetLyricsFor(root, failedId);
         syncPlayButton(root, false);
         setPlaybackState("paused");
+        setQualityBadge(root, null);
         failToPlay(root, failedId, reason);
       });
     }

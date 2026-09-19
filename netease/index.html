@@ -16,8 +16,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="../styles.css?v=46" />
-    <link rel="stylesheet" href="../assets/netease-theme.css?v=46" />
+    <link rel="stylesheet" href="../styles.css?v=47" />
+    <link rel="stylesheet" href="../assets/netease-theme.css?v=47" />
     <script>
       /* 在样式生效前确定语言，避免切换时闪烁 */
       (function () {
@@ -607,6 +607,14 @@
               </button>
             </div>
 
+            <div class="np-row">
+              <label class="np-row-label" for="np-quality">QUALITY</label>
+              <select class="np-select" id="np-quality">
+                <option value="320000">standard · 320k</option>
+                <option value="999000">lossless · 无损 FLAC</option>
+              </select>
+            </div>
+
             <p class="np-adv-note">
               <span class="zh">
                 浏览器直连 <code>music.163.com</code> 会被 CORS 和 Referer 校验拦掉，所以必须要有一个代理。
@@ -639,7 +647,7 @@
       </div>
     </footer>
 
-    <script src="../assets/netease-music.js?v=46"></script>
+    <script src="../assets/netease-music.js?v=47"></script>
     <script>
       /* 网易云解析页 · 页面逻辑
          ------------------------------------------------------------------------
@@ -651,12 +659,14 @@
       (function () {
         var STORE_API = 'qiongkura-netease-api';
         var STORE_ADAPTER = 'qiongkura-netease-adapter';
+        var STORE_BR = 'qiongkura-netease-br';
 
         /* 默认用本站自带的代理：functions/api/[[path]].js 会随站点一起部署到
            Cloudflare Pages，和页面同源，所以相对路径 /api 就够了，不用配任何东西。
            想换成自己另外部署的 Worker，把地址填在这里即可。 */
         var DEFAULT_API = '/api';
         var DEFAULT_ADAPTER = 'official';
+        var DEFAULT_BR = '320000';
 
         var doc = document;
         var params = new URLSearchParams(location.search);
@@ -670,12 +680,23 @@
         var statusText = doc.getElementById('np-status-text');
         var apiInput = doc.getElementById('np-api');
         var adapterSelect = doc.getElementById('np-adapter');
+        var qualitySelect = doc.getElementById('np-quality');
         var checkBtn = doc.getElementById('np-check');
         var saveBtn = doc.getElementById('np-save');
         var resetBtn = doc.getElementById('np-reset');
         var yearEl = doc.getElementById('current-year');
 
         var plugin = window.NeteaseMusic || null;
+
+        /** 品质 → 传给插件的 adapterOptions。
+            official 认 br（999000 = 网易的「无损」档，账号/歌曲不支持时自动降级），
+            netease-url 认 quality，两个都传，谁认谁用。 */
+        function adapterOptionsFor(br) {
+          var lossless = Number(br) >= 999000;
+          return lossless ? { br: 999000, quality: 'lossless' } : { br: 320000, quality: 'exhigh' };
+        }
+
+        var currentBr = String(Number(readStore(STORE_BR)) || DEFAULT_BR);
 
         /* ------------------------------------------------------------ 小工具 */
 
@@ -752,6 +773,7 @@
 
         if (apiInput) apiInput.value = apiBase;
         if (adapterSelect) adapterSelect.value = adapter;
+        if (qualitySelect) qualitySelect.value = currentBr;
 
         /* ------------------------------------------------------- 状态条渲染 */
 
@@ -1110,6 +1132,7 @@
               src: value,
               apiBase: apiBase,
               adapter: adapter,
+              adapterOptions: adapterOptionsFor(currentBr),
               theme: 'light',
               type: typeHint || parsed.primary.type || undefined,
               // 跨页续播：存下来的正是同一个链接时，把上次听到的进度接回来
@@ -1251,10 +1274,13 @@
           resetBtn.addEventListener('click', function () {
             apiBase = trimBase(DEFAULT_API);
             adapter = DEFAULT_ADAPTER;
+            currentBr = DEFAULT_BR;
             writeStore(STORE_API, '');
             writeStore(STORE_ADAPTER, '');
+            writeStore(STORE_BR, '');
             if (apiInput) apiInput.value = apiBase;
             if (adapterSelect) adapterSelect.value = adapter;
+            if (qualitySelect) qualitySelect.value = currentBr;
             renderStatus();
           });
         }
@@ -1264,6 +1290,14 @@
             adapter = adapterSelect.value;
             writeStore(STORE_ADAPTER, adapter);
             renderStatus();
+          });
+        }
+
+        // 品质即刻生效地存起来；下一次解析（mount）就会用新档位取地址
+        if (qualitySelect) {
+          qualitySelect.addEventListener('change', function () {
+            currentBr = String(Number(qualitySelect.value) || DEFAULT_BR);
+            writeStore(STORE_BR, currentBr === DEFAULT_BR ? '' : currentBr);
           });
         }
 
@@ -1292,6 +1326,7 @@
               src: saved.src,
               apiBase: apiBase,
               adapter: adapter,
+              adapterOptions: adapterOptionsFor(currentBr),
               theme: 'light',
               resume: true
             })
