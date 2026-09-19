@@ -2986,6 +2986,8 @@ var NeteaseMusic = (() => {
     readPlayback,
     savePlayback,
     clearPlayback,
+    formatDuration,
+    formatCount,
     ADAPTERS,
     NeteaseApiError,
     isRiskControlResponse

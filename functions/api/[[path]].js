@@ -194,6 +194,24 @@ function urlFailReason(item, env = {}) {
     : '这首歌没配登录 Cookie 时拿不到直链（不是所有歌都这样，这首不行）。配 NETEASE_COOKIE 能多放一些';
 }
 
+/**
+ * 网易对**搜索**接口还有一手按出口 IP 的区别对待（2026-09 实测）：
+ * 同一个 `search/get/web`，从住宅/校园出口返回明文 JSON，
+ * 从 Cloudflare 这类机房出口返回的 `result` 是一串**十六进制密文**。
+ * 密文不是风控（没有 code/-462），就是内容被换了 —— 客户端拿到只会当成
+ * 「没搜到结果」，用户完全看不出是出口被区别对待了。
+ */
+export function isEncryptedSearch(data) {
+  return Boolean(
+    data && typeof data.result === 'string' && data.result.length > 100,
+  );
+}
+
+/** 搜索结果是明文 JSON（result 是对象）才算成功，密文不能缓存也不能透传 */
+function isPlaintextSearch(data) {
+  return Boolean(data && data.result && typeof data.result === 'object');
+}
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
@@ -327,8 +345,8 @@ const ROUTES = {
     `${UPSTREAM}/api/dj/program/byradio?radioId=${p.get('id')}&limit=${p.get('limit') || 100}&offset=0&asc=false`,
 
   '/search': (p) =>
-    `${UPSTREAM}/api/search/get/web?csrf_token=&s=${encodeURIComponent(p.get('q') || '')}` +
-    `&type=${p.get('type') || 1}&offset=0&total=true&limit=${p.get('limit') || 30}`,
+    `${UPSTREAM}/api/cloudsearch/pc?s=${encodeURIComponent(p.get('q') || '')}` +
+    `&type=${p.get('type') || 1}&limit=${p.get('limit') || 30}`,
 };
 
 /**
@@ -641,6 +659,43 @@ export async function handleRequest(request, env = {}) {
           summary,
         },
         { env, extra: { 'Cache-Control': 'no-store' } },
+      );
+    }
+
+    // ---- 搜索：cloudsearch 优先，密文就换身份重试，再不行就说清楚 ----
+    //
+    // 这条路由放在白名单转发外面，因为它比别的路由多一层「内容是不是被加密了」
+    // 的判定：`result` 变成字符串就是网易按出口 IP 给的密文，透传出去的话
+    // 前端只会显示「没搜到」，用户永远不知道是出口被区别对待了。
+    if (path === '/search') {
+      const q = url.searchParams.get('q');
+      if (!q) return json({ code: 400, message: '缺少 q 参数' }, { status: 400, env });
+      const type = url.searchParams.get('type') || 1;
+      const limit = url.searchParams.get('limit') || 30;
+      const query = encodeURIComponent(q);
+
+      // 首选 cloudsearch/pc：字段最全（ar/al/dt/privilege），实测明文 JSON
+      const cloudUrl = `${UPSTREAM}/api/cloudsearch/pc?s=${query}&type=${type}&limit=${limit}`;
+      let data = await fetchUpstream(cloudUrl, env, { cacheWhen: isPlaintextSearch });
+      if (isPlaintextSearch(data)) return json(data, { env });
+
+      // 密文/风控：换桌面客户端身份用老接口再试一次（不同身份有时不一起中招）
+      const legacyUrl = `${UPSTREAM}/api/search/get/web?s=${query}&type=${type}&limit=${limit}`;
+      data = await fetchUpstream(legacyUrl, env, { cacheWhen: isPlaintextSearch, identity: 'desktop' });
+      if (isPlaintextSearch(data)) return json(data, { env });
+
+      const risk = isRiskControl(data);
+      return json(
+        {
+          code: 429,
+          message: risk
+            ? '网易云风控拦截（-462）：这次请求的出口 IP 被网易临时标记了，跟关键词没关系。' +
+              '过几秒再搜一次通常就好了 —— 每次请求走的是不同的边缘节点。'
+            : '网易云把这个出口 IP 的搜索结果加密了（它按 IP 分级区别对待），不是没搜到，' +
+              '跟关键词也无关。过几秒再试一次，或者在本地跑代理（npm run proxy）从自己的出口搜。',
+          upstream: { code: data?.code, encrypted: isEncryptedSearch(data) },
+        },
+        { status: 429, env },
       );
     }
 

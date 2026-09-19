@@ -418,6 +418,37 @@ if (!OFFLINE) {
     dom.window.close();
   }
 
+  /* -------------------------------------- 5c. 直接搜歌名 */
+
+  console.log(bold('\n[5c] 输入歌名（不是链接）→ 出搜索结果列表 → 点一条直接解析'));
+
+  {
+    const dom = bootPage('');
+    await wait(3000);
+    const { document } = dom.window;
+    const input = document.getElementById('np-input');
+
+    input.value = '凡常恩典';
+    document.getElementById('np-go').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+    await wait(9000);
+
+    const list = document.querySelector('#np-result .np-search-list');
+    check('出搜索结果列表', Boolean(list), Boolean(list) ? `${list.querySelectorAll('.np-search-item').length} 条` : '没有 .np-search-list');
+
+    const first = document.querySelector('#np-result .np-search-item');
+    check('第一条是目标歌', first?.querySelector('.np-search-name')?.textContent?.includes('凡常恩典'), first?.querySelector('.np-search-name')?.textContent);
+    check('范围下拉默认是单曲', document.getElementById('np-search-scope')?.value === '1');
+
+    // 点第一条 → 输入框被回填官方链接 → 走现有解析管线出卡片
+    first.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+    await wait(9000);
+
+    check('输入框被回填成官方链接', /music\.163\.com\/#\/song\?id=/.test(input.value), input.value);
+    inspectCard(document, '点搜索结果后解析出卡片', '凡常恩典');
+
+    dom.window.close();
+  }
+
   /* -------------------------------------- 6. 外部地址（独立 Worker） */
 
   console.log(bold('\n[6] ?api=<外部地址> → 走独立 Worker 那份 handler（真实网络）'));

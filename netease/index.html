@@ -16,8 +16,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="../styles.css?v=45" />
-    <link rel="stylesheet" href="../assets/netease-theme.css?v=45" />
+    <link rel="stylesheet" href="../styles.css?v=46" />
+    <link rel="stylesheet" href="../assets/netease-theme.css?v=46" />
     <script>
       /* 在样式生效前确定语言，避免切换时闪烁 */
       (function () {
@@ -287,6 +287,100 @@
       }
       .np-hit-extra { margin-top: 11px; font-size: 12px; color: var(--ink-3); }
 
+      /* --------------------------------------------------------- 搜索结果 */
+
+      /* 输入的不是链接时，把输入当歌名搜出来的那个列表 */
+      .np-search {
+        padding: 15px 16px;
+        background: var(--white);
+        border: 1px solid var(--line-2);
+      }
+      .np-search-head {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 9px;
+      }
+      .np-search-keyword {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 13px;
+        color: var(--ink);
+      }
+      .np-search-keyword b { font-weight: 600; }
+      .np-search-scope { max-width: 130px; font-size: 12px; padding: 5px 8px; }
+      .np-search-list {
+        list-style: none;
+        margin: 11px 0 0;
+        padding: 0;
+        border-top: 1px solid var(--line-2);
+        max-height: 420px;
+        overflow-y: auto;
+      }
+      .np-search-item {
+        display: grid;
+        grid-template-columns: 24px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        width: 100%;
+        padding: 9px 2px;
+        font: inherit;
+        text-align: left;
+        color: var(--ink);
+        background: none;
+        border: 0;
+        border-bottom: 1px solid var(--line-2);
+        cursor: pointer;
+        transition: color 0.2s var(--ease);
+      }
+      .np-search-item:hover .np-search-name { color: var(--red); }
+      .np-search-index {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--ink-3);
+      }
+      .np-search-main { min-width: 0; }
+      .np-search-name {
+        font-size: 13.5px;
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .np-search-sub {
+        margin-top: 2px;
+        font-size: 12px;
+        color: var(--ink-3);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .np-search-side {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--ink-3);
+        white-space: nowrap;
+      }
+      .np-search-badge {
+        margin-left: 7px;
+        padding: 1px 5px;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: var(--red);
+        border: 1px solid currentColor;
+        border-radius: 2px;
+        vertical-align: 1px;
+      }
+      .np-search-more {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--ink-3);
+      }
+
       /* ---------------------------------------------------------------- 设置区 */
 
       .np-adv {
@@ -545,7 +639,7 @@
       </div>
     </footer>
 
-    <script src="../assets/netease-music.js?v=45"></script>
+    <script src="../assets/netease-music.js?v=46"></script>
     <script>
       /* 网易云解析页 · 页面逻辑
          ------------------------------------------------------------------------
@@ -783,6 +877,141 @@
           );
         }
 
+        /* -------------------------------------------- 直接搜歌名（不是链接时） */
+
+        var SEARCH_SCOPES = [
+          { type: 1, zh: '单曲', en: 'Songs' },
+          { type: 10, zh: '专辑', en: 'Albums' },
+          { type: 100, zh: '歌手', en: 'Artists' },
+          { type: 1000, zh: '歌单', en: 'Playlists' }
+        ];
+
+        function searchScopeOptions(active) {
+          return SEARCH_SCOPES.map(function (s) {
+            return (
+              '<option value="' + s.type + '"' + (Number(active) === s.type ? ' selected' : '') + '>' +
+              s.zh + ' · ' + s.en + '</option>'
+            );
+          }).join('');
+        }
+
+        /** 单条结果：名字 / 副行 / 右侧信息，点了就用官方链接走解析 */
+        function searchRow(type, id, index, name, sub, side) {
+          return (
+            '<li>' +
+            '<button class="np-search-item" type="button" data-np-search-id="' + escapeHtml(id) +
+            '" data-np-search-type="' + type + '">' +
+            '<span class="np-search-index">' + String(index + 1).padStart(2, '0') + '</span>' +
+            '<span class="np-search-main">' +
+            '<span class="np-search-name">' + escapeHtml(name) + '</span>' +
+            (sub ? '<span class="np-search-sub">' + escapeHtml(sub) + '</span>' : '') +
+            '</span>' +
+            (side ? '<span class="np-search-side">' + side + '</span>' : '') +
+            '</button></li>'
+          );
+        }
+
+        function searchListHtml(query, type, data) {
+          var scope = SEARCH_SCOPES.filter(function (s) { return s.type === Number(type); })[0];
+          var rows = '';
+          var count = 0;
+
+          if (scope.type === 1) {
+            var songs = data.songs || [];
+            count = songs.length;
+            rows = songs
+              .map(function (song, i) {
+                var sub = song.artistText || '';
+                if (song.album && song.album.name) sub += (sub ? ' · ' : '') + song.album.name;
+                var side = plugin.formatDuration ? plugin.formatDuration(song.duration) : '';
+                if (!song.playable) side += '<span class="np-search-badge">VIP</span>';
+                return searchRow('song', song.id, i, song.name, sub, side);
+              })
+              .join('');
+          } else if (scope.type === 10) {
+            var albums = data.albums || [];
+            count = albums.length;
+            rows = albums
+              .map(function (album, i) {
+                return searchRow('album', album.id, i, album.name, album.artistText || '', '专辑');
+              })
+              .join('');
+          } else if (scope.type === 100) {
+            var artists = data.artists || [];
+            count = artists.length;
+            rows = artists
+              .map(function (artist, i) {
+                return searchRow('artist', artist.id, i, artist.name, '', '歌手');
+              })
+              .join('');
+          } else {
+            var playlists = data.playlists || [];
+            count = playlists.length;
+            rows = playlists
+              .map(function (pl, i) {
+                var side = pl.trackCount ? pl.trackCount + ' 首' : '歌单';
+                return searchRow('playlist', pl.id, i, pl.name, '', side);
+              })
+              .join('');
+          }
+
+          var emptyNote =
+            '<p class="np-search-more"><span class="zh">没搜到「' + escapeHtml(query) + '」，换个关键词或换个范围试试。</span>' +
+            '<span class="en" lang="en">Nothing found for “' + escapeHtml(query) + '” — try other words or another scope.</span></p>';
+
+          return (
+            '<div class="np-search">' +
+            '<div class="np-search-head">' +
+            '<span class="np-search-keyword"><span class="zh">搜索：</span><span class="en" lang="en">Search:</span> <b>' + escapeHtml(query) + '</b></span>' +
+            '<select class="np-select np-search-scope" id="np-search-scope" aria-label="搜索范围">' + searchScopeOptions(type) + '</select>' +
+            '</div>' +
+            (rows
+              ? '<ul class="np-search-list">' + rows + '</ul>' +
+                '<p class="np-search-more"><span class="zh">点一条就直接解析成卡片，能播能看歌词。</span>' +
+                '<span class="en" lang="en">Click a result to parse it into a card — playable, with lyrics.</span></p>'
+              : emptyNote) +
+            '</div>'
+          );
+        }
+
+        /** 把输入当关键词搜一把，结果列表里点一条就走现有解析 */
+        async function searchResults(query, type) {
+          if (!plugin.createClient || !plugin.normalize) {
+            result.innerHTML = notice('插件版本太旧，没有搜索能力。', 'The plugin is too old to search.');
+            return;
+          }
+          result.innerHTML =
+            '<div class="np-note"><span class="zh">正在搜「' + escapeHtml(query) + '」……</span>' +
+            '<span class="en" lang="en">Searching for “' + escapeHtml(query) + '”…</span></div>';
+
+          try {
+            var client = plugin.createClient({ apiBase: apiBase, adapter: adapter });
+            var data = plugin.normalize.normalizeSearch(await client.search(query, type, 10));
+            result.innerHTML = searchListHtml(query, type, data);
+
+            var scopeSelect = doc.getElementById('np-search-scope');
+            if (scopeSelect) {
+              scopeSelect.addEventListener('change', function () {
+                searchResults(query, scopeSelect.value);
+              });
+            }
+            var list = doc.querySelector('.np-search-list');
+            if (list) {
+              list.addEventListener('click', function (event) {
+                var item = event.target.closest('[data-np-search-id]');
+                if (!item || !input) return;
+                var hitType = item.getAttribute('data-np-search-type');
+                var hitId = item.getAttribute('data-np-search-id');
+                input.value = plugin.buildWebUrl(hitType, hitId);
+                run();
+              });
+            }
+          } catch (err) {
+            // 撞上「出口被网易加密搜索结果」时，代理的 429 会带人话说明，这里原样展示
+            result.innerHTML = failNotice((err && err.message) || String(err));
+          }
+        }
+
         /* ------------------------------------------------------------- 解析 */
 
         var busy = false;
@@ -822,10 +1051,23 @@
 
           var parsed = plugin.parseShare(value, typeHint ? { type: typeHint } : {});
           if (!parsed.primary) {
-            result.innerHTML = notice(
-              '没认出这是网易云的链接或 ID，检查一下是不是粘全了。',
-              'That does not look like a NetEase link or ID — check that you pasted the whole thing.'
-            );
+            // 不是链接也不是 ID：把输入当歌名搜（搜索必须走代理，离线做不了）
+            if (!apiBase || backendDead) {
+              result.innerHTML = notice(
+                '没认出网易云链接或 ID。直接输入歌名也可以搜，但搜索要先连上代理 —— 展开下面的「后端设置」确认一下。',
+                'Not a NetEase link or ID. Searching by song name needs the backend — expand “Backend settings” to check it.'
+              );
+              return;
+            }
+            if (busy) return;
+            busy = true;
+            if (goBtn) goBtn.disabled = true;
+            try {
+              await searchResults(value, 1);
+            } finally {
+              busy = false;
+              if (goBtn) goBtn.disabled = false;
+            }
             return;
           }
 
