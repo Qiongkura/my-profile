@@ -95,21 +95,52 @@ function wireStatus(status) {
   return status >= 500 ? 429 : status;
 }
 
-/** 统一响应头 */
-function corsHeaders(env = {}) {
-  return {
-    'Access-Control-Allow-Origin': env.ALLOW_ORIGIN || '*',
+/**
+ * 统一响应头。
+ *
+ * CORS 默认**只放同源**，不再是无脑 `*`。理由：代理是拿你的会员 Cookie 去换
+ * 直链的，`*` 等于把「任何人、任何网站都能白嫖你的额度、借走你的会员」写在
+ * 响应头里。同源访问（本站页面调 /api）本来就不需要 CORS，所以收紧它零成本。
+ *
+ * 想给别的站点用（跨源嵌卡片）：给部署配环境变量 `ALLOW_ORIGIN`
+ * （Pages 后台 → Settings → Environment variables），填具体域名最稳，
+ * 填 `*` 就退回老行为。没有 Origin 头的请求（curl、服务端、同源 GET）
+ * 不受影响 —— CORS 本来只约束浏览器。
+ */
+function corsHeaders(request, env = {}) {
+  const origin = String(env.ALLOW_ORIGIN || '').trim();
+  let allowed = origin;
+  if (!allowed && request) {
+    // 同源请求才回 ACAO；跨源且没配 ALLOW_ORIGIN 就一个字都不回，浏览器自己会拦
+    const from = request.headers.get('origin') || '';
+    try {
+      const host = new URL(request.url).host;
+      allowed = from && new URL(from).host === host ? from : '';
+    } catch {
+      allowed = '';
+    }
+  }
+
+  const headers = {
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age': '86400',
     'Cache-Control': 'public, max-age=300',
+    // 响应随 Origin 变，缓存必须按 Origin 分开存
+    Vary: 'Origin',
   };
+  if (allowed) headers['Access-Control-Allow-Origin'] = allowed;
+  return headers;
 }
 
-function json(data, { status = 200, env = {}, extra = {} } = {}) {
+function json(data, { status = 200, env = {}, extra = {}, request = null } = {}) {
   return new Response(JSON.stringify(data), {
     status: wireStatus(status),
-    headers: { 'Content-Type': 'application/json; charset=utf-8', ...corsHeaders(env), ...extra },
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      ...corsHeaders(request, env),
+      ...extra,
+    },
   });
 }
 
@@ -211,6 +242,67 @@ export function isEncryptedSearch(data) {
 function isPlaintextSearch(data) {
   return Boolean(data && data.result && typeof data.result === 'object');
 }
+
+/**
+ * /diag 的准入判定。
+ *
+ * 这个路由是**放大器**：一次请求最多能打出 n×(1+retries) 次上游请求，
+ * 还带 no-store（绕缓存）。放在公网上就是给人刷额度、顺手把出口 IP 打进
+ * 网易风控用的，所以分两种待遇：
+ *
+ *   - 配了 `DIAG_TOKEN` → 必须带着它（`?token=` 或 `X-Diag-Token` 头），
+ *     带对了就是运维者本人在用，n/retries 放开到 6/3；
+ *   - 没配（公开部署）→ 谁都能调，但 n≤3、retries≤1，
+ *     单次最多放大到 6 次上游调用 —— 够自检用，不够拿来刷额度。
+ *
+ * 生产环境建议配上 DIAG_TOKEN（Pages 后台环境变量，随便一串随机值）。
+ *
+ * @returns {{ reject?: string, operator?: boolean }} reject 有值就拒掉；
+ *   operator 表示「带对了 token」，可以放开上限。
+ */
+function diagGuard(url, request, env = {}) {
+  const token = String(env.DIAG_TOKEN || '').trim();
+  if (!token) return { operator: false };
+  const given = url.searchParams.get('token') || request.headers.get('x-diag-token') || '';
+  if (given === token) return { operator: true };
+  return {
+    reject:
+      '这个部署把 /diag 锁上了：需要 ?token=… 或 X-Diag-Token 头（对应环境变量 DIAG_TOKEN）',
+  };
+}
+
+/**
+ * 数字参数校验。
+ *
+ * 这些 id 会**拼进上游 URL 的路径或 query**（比如 `/api/v1/album/${id}`），
+ * 不校验的话 `id=../nuser/account/get` 就能让代理带上你的会员 Cookie
+ * 去请求 music.163.com 的任意 GET 路径 —— 白名单就被绕过去了。
+ * 网易那边的 id 全都是纯数字，所以只认数字是最省事也最严的规则。
+ */
+function requireDigits(url, keys) {
+  for (const key of keys) {
+    const raw = url.searchParams.get(key);
+    if (raw === null || raw === '') continue; // 缺参数由各自的 400 分支处理
+    if (!/^\d+$/.test(raw)) return { key, value: raw };
+  }
+  return null;
+}
+
+/**
+ * 所有「参数会被拼进上游 URL」的路由，进门先过一遍数字校验。
+ * 加新路由时如果参数不是纯数字（比如 q、url），别往这里加。
+ */
+const DIGIT_PARAMS = {
+  '/song': ['id'],
+  '/song/url': ['id', 'br'],
+  '/lyric': ['id'],
+  '/playlist': ['id', 'limit'],
+  '/album': ['id'],
+  '/artist': ['id'],
+  '/program': ['id'],
+  '/djradio': ['id', 'limit'],
+  '/search': ['type', 'limit'],
+};
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -357,10 +449,10 @@ const ROUTES = {
  */
 export async function handleRequest(request, env = {}) {
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders(env) });
+    return new Response(null, { status: 204, headers: corsHeaders(request, env) });
   }
   if (request.method !== 'GET') {
-    return json({ code: 405, message: '只支持 GET' }, { status: 405, env });
+    return json({ code: 405, message: '只支持 GET' }, { status: 405, env, request });
   }
 
   const url = new URL(request.url);
@@ -386,10 +478,27 @@ export async function handleRequest(request, env = {}) {
       capability: env.NETEASE_COOKIE
         ? '元数据 + 歌词 + 播放地址（配了 Cookie，能放的歌更多）'
         : '元数据 + 歌词 + 部分免费歌曲的播放地址（没配 Cookie，能放的少一些）',
-    }, { env });
+    }, { env, request });
   }
 
   try {
+    // 参数会被拼进上游 URL 的路由，进门先过数字校验。
+    // 少了这一步，`/artist?id=../nuser/account/get` 就能让代理带着会员 Cookie
+    // 去请求 music.163.com 的任意 GET 路径 —— 白名单形同虚设。
+    const digitKeys = DIGIT_PARAMS[path];
+    if (digitKeys) {
+      const bad = requireDigits(url, digitKeys);
+      if (bad) {
+        return json(
+          {
+            code: 400,
+            message: `参数 ${bad.key} 只能是数字（收到：${String(bad.value).slice(0, 40)}）`,
+          },
+          { status: 400, env, request },
+        );
+      }
+    }
+
     // ---- Cookie 体检：拿一首歌实测一下，绕开缓存 ----
     if (path === '/verify') {
       // 默认探测曲必须是一首**能播**的歌，否则体检永远得出
@@ -456,20 +565,20 @@ export async function handleRequest(request, env = {}) {
                 cannotListenReason: item?.freeTrialPrivilege?.cannotListenReason,
               },
         },
-        { env },
+        { env, request },
       );
     }
 
     // ---- 短链解析 ----
     if (path === '/resolve') {
       const target = url.searchParams.get('url');
-      if (!target) return json({ code: 400, message: '缺少 url 参数' }, { status: 400, env });
+      if (!target) return json({ code: 400, message: '缺少 url 参数' }, { status: 400, env, request });
 
       const parsed = parseNeteaseUrl(target);
-      if (!parsed) return json({ code: 400, message: '不是网易云音乐的链接' }, { status: 400, env });
+      if (!parsed) return json({ code: 400, message: '不是网易云音乐的链接' }, { status: 400, env, request });
 
       if (!parsed.short) {
-        return json({ code: 200, type: parsed.type, id: parsed.id, url: parsed.url }, { env });
+        return json({ code: 200, type: parsed.type, id: parsed.id, url: parsed.url }, { env, request });
       }
 
       // 跟一次 302，Location 里就是真实链接
@@ -480,15 +589,15 @@ export async function handleRequest(request, env = {}) {
       const location = res.headers.get('location') || '';
       const real = parseNeteaseUrl(location);
       if (!real || !real.id) {
-        return json({ code: 404, message: '短链没跳到有效页面', location }, { status: 404, env });
+        return json({ code: 404, message: '短链没跳到有效页面', location }, { status: 404, env, request });
       }
-      return json({ code: 200, type: real.type, id: real.id, url: real.url, from: parsed.url }, { env });
+      return json({ code: 200, type: real.type, id: real.id, url: real.url, from: parsed.url }, { env, request });
     }
 
     // ---- 播放地址：三级降级，尽量给一个能播的 url ----
     if (path === '/song/url') {
       const id = url.searchParams.get('id');
-      if (!id) return json({ code: 400, message: '缺少 id 参数' }, { status: 400, env });
+      if (!id) return json({ code: 400, message: '缺少 id 参数' }, { status: 400, env, request });
       const br = url.searchParams.get('br') || 320000;
 
       const apiUrl = `${UPSTREAM}/api/song/enhance/player/url?ids=${encodeURIComponent(`[${id}]`)}&br=${br}`;
@@ -498,7 +607,7 @@ export async function handleRequest(request, env = {}) {
         cacheWhen: (d) => Boolean(d?.data?.[0]?.url),
       });
       const item = data?.data?.[0];
-      if (item?.url) return json(data, { env });
+      if (item?.url) return json(data, { env, request });
 
       // 风控必须**原样往上报成 429**，不能像以前那样在下面伪造一个 code:200 的
       // 「VIP/版权受限」—— 那会让客户端以为这首歌本来就没法播（于是不重试），
@@ -550,7 +659,7 @@ export async function handleRequest(request, env = {}) {
           ],
           code: 200,
         },
-        { env },
+        { env, request },
       );
     }
 
@@ -568,17 +677,29 @@ export async function handleRequest(request, env = {}) {
     //   /diag?path=/album&id=389627625&n=3&realip=1.2.3.4   # 试 X-Real-IP 有没有用
     //   /diag?path=/album&id=389627625&n=3&ua=compare       # 浏览器 UA vs 桌面客户端 UA，交替 A/B
     if (path === '/diag') {
+      const guard = diagGuard(url, request, env);
+      if (guard.reject) {
+        return json({ code: 403, message: guard.reject }, { status: 403, env, request });
+      }
+
       const target = url.searchParams.get('path') || '/album';
       const builder = ROUTES[target];
       if (!builder) {
         return json(
           { code: 400, message: `path 只能是：${Object.keys(ROUTES).join(' / ')}` },
-          { status: 400, env },
+          { status: 400, env, request },
         );
       }
-      const n = Math.min(Math.max(Number(url.searchParams.get('n')) || 3, 1), 6);
+      // 公开部署（没配 DIAG_TOKEN）收紧到 n≤3 / retries≤1：一次 diag 最多
+      // 放大到 6 次上游请求，够自检用了，不够拿来刷额度。带对 token 的放开。
+      const maxN = guard.operator ? 6 : 3;
+      const maxRetries = guard.operator ? 3 : 1;
+      const n = Math.min(Math.max(Number(url.searchParams.get('n')) || 3, 1), maxN);
       const raw = url.searchParams.get('mode') === 'raw';
-      const retries = Math.min(Math.max(Number(url.searchParams.get('retries')) || 0, 0), 3);
+      const retries = Math.min(
+        Math.max(Number(url.searchParams.get('retries')) || 0, 0),
+        maxRetries,
+      );
       const ua = ['browser', 'desktop', 'compare'].includes(url.searchParams.get('ua'))
         ? url.searchParams.get('ua')
         : 'browser';
@@ -658,7 +779,7 @@ export async function handleRequest(request, env = {}) {
           ...(ua === 'compare' && !raw ? { browser: tally('browser'), desktop: tally('desktop') } : {}),
           summary,
         },
-        { env, extra: { 'Cache-Control': 'no-store' } },
+        { env, request, extra: { 'Cache-Control': 'no-store' } },
       );
     }
 
@@ -669,7 +790,7 @@ export async function handleRequest(request, env = {}) {
     // 前端只会显示「没搜到」，用户永远不知道是出口被区别对待了。
     if (path === '/search') {
       const q = url.searchParams.get('q');
-      if (!q) return json({ code: 400, message: '缺少 q 参数' }, { status: 400, env });
+      if (!q) return json({ code: 400, message: '缺少 q 参数' }, { status: 400, env, request });
       const type = url.searchParams.get('type') || 1;
       const limit = url.searchParams.get('limit') || 30;
       const query = encodeURIComponent(q);
@@ -677,12 +798,12 @@ export async function handleRequest(request, env = {}) {
       // 首选 cloudsearch/pc：字段最全（ar/al/dt/privilege），实测明文 JSON
       const cloudUrl = `${UPSTREAM}/api/cloudsearch/pc?s=${query}&type=${type}&limit=${limit}`;
       let data = await fetchUpstream(cloudUrl, env, { cacheWhen: isPlaintextSearch });
-      if (isPlaintextSearch(data)) return json(data, { env });
+      if (isPlaintextSearch(data)) return json(data, { env, request });
 
       // 密文/风控：换桌面客户端身份用老接口再试一次（不同身份有时不一起中招）
       const legacyUrl = `${UPSTREAM}/api/search/get/web?s=${query}&type=${type}&limit=${limit}`;
       data = await fetchUpstream(legacyUrl, env, { cacheWhen: isPlaintextSearch, identity: 'desktop' });
-      if (isPlaintextSearch(data)) return json(data, { env });
+      if (isPlaintextSearch(data)) return json(data, { env, request });
 
       const risk = isRiskControl(data);
       return json(
@@ -702,7 +823,7 @@ export async function handleRequest(request, env = {}) {
     // ---- 白名单转发 ----
     const builder = ROUTES[path];
     if (!builder) {
-      return json({ code: 404, message: `未知路由 ${path}`, routes: Object.keys(ROUTES) }, { status: 404, env });
+      return json({ code: 404, message: `未知路由 ${path}`, routes: Object.keys(ROUTES) }, { status: 404, env, request });
     }
 
     const data = await fetchUpstream(builder(url.searchParams), env);
@@ -725,7 +846,7 @@ export async function handleRequest(request, env = {}) {
       );
     }
 
-    return json(data, { env });
+    return json(data, { env, request });
   } catch (err) {
     const status = err?.status && err.status >= 400 && err.status < 600 ? err.status : 500;
     const wire = wireStatus(status);
