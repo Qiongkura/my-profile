@@ -359,6 +359,60 @@
     /* 物理(高速弹珠加密子步防穿透:3000px/s 下每子步 ≈5px) */
     this.world.step(dt, 10);
 
+    /* 导流弧角:弹珠贴轨滑行(吸附到圆弧路径,不反弹) */
+    var bl = this.world.balls;
+    for (i = 0; i < bl.length; i++) {
+      var rb = bl[i];
+      if (rb.dead) continue;
+      var railR = b.cornerR.r - 23; /* 弧面 - 半厚 - 球半径 = 球心轨半径 */
+      if (rb.rail) {
+        var sp = Math.sqrt(rb.vx * rb.vx + rb.vy * rb.vy) * (1 - 0.06 * dt);
+        if (sp < 220 || rb.rail.a <= rb.rail.aEnd) {
+          /* 滑到弧角末端:沿切线自然飞出 */
+          var ta = Math.max(rb.rail.a, rb.rail.aEnd);
+          rb.x = rb.rail.cx + Math.cos(ta) * railR;
+          rb.y = rb.rail.cy + Math.sin(ta) * railR;
+          rb.vx = Math.sin(ta) * sp;
+          rb.vy = -Math.cos(ta) * sp;
+          rb.rail = null;
+          continue;
+        }
+        rb.rail.a -= (sp / railR) * dt;
+        rb.x = rb.rail.cx + Math.cos(rb.rail.a) * railR;
+        rb.y = rb.rail.cy + Math.sin(rb.rail.a) * railR;
+        rb.vx = Math.sin(rb.rail.a) * sp;
+        rb.vy = -Math.cos(rb.rail.a) * sp;
+        continue;
+      }
+      /* 上升弹珠进入右上弧角 → 贴轨 */
+      if (rb.vy < 0 && rb.x > b.cornerR.cx - 6 && rb.y < b.cornerR.cy + 30) {
+        var dRx = rb.x - b.cornerR.cx, dRy = rb.y - b.cornerR.cy;
+        var dR = Math.sqrt(dRx * dRx + dRy * dRy);
+        if (dR <= railR + 4 && dR > railR * 0.4) {
+          var a0 = Math.atan2(dRy, dRx);
+          if (a0 > 0.25) a0 = 0.25;
+          rb.rail = { cx: b.cornerR.cx, cy: b.cornerR.cy, a: a0, aEnd: -Math.PI / 2 };
+          rb.x = b.cornerR.cx + Math.cos(a0) * railR;
+          rb.y = b.cornerR.cy + Math.sin(a0) * railR;
+          continue;
+        }
+      }
+      /* 向左扫边的弹珠进入左上弧角 → 贴轨 */
+      if (rb.vx < 0 && rb.x < b.cornerL.cx + 6 && rb.y < b.cornerL.cy + 30) {
+        var dLx = rb.x - b.cornerL.cx, dLy = rb.y - b.cornerL.cy;
+        var dL = Math.sqrt(dLx * dLx + dLy * dLy);
+        if (dL <= railR + 4 && dL > railR * 0.4) {
+          var aL = Math.atan2(dLy, dLx);
+          if (aL > -Math.PI / 2 + 0.2) aL = -Math.PI / 2 + 0.2;
+          if (aL < -Math.PI + 0.1) aL = -Math.PI + 0.1;
+          rb.rail = { cx: b.cornerL.cx, cy: b.cornerL.cy, a: aL, aEnd: -Math.PI };
+          rb.x = b.cornerL.cx + Math.cos(aL) * railR;
+          rb.y = b.cornerL.cy + Math.sin(aL) * railR;
+          continue;
+        }
+      }
+    }
+
     /* 弹珠簿记 */
     var balls = this.world.balls;
     var alive = 0;
