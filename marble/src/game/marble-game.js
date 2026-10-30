@@ -452,7 +452,14 @@
           }
         }
 
-        /* 卡住兜底 */
+        /* 卡住兜底:持续低速累计计时,超时按就近洞落袋 */
+        if (speed < 40) m.stuckTotal = (m.stuckTotal || 0) + dt;
+        else m.stuckTotal = Math.max(0, (m.stuckTotal || 0) - dt * 2);
+        if (m.stuckTotal > 2.5) {
+          MG.fx.text(this.fx, m.x, m.y - 24, '卡住啦', { size: 20, color: '#a8813f' });
+          this.captureHole(m);
+          continue;
+        }
         if (speed < 30) m.slowT += dt; else m.slowT = Math.max(0, m.slowT - dt * 2);
         if (m.slowT > 1.2) {
           m.slowT = 0;
