@@ -308,6 +308,16 @@
                   <span class="work-arrow" aria-hidden="true">↗</span>
                 </a>
               </li>
+              <li>
+                <a class="work-row" href="/marble/" target="_blank" rel="noreferrer" data-work="5" data-aria-zh="打开弹弹珠机,在线试玩" data-aria-en="Open Marble Machine, play in browser">
+                  <span class="work-num">06</span>
+                  <span class="work-name">
+                    <span class="work-title"><span class="zh">弹弹珠机</span><span class="en" lang="en">Marble Machine</span></span>
+                    <em><span class="zh">休闲游戏 · Canvas 物理引擎 /<br class="work-sub-break" />微信 / 抖音小游戏</span><span class="en" lang="en">Casual Game · Canvas physics /<br class="work-sub-break" />WeChat / Douyin minigames</span></em>
+                  </span>
+                  <span class="work-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
             </ol>
 
             <div class="work-stage" id="work-stage" aria-hidden="true">
@@ -378,6 +388,28 @@
                 <figcaption>
                   <span class="zh">屏幕使用时间记录 · 主界面与统计报告</span>
                   <span class="en" lang="en">Focus Time Tracker · Window and report</span>
+                </figcaption>
+              </figure>
+
+              <figure class="work-panel" data-panel="5">
+                <div class="diagram">
+                  <p class="diagram-title"><span class="zh">玩法流程示意</span><span class="en" lang="en">GAMEPLAY DIAGRAM</span></p>
+                  <ol class="diagram-flow">
+                    <li><span class="zh">右下角选投入弹珠数</span><span class="en" lang="en">Pick marbles to invest</span></li>
+                    <li><span class="zh">蓄力发射 · 冲过导流弧角</span><span class="en" lang="en">Charge, launch, ride the arc</span></li>
+                    <li><span class="zh">斜面滚落 · 穿过 LED 钉阵</span><span class="en" lang="en">Roll down through LED pegs</span></li>
+                    <li><span class="zh">落入亮灯洞 = 中奖</span><span class="en" lang="en">Drop into a lit hole = prize</span></li>
+                  </ol>
+                  <dl class="diagram-rows">
+                    <div><dt><span class="zh">倍率档位</span><span class="en" lang="en">Multiplier</span></dt><dd>×2 / ×4 / ×6 / ×8 / ×10</dd></div>
+                    <div><dt><span class="zh">亮灯洞数</span><span class="en" lang="en">Lit holes</span></dt><dd><span class="zh">5 → 4 → 3 → 2 → 1</span><span class="en" lang="en">5 → 4 → 3 → 2 → 1</span></dd></div>
+                    <div><dt><span class="zh">中奖奖励</span><span class="en" lang="en">Prize</span></dt><dd><span class="zh">投入 × 倍率 颗弹珠</span><span class="en" lang="en">invest × mult marbles</span></dd></div>
+                    <div><dt><span class="zh">弹珠库</span><span class="en" lang="en">Marble bank</span></dt><dd><span class="zh">每局 20 颗</span><span class="en" lang="en">20 per round</span></dd></div>
+                  </dl>
+                </div>
+                <figcaption>
+                  <span class="zh">弹弹珠机 · 街机弹珠玩法</span>
+                  <span class="en" lang="en">Marble Machine · arcade marbles</span>
                 </figcaption>
               </figure>
             </div>
@@ -452,6 +484,20 @@
                     <li><span class="zh">网站靠窗口标题 + 浏览器历史库本地匹配（Chrome / Edge / Firefox），全程不联网；SQLite WAL 支持读写并发</span><span class="en" lang="en">Websites matched locally via window title + browser history (Chrome / Edge / Firefox), never online; SQLite WAL for concurrent reads</span></li>
                 </ul>
                 <p class="brief-tech">Python · Win32 API · SQLite</p>
+              </article>
+              <article class="work-brief-item" data-brief="5">
+                <p class="brief-kicker">06 / <span class="zh">休闲游戏</span><span class="en" lang="en">Casual Game</span></p>
+                <h3 class="brief-title"><span class="zh">弹弹珠机</span><span class="en" lang="en">Marble Machine</span></h3>
+                <p class="brief-desc">
+                  <span class="zh">复刻线下「玻璃珠自动贩卖游艺机」：右下角选投入弹珠数定倍率，按住蓄力把弹珠从弹道向上弹，沿斜面滚落穿过 LED 钉阵，从亮灯的洞滑落就中奖。一套代码同时跑网页、微信小游戏和抖音小游戏。</span>
+                  <span class="en" lang="en">A web remake of the arcade marble prize machine: pick how many marbles to invest for a higher multiplier, launch one up the spring lane, let it roll down a tilted field of LED pegs — land in a lit hole to win. One codebase runs on web, WeChat and Douyin minigames.</span>
+                </p>
+                <ul class="brief-points">
+                    <li><span class="zh">投入越多倍率越高（×2→×10），亮灯的洞越少，中奖赢回 投入×倍率 颗弹珠</span><span class="en" lang="en">Invest more for a higher multiplier (×2→×10) with fewer lit holes; wins pay invest × multiplier marbles</span></li>
+                    <li><span class="zh">自研 Canvas 物理引擎：斜面低重力滚珠、导流弧角、子步防穿透、单珠发射道</span><span class="en" lang="en">Custom Canvas physics: tilted low-gravity rolling, deflector arcs, substepped anti-tunnelling, single-marble lane</span></li>
+                    <li><span class="zh">零依赖零构建：命名空间模块 + 平台适配层，网页 / 微信 / 抖音三端同源运行</span><span class="en" lang="en">Zero deps, zero build: namespaced modules + platform adapter run the same source on web, WeChat and Douyin</span></li>
+                </ul>
+                <p class="brief-tech">Canvas · 自研物理引擎 · 微信小游戏 · 抖音小游戏</p>
               </article>
             </aside>
           </div>
