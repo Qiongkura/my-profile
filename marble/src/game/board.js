@@ -28,14 +28,15 @@
     var floorY = H - panelH - 14;
     var fieldRight = laneX0 - 10;
 
-    /* ---- 底部洞口(13 个,无分数) ---- */
+    /* ---- 底部洞口(13 个,无分数):整体右移避开左侧导轨边框 ---- */
     var n = CFG.pockets.count;
-    var pw = (fieldRight - fieldX0) / n;
+    var innerX0 = fieldX0 + 7;
+    var pw = (fieldRight - innerX0) / n;
     var holes = [];
     for (var i = 0; i < n; i++) {
       holes.push({
-        x0: fieldX0 + i * pw, x1: fieldX0 + (i + 1) * pw,
-        cx: fieldX0 + (i + 0.5) * pw,
+        x0: innerX0 + i * pw, x1: innerX0 + (i + 1) * pw,
+        cx: innerX0 + (i + 0.5) * pw,
         lit: false, flash: 0
       });
     }
@@ -44,7 +45,7 @@
     /* 洞间隔针 */
     var dividers = [];
     for (var d = 1; d < n; d++) {
-      var dx = fieldX0 + d * pw;
+      var dx = innerX0 + d * pw;
       dividers.push({ x1: dx, y1: capY - 40, x2: dx, y2: floorY, half: 3, e: 0.15, friction: 0.85, kind: 'divider' });
     }
 
@@ -145,7 +146,7 @@
       fieldX0: fieldX0, fieldRight: fieldRight, floorY: floorY,
       lane: { x0: laneX0, x1: laneX1, cx: laneCx, top: L.laneTop, floorY: laneFloorY, spawn: spawn },
       pegs: pegs, bumpers: bumpers,
-      holes: holes, pw: pw, capY: capY, holeN: n,
+      holes: holes, pw: pw, capY: capY, holeN: n, innerX0: innerX0,
       dividers: dividers, walls: walls,
       ceilingY: ceilingY, cornerL: cornerL, cornerR: cornerR2,
       borderLeds: leds

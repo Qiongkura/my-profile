@@ -309,7 +309,7 @@
   /* 落入洞口:亮灯 = 中奖 */
   Game.prototype.captureHole = function (m) {
     var b = this.board;
-    var idx = U.clamp(Math.floor((m.x - b.fieldX0) / b.pw), 0, b.holeN - 1);
+    var idx = U.clamp(Math.floor((m.x - b.innerX0) / b.pw), 0, b.holeN - 1);
     var hole = b.holes[idx];
     m.dead = true;
 
@@ -444,7 +444,7 @@
 
         /* 落入洞口 */
         if (m.y > b.capY && m.y < b.floorY + 30 && m.x < b.lane.x0 - 10) {
-          var idx = U.clamp(Math.floor((m.x - b.fieldX0) / b.pw), 0, b.holeN - 1);
+          var idx = U.clamp(Math.floor((m.x - b.innerX0) / b.pw), 0, b.holeN - 1);
           if (Math.abs(m.x - b.holes[idx].cx) < b.pw * 0.44) { this.captureHole(m); continue; }
         }
 
@@ -563,16 +563,17 @@
     ctx.fillStyle = C.frame;
     ctx.fill();
 
-    /* ---- 场地(暖黄玻璃斜面,铺满全宽;右侧下部为弹道槽) ---- */
+    /* ---- 场地(暖黄玻璃斜面,铺满全宽;左右上角对称圆角与导轨重合) ---- */
     var R2 = b.cornerL.r;
     function fieldPath(c) {
       c.beginPath();
-      c.moveTo(b.fieldX0 + R2, backH);
-      c.lineTo(W - 15, backH);
+      c.moveTo(b.fieldX0 + R2, b.ceilingY);
+      c.lineTo(W - 15 - R2, b.ceilingY);
+      c.arcTo(W - 15, b.ceilingY, W - 15, b.ceilingY + R2, R2);
       c.lineTo(W - 15, b.floorY - 6);
       c.lineTo(b.fieldX0, b.floorY - 6);
-      c.lineTo(b.fieldX0, backH + R2);
-      c.arcTo(b.fieldX0, backH, b.fieldX0 + R2, backH, R2);
+      c.lineTo(b.fieldX0, b.ceilingY + R2);
+      c.arcTo(b.fieldX0, b.ceilingY, b.fieldX0 + R2, b.ceilingY, R2);
       c.closePath();
     }
     fieldPath(ctx);
