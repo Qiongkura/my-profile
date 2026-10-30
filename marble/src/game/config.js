@@ -46,10 +46,10 @@
     /* 倍率档位:右下角自选投入弹珠数 → 倍率 / 亮灯数 */
     tiers: [
       { cost: 1, mult: 2, lit: 5 },
-      { cost: 2, mult: 4, lit: 4 },
-      { cost: 3, mult: 6, lit: 3 },
-      { cost: 4, mult: 8, lit: 2 },
-      { cost: 5, mult: 10, lit: 1 }
+      { cost: 2, mult: 3, lit: 4 },
+      { cost: 3, mult: 4, lit: 3 },
+      { cost: 4, mult: 5, lit: 2 },
+      { cost: 5, mult: 6, lit: 1 }
     ],
     winBase: 0,            // 中奖直接赢 投入×倍率 颗弹珠(无额外基础分)
     giftCardMult: 6,       // ×6 及以上中奖送礼品卡

@@ -356,61 +356,58 @@
     this.launcherCool -= dt;
     this.launcherPulse = Math.max(0, this.launcherPulse - dt * 4);
 
-    /* 物理(高速弹珠加密子步防穿透:3000px/s 下每子步 ≈5px) */
+    /* 导流弧角:进入检测(在物理碰撞发生前吸附,避免撞弧反弹) */
+    var pre = this.world.balls;
+    for (i = 0; i < pre.length; i++) {
+      var pb = pre[i];
+      if (pb.dead || pb.rail) continue;
+      if (pb.railCd > 0) { pb.railCd -= dt; continue; }
+      if (pb.vy < -0.5 && pb.x > b.cornerR.cx - 6 && pb.y < b.cornerR.cy + 40) {
+        var dxr = pb.x - b.cornerR.cx, dyr = pb.y - b.cornerR.cy;
+        var dr = Math.sqrt(dxr * dxr + dyr * dyr);
+        if (dr <= 59 && dr > 25) {
+          var a0 = Math.atan2(dyr, dxr);
+          if (a0 > 0.05) a0 = 0.05;
+          if (a0 < -1.55) a0 = -1.55;
+          pb.rail = { cx: b.cornerR.cx, cy: b.cornerR.cy, a: a0, aEnd: -Math.PI / 2 };
+        }
+      } else if (pb.vx < -0.5 && pb.x < b.cornerL.cx + 50 && pb.y < b.cornerL.cy + 40) {
+        var dxl = pb.x - b.cornerL.cx, dyl = pb.y - b.cornerL.cy;
+        var dl = Math.sqrt(dxl * dxl + dyl * dyl);
+        if (dl <= 59 && dl > 25) {
+          var aL = Math.atan2(dyl, dxl);
+          if (aL > -Math.PI / 2 + 0.2) aL = -Math.PI / 2 + 0.2;
+          if (aL < -Math.PI + 0.1) aL = -Math.PI + 0.1;
+          pb.rail = { cx: b.cornerL.cx, cy: b.cornerL.cy, a: aL, aEnd: -Math.PI };
+        }
+      }
+    }
+
     this.world.step(dt, 10);
 
-    /* 导流弧角:弹珠贴轨滑行(吸附到圆弧路径,不反弹) */
+    /* 导流弧角:贴轨滑行(吸附在圆弧路径上,不反弹) */
     var bl = this.world.balls;
     for (i = 0; i < bl.length; i++) {
       var rb = bl[i];
-      if (rb.dead) continue;
-      var railR = b.cornerR.r - 23; /* 弧面 - 半厚 - 球半径 = 球心轨半径 */
-      if (rb.rail) {
-        var sp = Math.sqrt(rb.vx * rb.vx + rb.vy * rb.vy) * (1 - 0.06 * dt);
-        if (sp < 220 || rb.rail.a <= rb.rail.aEnd) {
-          /* 滑到弧角末端:沿切线自然飞出 */
-          var ta = Math.max(rb.rail.a, rb.rail.aEnd);
-          rb.x = rb.rail.cx + Math.cos(ta) * railR;
-          rb.y = rb.rail.cy + Math.sin(ta) * railR;
-          rb.vx = Math.sin(ta) * sp;
-          rb.vy = -Math.cos(ta) * sp;
-          rb.rail = null;
-          continue;
-        }
-        rb.rail.a -= (sp / railR) * dt;
-        rb.x = rb.rail.cx + Math.cos(rb.rail.a) * railR;
-        rb.y = rb.rail.cy + Math.sin(rb.rail.a) * railR;
-        rb.vx = Math.sin(rb.rail.a) * sp;
-        rb.vy = -Math.cos(rb.rail.a) * sp;
+      if (rb.dead || !rb.rail) continue;
+      var railR = 57; /* 弧半径 80 - 半厚 8 - 球半径 15 = 球心轨半径 */
+      var sp = Math.sqrt(rb.vx * rb.vx + rb.vy * rb.vy) * (1 - 0.06 * dt);
+      if (sp < 220 || rb.rail.a <= rb.rail.aEnd) {
+        /* 滑到弧角末端:沿切线自然飞出(短时间不再吸附) */
+        var ta = Math.max(rb.rail.a, rb.rail.aEnd);
+        rb.x = rb.rail.cx + Math.cos(ta) * railR;
+        rb.y = rb.rail.cy + Math.sin(ta) * railR;
+        rb.vx = Math.sin(ta) * sp;
+        rb.vy = -Math.cos(ta) * sp;
+        rb.rail = null;
+        rb.railCd = 0.6;
         continue;
       }
-      /* 上升弹珠进入右上弧角 → 贴轨 */
-      if (rb.vy < 0 && rb.x > b.cornerR.cx - 6 && rb.y < b.cornerR.cy + 30) {
-        var dRx = rb.x - b.cornerR.cx, dRy = rb.y - b.cornerR.cy;
-        var dR = Math.sqrt(dRx * dRx + dRy * dRy);
-        if (dR <= railR + 4 && dR > railR * 0.4) {
-          var a0 = Math.atan2(dRy, dRx);
-          if (a0 > 0.25) a0 = 0.25;
-          rb.rail = { cx: b.cornerR.cx, cy: b.cornerR.cy, a: a0, aEnd: -Math.PI / 2 };
-          rb.x = b.cornerR.cx + Math.cos(a0) * railR;
-          rb.y = b.cornerR.cy + Math.sin(a0) * railR;
-          continue;
-        }
-      }
-      /* 向左扫边的弹珠进入左上弧角 → 贴轨 */
-      if (rb.vx < 0 && rb.x < b.cornerL.cx + 6 && rb.y < b.cornerL.cy + 30) {
-        var dLx = rb.x - b.cornerL.cx, dLy = rb.y - b.cornerL.cy;
-        var dL = Math.sqrt(dLx * dLx + dLy * dLy);
-        if (dL <= railR + 4 && dL > railR * 0.4) {
-          var aL = Math.atan2(dLy, dLx);
-          if (aL > -Math.PI / 2 + 0.2) aL = -Math.PI / 2 + 0.2;
-          if (aL < -Math.PI + 0.1) aL = -Math.PI + 0.1;
-          rb.rail = { cx: b.cornerL.cx, cy: b.cornerL.cy, a: aL, aEnd: -Math.PI };
-          rb.x = b.cornerL.cx + Math.cos(aL) * railR;
-          rb.y = b.cornerL.cy + Math.sin(aL) * railR;
-          continue;
-        }
-      }
+      rb.rail.a -= (sp / railR) * dt;
+      rb.x = rb.rail.cx + Math.cos(rb.rail.a) * railR;
+      rb.y = rb.rail.cy + Math.sin(rb.rail.a) * railR;
+      rb.vx = Math.sin(rb.rail.a) * sp;
+      rb.vy = -Math.cos(rb.rail.a) * sp;
     }
 
     /* 弹珠簿记 */
@@ -442,10 +439,17 @@
       } else {
         m.refundT = 0;
 
-        /* 落入洞口 */
-        if (m.y > b.capY && m.y < b.floorY + 30 && m.x < b.lane.x0 - 10) {
+        /* 落入洞口;洞口区滞留(如骑在隔针上)短暂后按就近洞落袋 */
+        if (m.y > b.capY - 70 && m.y < b.floorY + 30 && m.x < b.lane.x0 - 10) {
           var idx = U.clamp(Math.floor((m.x - b.innerX0) / b.pw), 0, b.holeN - 1);
-          if (Math.abs(m.x - b.holes[idx].cx) < b.pw * 0.44) { this.captureHole(m); continue; }
+          var inWin = Math.abs(m.x - b.holes[idx].cx) < b.pw * 0.44;
+          if (inWin && m.y > b.capY) { this.captureHole(m); continue; }
+          if (speed < 60) {
+            m.mouthT = (m.mouthT || 0) + dt;
+            if (m.mouthT > 0.45) { this.captureHole(m); continue; }
+          } else {
+            m.mouthT = 0;
+          }
         }
 
         /* 卡住兜底 */
