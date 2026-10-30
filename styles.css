@@ -18,7 +18,7 @@
   --bar-h: clamp(44px, calc(2.4 * var(--u)), 150px);
   --maxw: clamp(280px, 74vw, 3000px);
 
-  --sans: 'Inter', 'Helvetica Neue', Arial, 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --sans: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 
   --ease: cubic-bezier(.22, .61, .36, 1); --u: min(1vw, 1.6vh); }
