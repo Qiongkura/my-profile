@@ -356,8 +356,8 @@
     this.launcherCool -= dt;
     this.launcherPulse = Math.max(0, this.launcherPulse - dt * 4);
 
-    /* 物理 */
-    this.world.step(dt, 8);
+    /* 物理(高速弹珠加密子步防穿透:3000px/s 下每子步 ≈5px) */
+    this.world.step(dt, 10);
 
     /* 弹珠簿记 */
     var balls = this.world.balls;

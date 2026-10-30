@@ -18,7 +18,7 @@
 
     /* 物理:斜面滚珠(低重力慢滚),弹道爬升需要较高初速 */
     gravity: 850,
-    maxSpeed: 1500,
+    maxSpeed: 3000,        // 全局限速(翻倍)
     airDrag: 0.1,
     ballR: 15,
     pegR: 9,
@@ -58,7 +58,7 @@
     /* 发射(右下角,竖直向上) */
     launcher: {
       minSpeed: 700,       // 太小 → 冲不到顶,滚回来退还
-      maxSpeed: 1500,
+      maxSpeed: 3000,      // 最高速度(翻倍)
       cooldown: 0.3,
       tapPower: 0.88,      // 快速点按(足以翻过导弧)
       chargeSpeed: 0.8,
