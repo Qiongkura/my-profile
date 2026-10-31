@@ -145,9 +145,9 @@
       var yy = deflectYs[dy];
       if (yy > pegBottom - 60) break;
       /* 左墙:从墙面向右下 34px,坡度让球向内滑 */
-      deflectors.push({ x1: fieldX0 + 20, y1: yy, x2: fieldX0 + 54, y2: yy + 26, half: 5, e: 0.15, friction: 0.995, kind: 'wall' });
+      deflectors.push({ x1: fieldX0 + 20, y1: yy, x2: fieldX0 + 54, y2: yy + 26, half: 5, e: 0.15, friction: 0.995, kind: 'deflector' });
       /* 右墙(弹道内墙)镜像 */
-      deflectors.push({ x1: laneX0 - 9, y1: yy, x2: laneX0 - 43, y2: yy + 26, half: 5, e: 0.15, friction: 0.995, kind: 'wall' });
+      deflectors.push({ x1: laneX0 - 9, y1: yy, x2: laneX0 - 43, y2: yy + 26, half: 5, e: 0.15, friction: 0.995, kind: 'deflector' });
     }
     for (var dc = 0; dc < deflectors.length; dc++) walls.push(deflectors[dc]);
 

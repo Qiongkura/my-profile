@@ -708,6 +708,22 @@
     ctx.lineWidth = 3;
     ctx.stroke();
     ctx.restore();
+
+    /* 墙边斜挡板(轨道同款材质,可见) */
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = C.trackMain;
+    ctx.lineWidth = 10;
+    for (var wi = 0; wi < b.walls.length; wi++) {
+      var wsg = b.walls[wi];
+      if (wsg.kind !== 'deflector') continue;
+      ctx.beginPath();
+      ctx.moveTo(wsg.x1, wsg.y1);
+      ctx.lineTo(wsg.x2, wsg.y2);
+      ctx.stroke();
+    }
+    ctx.restore();
+
     /* 弹道内墙顶圆帽 */
     ctx.beginPath();
     ctx.arc(b.lane.x0, b.lane.top, 8, 0, U.TAU);
