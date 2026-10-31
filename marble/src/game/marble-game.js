@@ -329,7 +329,8 @@
     var lane = this.board.lane;
     /* 两段式力度:前 40% 曲线(到临界),后 60% 线性到最大 */
     var cp = CFG.launcher.crestPower;
-    var frac = (CFG.launcher.crestSpeed - CFG.launcher.minSpeed) / (CFG.launcher.maxSpeed - CFG.launcher.minSpeed);
+    var crest = this.board.crestSpeed || CFG.launcher.crestSpeed;   /* 随屏高自适应 */
+    var frac = (crest - CFG.launcher.minSpeed) / (CFG.launcher.maxSpeed - CFG.launcher.minSpeed);
     var lp;
     if (power <= cp) {
       var t = power / cp;

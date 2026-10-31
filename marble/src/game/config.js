@@ -32,7 +32,7 @@
       cornerR: 64,         // 左右导流圆弧角(缩小:两侧导轨大部分竖直,只留小圆角)
       laneW: 80,           // 右侧弹道宽(内墙 face 到右墙 face 40px,球径 30 顺滑通过)
       laneTop: 445,        // 弹道内墙顶端,弹珠越过它进入场内
-      pegTop: 540,
+      pegTop: 430,
       pegBottomPad: 160,
       bumpers: { r: 17, boost: 0, fx: [0.22, 0.7, 0.45], fy: [0.3, 0.42, 0.68] }
     },

@@ -64,7 +64,7 @@
       var y = pegTop + r * rowGap + (rng() - 0.5) * 10;
       for (var c = 0; c < count; c++) {
         var x = fieldX0 + off + c * spacing + (rng() - 0.5) * 10;
-        /* 两墙各留 36px 过球通道:靠左墙/弹道墙的钉不许把球卡在缝里 */
+        /* 两墙各留 36px 通球通道(缝 < 球径必然卡死);趣味由墙边斜挡板提供 */
         x = U.clamp(x, fieldX0 + 52, fieldRight - 43);
         var led = rng();
         pegs.push({
@@ -138,6 +138,21 @@
     for (var a1 = 0; a1 < arcTL.length; a1++) walls.push(arcTL[a1]);
     for (var a2 = 0; a2 < arcTR.length; a2++) walls.push(arcTR[a2]);
 
+    /* 墙边斜挡板:贴墙直落的球被斜坡拨回场内(球能从下方通道继续走,不卡) ---- */
+    var deflectors = [];
+    var deflectYs = [pegTop + 40, pegTop + 220, pegTop + 400];
+    for (var dy = 0; dy < deflectYs.length; dy++) {
+      var yy = deflectYs[dy];
+      if (yy > pegBottom - 60) break;
+      /* 左墙:从墙面向右下 34px,坡度让球向内滑 */
+      deflectors.push({ x1: fieldX0 + 20, y1: yy, x2: fieldX0 + 54, y2: yy + 26, half: 5, e: 0.15, friction: 0.995, kind: 'wall' });
+      /* 右墙(弹道内墙)镜像 */
+      deflectors.push({ x1: laneX0 - 9, y1: yy, x2: laneX0 - 43, y2: yy + 26, half: 5, e: 0.15, friction: 0.995, kind: 'wall' });
+    }
+    for (var dc = 0; dc < deflectors.length; dc++) walls.push(deflectors[dc]);
+
+
+
     /* ---- 边框 LED 灯带点位(复古主题绘制;极简主题忽略) ---- */
     var leds = [];
     var step = 46;
@@ -149,8 +164,13 @@
     for (var la2 = -Math.PI + 0.4; la2 < -Math.PI / 2 - 0.1; la2 += Math.PI / 9) leds.push({ x: cornerL.cx + Math.cos(la2) * (R - 10), y: cornerL.cy + Math.sin(la2) * (R - 10) });
     for (var li = 0; li < leds.length; li++) leds[li].color = (li % 2 === 0) ? 'red' : 'green';
 
+    /* 40% 临界速度:按"出生点到顶轨"的爬升高度计算(拉动曲线随屏高自适应) */
+    var climb = spawn.y - ceilingY;
+    var crestSpeed = Math.sqrt(2 * CFG.gravity * climb + 550 * 550);
+
     return {
       W: W, H: H,
+      crestSpeed: crestSpeed,
       backH: backH, panelH: panelH,
       fieldX0: fieldX0, fieldRight: fieldRight, floorY: floorY,
       lane: { x0: laneX0, x1: laneX1, cx: laneCx, top: L.laneTop, floorY: laneFloorY, spawn: spawn },
