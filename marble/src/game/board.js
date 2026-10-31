@@ -119,8 +119,8 @@
     var ceilingY = L.ceilingY;
     /* 两只对称的导流圆弧角:左上(横扫到边顺弧滚下)/ 右上(弹道冲顶顺弧拐入,
        右弧延长到 100°:出口略上仰,高速球靠惯性压弧贴行、出弧后贴顶滑翔,全真实碰撞) */
-    var cornerL = { cx: fieldX0 + R, cy: ceilingY + R, r: R };   // (110,410)
-    var cornerR2 = { cx: laneX1 - 15 - R, cy: ceilingY + R, r: R }; // 右墙内面(720) - R
+    var cornerL = { cx: fieldX0 + R, cy: ceilingY + R, r: R };   // 弧与左墙轨(x=fieldX0)相切
+    var cornerR2 = { cx: W - 45 - R, cy: ceilingY + R, r: R };   // 弧与右墙轨(x=W-45)相切
     /* 碰撞面与绘制轨对齐:half=7 → 胶囊面 = 画线中心±7 = 14px 轨的内缘,球缘贴轨走 */
     var rightWallCx = W - 45;   /* 右墙轨中心 = 右上导弧端点(705),竖直向下 */
     var walls = [
@@ -130,9 +130,9 @@
       { x1: laneX0, y1: L.laneTop, x2: laneX0, y2: laneFloorY, half: 8, e: 0.1, kind: 'wall' },  // 弹道内墙(贴壁顺滑)
       { x1: fieldX0, y1: floorY, x2: W - 15, y2: floorY, half: 8, e: 0.2, kind: 'wall' }         // 场地地面(含弹道底)
     ];
-    var arcTL = arcSegs(cornerL.cx, cornerL.cy, R, -Math.PI / 2, -Math.PI, 6); // (110,330)→(30,410)
+    var arcTL = arcSegs(cornerL.cx, cornerL.cy, R, -Math.PI / 2, -Math.PI, 6); // 左弧角:顶轨端→左墙端
     arcTL.forEach(function (sg) { sg.e = 0.45; sg.kind = 'wall'; }); /* 左上角:普通弹性反射,把横扫的球挡回场内 */
-    var arcTR = arcSegs(cornerR2.cx, cornerR2.cy, R, 0, -(Math.PI / 2) - Math.PI / 18, 8); // (720,470)→(556,332) 出口上仰10°
+    var arcTR = arcSegs(cornerR2.cx, cornerR2.cy, R, 0, -Math.PI / 2, 6); // 右弧角:右墙端→顶轨端(小圆角,无上仰唇)
     for (var a1 = 0; a1 < arcTL.length; a1++) walls.push(arcTL[a1]);
     for (var a2 = 0; a2 < arcTR.length; a2++) walls.push(arcTR[a2]);
 
