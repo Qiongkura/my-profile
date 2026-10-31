@@ -7,13 +7,13 @@
   'use strict';
   var MG = root.MG || (root.MG = {});
 
-  /* mp3 = 原曲(用户放置);wav = 芯片音编曲兜底(tools/make-bgm.py 生成) */
+  /* 播放文件链:依次尝试(原曲 mp3 可自行放入同名文件,缺失自动回退) */
   var SONGS = [
-    { name: '甩葱歌', mp3: 'assets/bgm/01-ievan.mp3', wav: 'assets/bgm/01-ievan.wav' },
-    { name: '卡农', mp3: 'assets/bgm/02-canon.mp3', wav: 'assets/bgm/02-canon.wav' },
-    { name: '欢乐颂', mp3: 'assets/bgm/03-ode.mp3', wav: 'assets/bgm/03-ode.wav' },
-    { name: '康康舞曲', mp3: 'assets/bgm/04-cancan.mp3', wav: 'assets/bgm/04-cancan.wav' },
-    { name: '小星星', mp3: 'assets/bgm/05-twinkle.mp3', wav: 'assets/bgm/05-twinkle.wav' }
+    { name: '甩葱歌', files: ['assets/bgm/01-ievan.mp3', 'assets/bgm/01-ievan.ogg', 'assets/bgm/01-ievan.wav'] },
+    { name: '卡农', files: ['assets/bgm/02-canon.mp3', 'assets/bgm/02-canon.wav'] },
+    { name: '欢乐颂', files: ['assets/bgm/03-ode.mp3', 'assets/bgm/03-ode.wav'] },
+    { name: '康康舞曲', files: ['assets/bgm/04-cancan.mp3', 'assets/bgm/04-cancan.wav'] },
+    { name: '小星星', files: ['assets/bgm/05-twinkle.mp3', 'assets/bgm/05-twinkle.wav'] }
   ];
 
   var platform = null;
@@ -66,21 +66,15 @@
     return (preferMp3 && s.mp3) ? s.mp3 : s.wav;
   }
 
-  function play() {
-    wantPlay = true;
-    if (muted) return;
-    var s = SONGS[idx];
+  function trySrc(list) {
+    if (!list.length) return;
+    var url = list[0];
     if (platform.isMinigame) {
       var inel = ensureInner();
       if (!inel) return;
       try {
         inel.stop();
-        inel.src = s.mp3;
-        inel.onError(function () {
-          inel.offError && inel.offError(arguments.callee);
-          inel.src = s.wav;
-          inel.play();
-        });
+        inel.src = url;
         inel.play();
       } catch (e) { }
       return;
@@ -89,15 +83,17 @@
     if (!a) return;
     a.onerror = function () {
       a.onerror = null;
-      a.src = s.wav;
-      var pr2 = a.play();
-      if (pr2 && pr2.catch) pr2.catch(function () { });
+      trySrc(list.slice(1));
     };
-    try {
-      a.src = s.mp3;
-      var pr = a.play();
-      if (pr && pr.catch) pr.catch(function () { /* 自动播放被拦:等首次手势 */ });
-    } catch (e) { }
+    a.src = url;
+    var pr = a.play();
+    if (pr && pr.catch) pr.catch(function () { /* 自动播放被拦:等首次手势 */ });
+  }
+
+  function play() {
+    wantPlay = true;
+    if (muted) return;
+    trySrc(SONGS[idx].files.slice());
   }
 
   function pause() {
