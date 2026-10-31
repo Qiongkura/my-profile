@@ -7,7 +7,11 @@
     var platform = MG.platform.create();
     platform.setPreferredFramesPerSecond(60);
     var game = new MG.Game(platform);
-    window.__mgGame = game;   /* 调试句柄 */
+    /* 调试句柄:小游戏环境无 window,用 GameGlobal */
+    try {
+      if (typeof window !== 'undefined') window.__mgGame = game;
+      else if (typeof GameGlobal !== 'undefined') GameGlobal.__mgGame = game;
+    } catch (e) { }
     game.start();
     MG.__game = game; /* 调试用 */
     return game;
