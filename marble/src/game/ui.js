@@ -451,7 +451,7 @@
     ctx.fillText('已暂停', W / 2, cy + 56);
 
     var bw = 400, bh = 66, bx = W / 2 - bw / 2;
-    button(game, bx, cy + 96, bw, bh, '继续游戏', function () { game.state = 'play'; game.stateT = 0; }, { primary: true, size: 30 });
+    button(game, bx, cy + 96, bw, bh, '继续游戏', function () { game.state = 'play'; game.stateT = 0; MG.music.play(); }, { primary: true, size: 30 });
     button(game, bx, cy + 172, bw, bh, '重新开始', function () { game.restartRound(); }, { size: 28 });
     button(game, bx, cy + 242, bw, 48, '机台风格 · ' + game.themeLabel(), function () {
       game.setTheme(game.theme === 'arcade' ? 'min' : 'arcade');

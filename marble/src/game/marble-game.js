@@ -166,6 +166,7 @@
   };
 
   Game.prototype.restartRound = function () {
+    MG.music.play();   /* 从暂停恢复时音乐接着放 */
     this.bank = CFG.startBank;
     this.selIdx = 0;
     this.launched = 0;
@@ -921,7 +922,7 @@
     /* ---- 背板:LED 数值 + 小按钮 ---- */
     this.drawSeg(this._ledBank, String(this.bank));
     this.drawSeg(this._ledTier, '×' + this.tier().mult);
-    ui.iconButton(this, 206, this.iconRowY, 24, 'pause', function () { this.state = 'pause'; this.stateT = 0; }.bind(this));
+    ui.iconButton(this, 206, this.iconRowY, 24, 'pause', function () { this.state = 'pause'; this.stateT = 0; MG.music.pause(); }.bind(this));
 
     /* ---- 弹道箭头 ---- */
     var gap = 90;
