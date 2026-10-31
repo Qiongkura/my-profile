@@ -98,6 +98,8 @@
       document.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });
     }
 
+    api.volume = 0.8;   // 主音量(小游戏端音效缩放)
+
     api._handlers = { down: [], move: [], up: [] };
     api.onTouch = function (type, cb) { api._handlers[type].push(cb); };
     api._fire = function (type, pt) {
@@ -136,6 +138,7 @@
 
     /* ---------- 小游戏端音效播放(浏览器端用 WebAudio 合成,不走这里) ---------- */
     api.playSound = function (name, vol) {
+      vol = (vol || 1) * (api.volume || 0.8);
       if (!isMinigame) return false;
       try {
         var pool = api._audioPool;

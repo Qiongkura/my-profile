@@ -117,8 +117,19 @@
     else if (wantPlay && started) play();
   }
 
+  var vol = 0.8;
+
+  function setVolume(v) {
+    vol = Math.max(0, Math.min(1, v));
+    try {
+      if (el) el.volume = vol * 0.32;
+      if (innerEl) innerEl.volume = vol * 0.32;
+    } catch (e) { }
+  }
+
   MG.music = {
     init: init,
+    setVolume: setVolume,
     _debug: function () { return el ? { src: el.src.split('/').pop(), paused: el.paused, volume: el.volume } : null; },
     song: song,
     songCount: songCount,

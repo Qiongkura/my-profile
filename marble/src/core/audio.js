@@ -144,12 +144,20 @@
 
   function ready() { return !!_actx; }
 
+  /* 主音量(0..1):控制音效合成与增益 */
+  function setVolume(v) {
+    if (_master) {
+      try { _master.gain.value = Math.max(0, Math.min(1, v)) * 0.9; } catch (e) { }
+    }
+  }
+
   MG.audio = {
     init: init,
     unlock: unlock,
     play: play,
     note: note,
     ready: ready,
+    setVolume: setVolume,
     setMuted: setMuted,
     toggleMuted: toggleMuted,
     isMuted: isMuted

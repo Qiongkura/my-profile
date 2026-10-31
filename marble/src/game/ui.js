@@ -391,25 +391,51 @@
     ctx.fillStyle = 'rgba(50,30,5,0.6)';
     ctx.fillRect(0, 0, W, H);
 
-    var cw = 520, ch = 460;
+    var cw = 520, ch = 420;
     var cx = W / 2 - cw / 2, cy = H / 2 - ch / 2;
     rr(ctx, cx, cy, cw, ch, 26);
-    ctx.fillStyle = C.cream;
+    ctx.fillStyle = 'rgba(19,28,68,0.97)';
     ctx.fill();
-    ctx.strokeStyle = '#e8b45a';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#3a4a95';
+    ctx.lineWidth = 2;
     ctx.stroke();
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    font(ctx, 42);
-    ctx.fillStyle = '#6b4409';
-    ctx.fillText('已暂停', W / 2, cy + 74);
+    font(ctx, 38);
+    ctx.fillStyle = C.text;
+    ctx.fillText('已暂停', W / 2, cy + 58);
 
-    var bw = 400, bh = 78, bx = W / 2 - bw / 2;
-    button(game, bx, cy + 140, bw, bh, '继续游戏', function () { game.state = 'play'; game.stateT = 0; }, { primary: true, size: 32 });
-    button(game, bx, cy + 240, bw, bh, '重新开始', function () { game.restartRound(); }, { size: 30 });
-    button(game, bx, cy + 340, bw, bh, game.muted ? '音效:关' : '音效:开', function () { game.toggleMute(); }, { size: 28 });
+    var bw = 400, bh = 66, bx = W / 2 - bw / 2;
+    button(game, bx, cy + 102, bw, bh, '继续游戏', function () { game.state = 'play'; game.stateT = 0; }, { primary: true, size: 30 });
+    button(game, bx, cy + 184, bw, bh, '重新开始', function () { game.restartRound(); }, { size: 28 });
+
+    /* 音量滑条 */
+    var tx = cx + 60, tw = cw - 120, trackY = cy + 316;
+    game.sliderRect = { x: tx, y: trackY - 14, w: tw, knobY: trackY };
+    rr(ctx, tx, trackY - 7, tw, 14, 7);
+    ctx.fillStyle = '#2c3b82';
+    ctx.fill();
+    var fv = Math.max(0, Math.min(1, game.volume || 0.8));
+    var fillW = Math.round(tw * fv);
+    if (fillW > 4) {
+      rr(ctx, tx, trackY - 7, fillW, 14, 7);
+      ctx.fillStyle = '#8fa8ff';
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.arc(tx + fillW, trackY, 13, 0, U.TAU);
+    ctx.fillStyle = '#fff8ea';
+    ctx.fill();
+    ctx.strokeStyle = '#a4622a';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.textAlign = 'left';
+    font(ctx, 19);
+    ctx.fillStyle = C.dim;
+    ctx.fillText('音量', tx, trackY - 26);
+    ctx.textAlign = 'right';
+    ctx.fillText(Math.round(fv * 100) + '%', tx + tw, trackY - 26);
   }
 
   /* ---------- 结算 ---------- */

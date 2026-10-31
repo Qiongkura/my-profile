@@ -26,7 +26,10 @@
     this.giftCardsTotal = platform.storage.get('mm_cards', 0) | 0;
     this.bestWin = platform.storage.get('mm_bestwin', 0) | 0;
     this.songIdx = platform.storage.get('mm_song', 0) | 0;
+    this.volume = Math.max(0, Math.min(1, platform.storage.get('mm_vol', 0.8)));
     MG.music.init(platform);
+    MG.music.setVolume(this.volume);
+    MG.audio.setVolume(this.volume);
     MG.music.setSong(this.songIdx);
 
     /* 视口 */
@@ -53,6 +56,7 @@
     this.launcherPulse = 0;
     this.charging = false;
     this.chargeT = 0;
+    this.sliderArmed = false;
     this._downT = 0;
     this.frameButtons = [];
     this.fx = MG.fx.create();
@@ -62,7 +66,12 @@
 
     /* 输入 */
     platform.onTouch('down', function (pt) { self.handleDown(pt); });
-    platform.onTouch('move', function (pt) { });
+    platform.onTouch('move', function (pt) {
+      if (self.sliderArmed) {
+        var p = self.toLogical(pt.x, pt.y);
+        self.setVolumeFromX(p.x);
+      }
+    });
     platform.onTouch('up', function (pt) { self.handleUp(pt); });
     platform.onResize(function () {
       self.computeView();
@@ -233,13 +242,32 @@
         return;
       }
     }
+    if (this.state === 'pause' && this.sliderRect) {
+      var sr = this.sliderRect;
+      if (p.x >= sr.x - 20 && p.x <= sr.x + sr.w + 20 && Math.abs(p.y - sr.knobY) < 32) {
+        this.sliderArmed = true;
+        this.setVolumeFromX(p.x);
+        return;
+      }
+    }
     if (this.state !== 'play') return;
     this.charging = true;
     this.chargeT = 0;
     this._downT = this.time;
   };
 
+  Game.prototype.setVolumeFromX = function (x) {
+    var sr = this.sliderRect;
+    if (!sr) return;
+    var v = U.clamp((x - sr.x) / sr.w, 0, 1);
+    this.volume = v;
+    MG.music.setVolume(v);
+    MG.audio.setVolume(v);
+    this.platform.storage.set('mm_vol', Math.round(v * 100) / 100);
+  };
+
   Game.prototype.handleUp = function () {
+    if (this.sliderArmed) { this.sliderArmed = false; return; }
     if (!this.charging) return;
     this.charging = false;
     if (this.state !== 'play') return;
