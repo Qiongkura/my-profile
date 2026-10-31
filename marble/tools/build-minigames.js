@@ -21,7 +21,7 @@ const FFMPEG = process.env.FFMPEG ||
 
 /* BGM 分包编排:song 文件名(不带扩展) → 分包目录 */
 const PKG1 = ['01-ievan', '03-ode', '06-zuixuan', '07-pingguo'];
-const PKG2 = ['02-canon', '04-cancan'];
+const PKG2 = ['02-canon', '04-cancan', '05-twinkle'];
 const pkgOf = {};
 
 function copyFile(src, dest) {

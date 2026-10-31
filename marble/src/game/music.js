@@ -16,7 +16,7 @@
     { name: '卡农', files: ['assets/bgm/02-canon.m4a', 'assets/bgm/02-canon.wav'] },
     { name: '欢乐颂', files: ['assets/bgm/03-ode.m4a', 'assets/bgm/03-ode.wav'] },
     { name: '康康舞曲', files: ['assets/bgm/04-cancan.m4a', 'assets/bgm/04-cancan.wav'] },
-    { name: '小星星', files: ['assets/bgm/05-twinkle.wav'] }
+    { name: '小星星', files: ['assets/bgm/05-twinkle.m4a', 'assets/bgm/05-twinkle.wav'] }
   ];
 
   var platform = null;
