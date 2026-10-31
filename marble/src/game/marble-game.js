@@ -357,7 +357,10 @@
       case 'bumper': {
         e.circle.pulse = 1;
         MG.fx.ring(this.fx, e.x, e.y, '#ffffff', 54, 0.3, 3);
-        MG.audio.play('bumper');
+        if (!(e.circle.sndCd > 0)) {
+          e.circle.sndCd = 0.15;   /* 同柱 0.15s 内不重复发声 */
+          MG.audio.play('bumper', { vol: Math.min(1, 0.4 + e.speed / 2000) });
+        }
         break;
       }
       case 'wall': {
@@ -516,7 +519,10 @@
 
     /* 闪光衰减 */
     for (i = 0; i < b.pegs.length; i++) b.pegs[i].flash = Math.max(0, b.pegs[i].flash - dt * 3.5);
-    for (i = 0; i < b.bumpers.length; i++) b.bumpers[i].pulse = Math.max(0, b.bumpers[i].pulse - dt * 3);
+    for (i = 0; i < b.bumpers.length; i++) {
+      b.bumpers[i].pulse = Math.max(0, b.bumpers[i].pulse - dt * 3);
+      if (b.bumpers[i].sndCd > 0) b.bumpers[i].sndCd -= dt;
+    }
     for (i = 0; i < b.holes.length; i++) b.holes[i].flash = Math.max(0, b.holes[i].flash - dt * 2);
 
     /* 弹珠库见底 → 本局结束 */

@@ -85,7 +85,8 @@
             var spN = b.vx * nx + b.vy * ny;
             var boost = c.boost || 0;
             if (spN < boost) { b.vx += (boost - spN) * nx; b.vy += (boost - spN) * ny; }
-            this._emit({ type: 'bumper', x: c.x, y: c.y, ball: b, circle: c, speed: -vn });
+            /* 微触不发声:球停在柱顶时重力每子步压入 2.8px/s,不设阈值事件会每秒刷 720 次 */
+            if (-vn > 60) this._emit({ type: 'bumper', x: c.x, y: c.y, ball: b, circle: c, speed: -vn });
           } else if (c.kind === 'peg') {
             if (-vn > 60) this._emit({ type: 'peg', x: c.x, y: c.y, ball: b, circle: c, speed: -vn });
             /* 钉顶平衡破坏:球 nearly 静止在钉顶附近时,沿肩部向下滑出(真机圆钉不会卡球)。
