@@ -208,16 +208,44 @@
     opts = opts || {};
     var ctx = game.ctx;
     var primary = !!opts.primary;
+    var arcade = CFG.themeName === 'arcade';
     if (primary) {
-      ctx.save();
-      ctx.shadowColor = 'rgba(40,35,25,0.22)';
-      ctx.shadowBlur = 16;
-      ctx.shadowOffsetY = 6;
-      rr(ctx, x, y, w, h, h / 2);
-      ctx.fillStyle = INK;
-      ctx.fill();
-      ctx.restore();
+      if (arcade) {
+        var grad = ctx.createLinearGradient(x, y, x, y + h);
+        grad.addColorStop(0, '#ff7a5c');
+        grad.addColorStop(1, '#e8352e');
+        ctx.save();
+        ctx.shadowColor = 'rgba(120,60,10,0.4)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 4;
+        rr(ctx, x, y, w, h, h / 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.restore();
+        rr(ctx, x, y, w, h, h / 2);
+        ctx.strokeStyle = '#ffd0b3';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      } else {
+        ctx.save();
+        ctx.shadowColor = 'rgba(40,35,25,0.22)';
+        ctx.shadowBlur = 16;
+        ctx.shadowOffsetY = 6;
+        rr(ctx, x, y, w, h, h / 2);
+        ctx.fillStyle = INK;
+        ctx.fill();
+        ctx.restore();
+      }
       ctx.fillStyle = '#ffffff';
+    } else if (arcade) {
+      rr(ctx, x, y, w, h, h / 2);
+      ctx.fillStyle = C.cream;
+      ctx.fill();
+      rr(ctx, x, y, w, h, h / 2);
+      ctx.strokeStyle = '#e8b45a';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.fillStyle = '#7a4a1f';
     } else {
       rr(ctx, x, y, w, h, h / 2);
       ctx.fillStyle = 'rgba(255,255,255,0.92)';
@@ -397,17 +425,27 @@
   function renderPause(game) {
     var ctx = game.ctx;
     var W = game.view.W, H = game.view.H;
-    ctx.fillStyle = 'rgba(25,22,18,0.45)';
+    var arcade = CFG.themeName === 'arcade';
+    ctx.fillStyle = arcade ? 'rgba(50,30,5,0.6)' : 'rgba(25,22,18,0.45)';
     ctx.fillRect(0, 0, W, H);
 
     var cw = 520, ch = 464;
     var cx = W / 2 - cw / 2, cy = H / 2 - ch / 2;
-    card(ctx, cx, cy, cw, ch, 30);
+    if (arcade) {
+      rr(ctx, cx, cy, cw, ch, 26);
+      ctx.fillStyle = C.cream;
+      ctx.fill();
+      ctx.strokeStyle = '#e8b45a';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    } else {
+      card(ctx, cx, cy, cw, ch, 30);
+    }
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     font(ctx, 36);
-    ctx.fillStyle = INK;
+    ctx.fillStyle = arcade ? '#6b4409' : INK;
     ctx.fillText('已暂停', W / 2, cy + 56);
 
     var bw = 400, bh = 66, bx = W / 2 - bw / 2;
@@ -421,32 +459,42 @@
     var tx = cx + 60, tw = cw - 120, trackY = cy + 334;
     game.sliderRect = { x: tx, y: trackY - 14, w: tw, knobY: trackY };
     rr(ctx, tx, trackY - 6, tw, 12, 6);
-    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    ctx.fillStyle = arcade ? 'rgba(90,55,15,0.25)' : 'rgba(0,0,0,0.08)';
     ctx.fill();
     var fv = Math.max(0, Math.min(1, game.volume || 0.8));
     var fillW = Math.round(tw * fv);
     if (fillW > 6) {
       rr(ctx, tx, trackY - 6, fillW, 12, 6);
-      ctx.fillStyle = INK;
+      ctx.fillStyle = arcade ? '#a4622a' : INK;
       ctx.fill();
     }
-    ctx.save();
-    ctx.shadowColor = 'rgba(40,35,25,0.25)';
-    ctx.shadowBlur = 8;
-    ctx.shadowOffsetY = 2;
-    ctx.beginPath();
-    ctx.arc(tx + fillW, trackY, 14, 0, U.TAU);
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
-    ctx.restore();
-    ctx.beginPath();
-    ctx.arc(tx + fillW, trackY, 14, 0, U.TAU);
-    ctx.strokeStyle = HAIR;
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    if (arcade) {
+      ctx.beginPath();
+      ctx.arc(tx + fillW, trackY, 14, 0, U.TAU);
+      ctx.fillStyle = '#fff8ea';
+      ctx.fill();
+      ctx.strokeStyle = '#a4622a';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    } else {
+      ctx.save();
+      ctx.shadowColor = 'rgba(40,35,25,0.25)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetY = 2;
+      ctx.beginPath();
+      ctx.arc(tx + fillW, trackY, 14, 0, U.TAU);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(tx + fillW, trackY, 14, 0, U.TAU);
+      ctx.strokeStyle = HAIR;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
     ctx.textAlign = 'left';
     font(ctx, 19, false);
-    ctx.fillStyle = SUB;
+    ctx.fillStyle = arcade ? C.panelText : SUB;
     ctx.fillText('音量', tx, trackY - 26);
     ctx.textAlign = 'right';
     ctx.fillText(Math.round(fv * 100) + '%', tx + tw, trackY - 26);
