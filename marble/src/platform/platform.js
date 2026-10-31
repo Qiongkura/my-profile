@@ -67,29 +67,25 @@
     api.applySize = applySize;
     api.onResize = function (cb) { api._resizeCbs.push(cb); };
 
-    /* 安全区:只让出状态栏高度;胶囊区域由 HUD 布局避开(显示屏下移) */
-    var safeTop = 0;
+    /* 画布已不含状态栏(windowHeight 已扣除),不需要额外安全区;
+       胶囊坐标是屏幕坐标,换算进画布需减状态栏高度 */
+    var statusBarH = 0;
+    var capsuleY = 0;
     if (isMinigame) {
       try {
         if (sys.getSystemInfoSync) {
           var si = sys.getSystemInfoSync();
-          if (si && si.statusBarHeight) safeTop = si.statusBarHeight + 6;
+          if (si && si.statusBarHeight) statusBarH = si.statusBarHeight;
         }
-      } catch (e) { }
-    }
-    api.safeTop = safeTop;
-
-    /* 胶囊按钮中心高度(css px):顶部图标簇与之同高对齐 */
-    var capsuleY = 0;
-    if (isMinigame) {
-      try {
         if (sys.getMenuButtonBoundingClientRect) {
           var mb = sys.getMenuButtonBoundingClientRect();
-          if (mb && mb.height) capsuleY = (mb.top + mb.bottom) / 2;
+          if (mb && mb.height) capsuleY = (mb.top + mb.bottom) / 2 - statusBarH;
         }
       } catch (e) { }
     }
-    api.capsuleY = capsuleY;
+    api.statusBarH = statusBarH;
+    api.safeTop = 0;
+    api.capsuleY = capsuleY;   /* 画布坐标系中的胶囊中心 */
 
     /* ---------- 触摸输入(统一为 CSS 像素坐标) ---------- */
     function normTouch(e) {
