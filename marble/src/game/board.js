@@ -43,11 +43,11 @@
     }
     var capY = floorY - CFG.pockets.capOff;
 
-    /* 洞间隔针 */
+    /* 洞间隔针:低弹性 + 近零摩擦(摩擦按子步结算,0.92 会把球瞬间粘死) */
     var dividers = [];
     for (var d = 1; d < n; d++) {
       var dx = innerX0 + d * pw;
-      dividers.push({ x1: dx, y1: capY - 40, x2: dx, y2: floorY, half: 3, e: 0.35, friction: 0.92, kind: 'divider' });
+      dividers.push({ x1: dx, y1: capY - 40, x2: dx, y2: floorY, half: 3, e: 0.08, friction: 0.995, kind: 'divider' });
     }
 
     /* ---- 钉阵 ---- */
@@ -128,7 +128,7 @@
       { x1: fieldX0, y1: ceilingY, x2: fieldX0, y2: floorY, half: 7, e: 0.45, kind: 'wall' },    // 左墙
       { x1: rightWallCx, y1: ceilingY, x2: rightWallCx, y2: laneFloorY, half: 7, e: 0.4, kind: 'wall' }, // 右墙(机身)
       { x1: cornerL.cx, y1: ceilingY, x2: cornerR2.cx, y2: ceilingY, half: 7, e: 0.05, kind: 'wall' }, // 顶部导轨(贴轨滑行)
-      { x1: laneX0, y1: L.laneTop, x2: laneX0, y2: laneFloorY, half: 8, e: 0.1, kind: 'wall' },  // 弹道内墙(贴壁顺滑)
+      { x1: laneX0, y1: L.laneTop, x2: laneX0, y2: laneFloorY, half: 8, e: 0.05, kind: 'wall' },  // 弹道内墙(近无弹跳)
       { x1: fieldX0, y1: floorY, x2: W - 15, y2: floorY, half: 8, e: 0.2, kind: 'wall' }         // 场地地面(含弹道底)
     ];
     var arcTL = arcSegs(cornerL.cx, cornerL.cy, R, -Math.PI / 2, -Math.PI, 6); // 左弧角:顶轨端→左墙端
