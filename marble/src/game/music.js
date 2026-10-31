@@ -7,13 +7,15 @@
   'use strict';
   var MG = root.MG || (root.MG = {});
 
-  /* 播放文件链:依次尝试(原曲 mp3 可自行放入同名文件,缺失自动回退) */
+  /* 播放文件链:依次尝试(想换曲目/放原曲,编辑对应数组即可) */
   var SONGS = [
-    { name: '甩葱歌', files: ['assets/bgm/01-ievan.mp3', 'assets/bgm/01-ievan.ogg', 'assets/bgm/01-ievan.wav'] },
-    { name: '卡农', files: ['assets/bgm/02-canon.mp3', 'assets/bgm/02-canon.wav'] },
-    { name: '欢乐颂', files: ['assets/bgm/03-ode.mp3', 'assets/bgm/03-ode.wav'] },
-    { name: '康康舞曲', files: ['assets/bgm/04-cancan.mp3', 'assets/bgm/04-cancan.wav'] },
-    { name: '小星星', files: ['assets/bgm/05-twinkle.mp3', 'assets/bgm/05-twinkle.wav'] }
+    { name: '甩葱歌(MMD)', files: ['assets/bgm/01-ievan.m4a', 'assets/bgm/01-ievan.ogg', 'assets/bgm/01-ievan.wav'] },
+    { name: '最炫民族风', files: ['assets/bgm/06-zuixuan.m4a'] },
+    { name: '小苹果', files: ['assets/bgm/07-pingguo.m4a'] },
+    { name: '卡农', files: ['assets/bgm/02-canon.wav'] },
+    { name: '欢乐颂', files: ['assets/bgm/03-ode.wav'] },
+    { name: '康康舞曲', files: ['assets/bgm/04-cancan.wav'] },
+    { name: '小星星', files: ['assets/bgm/05-twinkle.wav'] }
   ];
 
   var platform = null;
