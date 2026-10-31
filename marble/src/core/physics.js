@@ -165,6 +165,20 @@
             this._emit({ type: 'wall', x: px, y: py, ball: b, speed: -svn });
           }
         }
+
+        /* 端点圆帽防栖:低速球栖在段端头圆帽上时,沿帽面切向推出去,
+           绕过端头后顺杆身滑落——场地侧的滑回场地,弹道侧的滑回弹道 */
+        if ((t <= 0 || t >= 1) && (b.vx * b.vx + b.vy * b.vy) < 25600 && !(b.nudgeCd > 0)) {
+          var sln = Math.sqrt(len2) || 1;
+          var udx = sx / sln, udy = sy / sln;
+          var capDx = b.x - px, capDy = b.y - py;          /* 相对端帽中心 */
+          var side = (Math.abs(capDx) > 0.5 || Math.abs(capDy) > 0.5)
+            ? ((capDx * udy - capDy * udx) > 0 ? 1 : -1)   /* 朝球已偏的一侧绕出 */
+            : -1;                                          /* 完全居中:默认向场地一侧 */
+          b.vx += -qny * side * 120;
+          b.vy += qnx * side * 120;
+          b.nudgeCd = 0.35;
+        }
       }
     }
 
