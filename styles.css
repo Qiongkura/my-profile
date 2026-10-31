@@ -1,3 +1,11 @@
+/* 自托管字体(按站点用字子集化;改文案后运行 tools/make-fonts.py 重新生成) */
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/inter-400.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/inter-500.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/inter-600.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/inter-700.woff2') format('woff2'); }
+@font-face { font-family: 'Noto Sans SC'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/noto-400.woff2') format('woff2'); }
+@font-face { font-family: 'Noto Sans SC'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/noto-500.woff2') format('woff2'); }
+@font-face { font-family: 'Noto Sans SC'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/noto-700.woff2') format('woff2'); }
 /* ==========================================================================
    Qiongkura · personal space
    白色编辑杂志风 / 五个全屏章节 / Build · Drive · Listen
@@ -18,7 +26,7 @@
   --bar-h: clamp(44px, calc(2.4 * var(--u)), 150px);
   --maxw: clamp(280px, 74vw, 3000px);
 
-  --sans: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  --sans: 'Inter', 'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 
   --ease: cubic-bezier(.22, .61, .36, 1); --u: min(1vw, 1.6vh); }
