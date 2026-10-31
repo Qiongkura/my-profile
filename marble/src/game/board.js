@@ -169,9 +169,9 @@
 
     /* 贴墙壁钉:半嵌在墙里,贴墙球只会被它拨向场内(不会形成夹缝)。
        左墙 face=fieldX0+7,壁钉中心在 face-? 处使球始终位于其场内一侧 */
-    var bumpY = pegTop + (pegBottom - pegTop) * 0.40;   /* 与箭头指示的第 3~4 排同高 */
-    pegs.push({ x: fieldX0 + 10, y: bumpY, r: CFG.pegR, flash: 0, led: null, slideDir: 1 });
-    pegs.push({ x: laneX0 - 10, y: bumpY + 24, r: CFG.pegR, flash: 0, led: null, slideDir: -1 });
+    var bumpY = pegTop + (rows - 2) * rowGap;   /* 从下往上第二排的高度 */
+    pegs.push({ x: fieldX0 + 10, y: bumpY, r: 11, flash: 0, led: null, slideDir: 1 });
+    pegs.push({ x: laneX0 - 10, y: bumpY, r: 11, flash: 0, led: null, slideDir: -1 });
 
 
 
