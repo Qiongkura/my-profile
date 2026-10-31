@@ -79,7 +79,10 @@
         }
         if (sys.getMenuButtonBoundingClientRect) {
           var mb = sys.getMenuButtonBoundingClientRect();
-          if (mb && mb.height) capsuleY = (mb.top + mb.bottom) / 2 - statusBarH;
+          if (mb && mb.height) {
+            capsuleY = (mb.top + mb.bottom) / 2 - statusBarH;
+            api._mbRaw = 'mb=' + Math.round(mb.top) + '-' + Math.round(mb.bottom);
+          }
         }
       } catch (e) { }
     }

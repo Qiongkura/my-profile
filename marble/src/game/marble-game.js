@@ -870,8 +870,6 @@
     var p = this.platform;
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = C.cabYellowHi;               /* 安全区/letterbox 铺机身底色 */
-    ctx.fillRect(0, 0, p.canvas.width, p.canvas.height);
     if (this.bg) {
       ctx.drawImage(this.bg, 0, 0);
     } else {
@@ -886,18 +884,9 @@
 
     this.frameButtons.length = 0;
 
-    /* 临时调试行(小游戏端):确认安全区/胶囊/缩放的真实数值 */
-    if (p.isMinigame) {
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.fillStyle = 'rgba(255,0,160,0.9)';
-      ctx.font = '14px sans-serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillText('DBG css=' + Math.round(p.cssW) + 'x' + Math.round(p.cssH)
-        + ' sbh=' + Math.round(p.statusBarH || 0) + ' safe=' + Math.round((p.safeTop || 0)) + ' cap=' + Math.round(p.capsuleY || 0)
-        + ' offY=' + Math.round(this.view.offY) + ' sc=' + this.view.scale.toFixed(3)
-        + ' H=' + Math.round(this.view.H) + ' row=' + Math.round(this.iconRowY || 0), 8, 8);
-    }
+
+
+
 
     /* 顶部图标簇:音效 / 音乐 / 主页(主页非菜单态显示) */
     MG.ui.iconButton(this, 56, this.iconRowY, 24, 'sound', function () { this.toggleMute(); }.bind(this));
