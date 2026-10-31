@@ -368,7 +368,7 @@
     var by0 = top + (bottom - top) * 0.40;
     button(game, bx, by0, bw, bh, '开始游戏', function () { game.startGame(); }, { primary: true, size: 38 });
     button(game, bx, by0 + 116, bw, bh, '玩法说明', function () { game.state = 'help'; game.stateT = 0; }, { size: 32 });
-    button(game, bx, by0 + 232, bw, bh * 0.72, game.muted ? '音效:关' : '音效:开', function () { game.toggleMute(); }, { size: 26 });
+    button(game, bx, by0 + 232, bw, bh * 0.72, game.muted ? '声音:关' : '声音:开', function () { game.toggleMute(); }, { size: 26 });
     button(game, bx, by0 + 232 + bh * 0.72 + 16, bw, bh * 0.62, '机台风格 · ' + game.themeLabel(), function () {
       game.setTheme(game.theme === 'arcade' ? 'min' : 'arcade');
     }, { size: 24, bold: false });
@@ -429,7 +429,7 @@
     ctx.fillStyle = arcade ? 'rgba(50,30,5,0.6)' : 'rgba(25,22,18,0.45)';
     ctx.fillRect(0, 0, W, H);
 
-    var cw = 520, ch = 464;
+    var cw = 520, ch = 508;
     var cx = W / 2 - cw / 2, cy = H / 2 - ch / 2;
     if (arcade) {
       rr(ctx, cx, cy, cw, ch, 26);
@@ -455,49 +455,60 @@
       game.setTheme(game.theme === 'arcade' ? 'min' : 'arcade');
     }, { size: 24, bold: false });
 
-    /* 音量滑条 */
-    var tx = cx + 60, tw = cw - 120, trackY = cy + 334;
-    game.sliderRect = { x: tx, y: trackY - 14, w: tw, knobY: trackY };
-    rr(ctx, tx, trackY - 6, tw, 12, 6);
-    ctx.fillStyle = arcade ? 'rgba(90,55,15,0.25)' : 'rgba(0,0,0,0.08)';
-    ctx.fill();
-    var fv = Math.max(0, Math.min(1, game.volume || 0.8));
-    var fillW = Math.round(tw * fv);
-    if (fillW > 6) {
-      rr(ctx, tx, trackY - 6, fillW, 12, 6);
-      ctx.fillStyle = arcade ? '#a4622a' : INK;
+    /* 双声道音量滑条:音效 / 音乐 各自独立 */
+    var tx = cx + 60, tw = cw - 120;
+    game.sliders = [
+      { key: 'sfx', x: tx, w: tw, knobY: cy + 330 },
+      { key: 'music', x: tx, w: tw, knobY: cy + 398 }
+    ];
+    var rows = [
+      { sl: game.sliders[0], label: '音效', v: game.volSfx },
+      { sl: game.sliders[1], label: '音乐', v: game.volMusic }
+    ];
+    for (var si = 0; si < rows.length; si++) {
+      var row = rows[si];
+      var trackY = row.sl.knobY;
+      rr(ctx, tx, trackY - 6, tw, 12, 6);
+      ctx.fillStyle = arcade ? 'rgba(90,55,15,0.25)' : 'rgba(0,0,0,0.08)';
       ctx.fill();
+      var fv = Math.max(0, Math.min(1, row.v || 0));
+      var fillW = Math.round(tw * fv);
+      if (fillW > 6) {
+        rr(ctx, tx, trackY - 6, fillW, 12, 6);
+        ctx.fillStyle = arcade ? '#a4622a' : INK;
+        ctx.fill();
+      }
+      if (arcade) {
+        ctx.beginPath();
+        ctx.arc(tx + fillW, trackY, 14, 0, U.TAU);
+        ctx.fillStyle = '#fff8ea';
+        ctx.fill();
+        ctx.strokeStyle = '#a4622a';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      } else {
+        ctx.save();
+        ctx.shadowColor = 'rgba(40,35,25,0.25)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 2;
+        ctx.beginPath();
+        ctx.arc(tx + fillW, trackY, 14, 0, U.TAU);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.restore();
+        ctx.beginPath();
+        ctx.arc(tx + fillW, trackY, 14, 0, U.TAU);
+        ctx.strokeStyle = HAIR;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      ctx.textAlign = 'left';
+      font(ctx, 19, false);
+      ctx.fillStyle = arcade ? C.panelText : SUB;
+      ctx.fillText(row.label, tx, trackY - 26);
+      ctx.textAlign = 'right';
+      ctx.fillText(Math.round(fv * 100) + '%', tx + tw, trackY - 26);
     }
-    if (arcade) {
-      ctx.beginPath();
-      ctx.arc(tx + fillW, trackY, 14, 0, U.TAU);
-      ctx.fillStyle = '#fff8ea';
-      ctx.fill();
-      ctx.strokeStyle = '#a4622a';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-    } else {
-      ctx.save();
-      ctx.shadowColor = 'rgba(40,35,25,0.25)';
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetY = 2;
-      ctx.beginPath();
-      ctx.arc(tx + fillW, trackY, 14, 0, U.TAU);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-      ctx.restore();
-      ctx.beginPath();
-      ctx.arc(tx + fillW, trackY, 14, 0, U.TAU);
-      ctx.strokeStyle = HAIR;
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-    ctx.textAlign = 'left';
-    font(ctx, 19, false);
-    ctx.fillStyle = arcade ? C.panelText : SUB;
-    ctx.fillText('音量', tx, trackY - 26);
-    ctx.textAlign = 'right';
-    ctx.fillText(Math.round(fv * 100) + '%', tx + tw, trackY - 26);
   }
 
   /* ---------- 结算 ---------- */

@@ -26,11 +26,14 @@
     this.giftCardsTotal = platform.storage.get('mm_cards', 0) | 0;
     this.bestWin = platform.storage.get('mm_bestwin', 0) | 0;
     this.songIdx = platform.storage.get('mm_song', 0) | 0;
-    this.volume = Math.max(0, Math.min(1, platform.storage.get('mm_vol', 0.8)));
+    /* 双声道音量:音效 / 音乐各自独立(旧 mm_vol 迁移为两者初值) */
+    var legacyVol = Math.max(0, Math.min(1, platform.storage.get('mm_vol', 0.8)));
+    this.volSfx = Math.max(0, Math.min(1, platform.storage.get('mm_vol_sfx', legacyVol)));
+    this.volMusic = Math.max(0, Math.min(1, platform.storage.get('mm_vol_music', legacyVol)));
     MG.music.init(platform);
     MG.music.setMuted(this.muted);   /* 同步存档静音态:静音时解锁手势后不得自启 BGM */
-    MG.music.setVolume(this.volume);
-    MG.audio.setVolume(this.volume);
+    MG.music.setVolume(this.volMusic);
+    MG.audio.setVolume(this.volSfx);
     MG.music.setSong(this.songIdx);
 
     /* 视口 */
@@ -74,7 +77,7 @@
     platform.onTouch('move', function (pt) {
       if (self.sliderArmed) {
         var p = self.toLogical(pt.x, pt.y);
-        self.setVolumeFromX(p.x);
+        self.setChannelVolume(self.sliderArmed, p.x);
       }
     });
     platform.onTouch('up', function (pt) { self.handleUp(pt); });
@@ -247,12 +250,14 @@
         return;
       }
     }
-    if (this.state === 'pause' && this.sliderRect) {
-      var sr = this.sliderRect;
-      if (p.x >= sr.x - 20 && p.x <= sr.x + sr.w + 20 && Math.abs(p.y - sr.knobY) < 32) {
-        this.sliderArmed = true;
-        this.setVolumeFromX(p.x);
-        return;
+    if (this.state === 'pause' && this.sliders) {
+      for (var s = 0; s < this.sliders.length; s++) {
+        var sl = this.sliders[s];
+        if (p.x >= sl.x - 20 && p.x <= sl.x + sl.w + 20 && Math.abs(p.y - sl.knobY) < 32) {
+          this.sliderArmed = sl;
+          this.setChannelVolume(sl, p.x);
+          return;
+        }
       }
     }
     if (this.state !== 'play') return;
@@ -261,14 +266,19 @@
     this._downT = this.time;
   };
 
-  Game.prototype.setVolumeFromX = function (x) {
-    var sr = this.sliderRect;
-    if (!sr) return;
-    var v = U.clamp((x - sr.x) / sr.w, 0, 1);
-    this.volume = v;
-    MG.music.setVolume(v);
-    MG.audio.setVolume(v);
-    this.platform.storage.set('mm_vol', Math.round(v * 100) / 100);
+  /* 分声道音量:sl = renderPause 注册的滑条描述 */
+  Game.prototype.setChannelVolume = function (sl, x) {
+    var v = U.clamp((x - sl.x) / sl.w, 0, 1);
+    v = Math.round(v * 100) / 100;
+    if (sl.key === 'music') {
+      this.volMusic = v;
+      MG.music.setVolume(v);
+      this.platform.storage.set('mm_vol_music', v);
+    } else {
+      this.volSfx = v;
+      MG.audio.setVolume(v);
+      this.platform.storage.set('mm_vol_sfx', v);
+    }
   };
 
   Game.prototype.handleUp = function () {

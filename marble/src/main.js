@@ -7,6 +7,7 @@
     var platform = MG.platform.create();
     platform.setPreferredFramesPerSecond(60);
     var game = new MG.Game(platform);
+    window.__mgGame = game;   /* 调试句柄 */
     game.start();
     MG.__game = game; /* 调试用 */
     return game;
