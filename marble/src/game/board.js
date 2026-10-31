@@ -68,7 +68,9 @@
         var led = rng();
         pegs.push({
           x: x, y: y, r: CFG.pegR, flash: 0,
-          led: led < 0.28 ? 'red' : (led < 0.52 ? 'green' : null)
+          led: led < 0.28 ? 'red' : (led < 0.52 ? 'green' : null),
+          /* 卡珠解救的滑落方向:靠近弹道的钉往左滑入场内,靠左墙的往右,其余随机 */
+          slideDir: (x > fieldRight - 150) ? -1 : ((x < fieldX0 + 150) ? 1 : (rng() < 0.5 ? -1 : 1))
         });
       }
     }
@@ -126,6 +128,7 @@
       { x1: fieldX0, y1: floorY, x2: W - 15, y2: floorY, half: 8, e: 0.2, kind: 'wall' }         // 场地地面(含弹道底)
     ];
     var arcTL = arcSegs(cornerL.cx, cornerL.cy, R, -Math.PI / 2, -Math.PI, 6); // (110,330)→(30,410)
+    arcTL.forEach(function (sg) { sg.e = 0.45; sg.kind = 'wall'; }); /* 左上角:普通弹性反射,把横扫的球挡回场内 */
     var arcTR = arcSegs(cornerR2.cx, cornerR2.cy, R, 0, -(Math.PI / 2) - Math.PI / 18, 8); // (720,470)→(556,332) 出口上仰10°
     for (var a1 = 0; a1 < arcTL.length; a1++) walls.push(arcTL[a1]);
     for (var a2 = 0; a2 < arcTR.length; a2++) walls.push(arcTR[a2]);

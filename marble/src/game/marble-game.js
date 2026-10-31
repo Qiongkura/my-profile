@@ -362,7 +362,7 @@
     this.launcherCool -= dt;
     this.launcherPulse = Math.max(0, this.launcherPulse - dt * 4);
 
-    this.world.step(dt, 10);
+    this.world.step(dt, 12);
 
     /* 弹珠簿记 */
     var balls = this.world.balls;
@@ -415,11 +415,12 @@
           continue;
         }
         if (speed < 30) m.slowT += dt; else m.slowT = Math.max(0, m.slowT - dt * 2);
-        if (m.slowT > 1.2) {
+        if (m.slowT > 0.7) {
           m.slowT = 0;
           m.nudges++;
-          m.vx += U.rand(-140, 140);
-          m.vy -= U.rand(60, 140);
+          /* 往下+侧向抖落(朝洞口方向),不要往上跳回钉顶 */
+          m.vx += U.rand(-170, 170);
+          m.vy += U.rand(40, 120);
         }
         if (m.nudges > 4 || m.age > 20) {
           MG.fx.text(this.fx, m.x, m.y - 24, '卡住啦', { size: 20, color: '#a8813f' });

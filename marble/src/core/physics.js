@@ -87,6 +87,12 @@
             this._emit({ type: 'bumper', x: c.x, y: c.y, ball: b, circle: c, speed: -vn });
           } else if (c.kind === 'peg') {
             if (-vn > 60) this._emit({ type: 'peg', x: c.x, y: c.y, ball: b, circle: c, speed: -vn });
+            /* 钉顶平衡破坏:球 nearly 静止在钉顶附近时,沿肩部向下滑出(真机圆钉不会卡球) */
+            if (-vn < 120 && -vn > 25 && dy < 0) {
+              var side = c.slideDir || (dx >= 0 ? 1 : -1);
+              b.vx += side * 130;
+              b.vy += 30;
+            }
           } else if (c.kind === 'mover') {
             this._emit({ type: 'mover', x: c.x, y: c.y, ball: b, circle: c, speed: -vn });
           }
