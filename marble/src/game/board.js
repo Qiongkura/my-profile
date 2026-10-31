@@ -151,6 +151,22 @@
     }
     for (var dc = 0; dc < deflectors.length; dc++) walls.push(deflectors[dc]);
 
+    /* 挡板与钉子之间不许有夹缝:距离 < 球径+6 的钉子移除(球进不去就不存在楔死) */
+    var kept2 = [];
+    for (var pq = 0; pq < pegs.length; pq++) {
+      var pg = pegs[pq], near = false;
+      for (var dq = 0; dq < deflectors.length; dq++) {
+        var dg = deflectors[dq];
+        var vx2 = dg.x2 - dg.x1, vy2 = dg.y2 - dg.y1;
+        var tt2 = ((pg.x - dg.x1) * vx2 + (pg.y - dg.y1) * vy2) / (vx2 * vx2 + vy2 * vy2);
+        tt2 = tt2 < 0 ? 0 : (tt2 > 1 ? 1 : tt2);
+        var qx = dg.x1 + vx2 * tt2, qy = dg.y1 + vy2 * tt2;
+        if (U.dist(pg.x, pg.y, qx, qy) < pg.r + dg.half + CFG.ballR * 2 + 6) { near = true; break; }
+      }
+      if (!near) kept2.push(pg);
+    }
+    pegs = kept2;
+
 
 
     /* ---- 边框 LED 灯带点位(复古主题绘制;极简主题忽略) ---- */
