@@ -75,6 +75,18 @@
       return { x: x, y: y, id: t.identifier != null ? t.identifier : 0 };
     }
 
+    /* ---------- 分包加载(BGM 分包,build-minigames.js 构建时生成) ---------- */
+    api.loadSubpackage = function (name, cb) {
+      if (!isMinigame || !sys.loadSubpackage) { if (cb) cb(); return; }
+      try {
+        sys.loadSubpackage({
+          name: name,
+          success: function () { if (cb) cb(); },
+          fail: function () { if (cb) cb(); }
+        });
+      } catch (e) { if (cb) cb(); }
+    };
+
     if (isMinigame) {
       sys.onTouchStart(function (e) { api._fire('down', normTouch(e)); });
       sys.onTouchMove(function (e) { api._fire('move', normTouch(e)); });

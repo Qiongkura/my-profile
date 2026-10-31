@@ -1,6 +1,7 @@
 /* 弹弹珠机 - 微信小游戏入口
  * 微信开发者工具直接导入本目录即可运行(本项目根目录就是小游戏项目根)。
- * 抖音小游戏请运行 `node tools/build-douyin.js` 生成 douyin/ 目录后导入。
+ * 正式上传双平台请运行 `node tools/build-minigames.js`,产出 dist/wx 与 dist/douyin
+ * (BGM 压缩进分包,主包 <4MB)。
  */
 require('./src/core/util.js');
 require('./src/platform/platform.js');

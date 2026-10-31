@@ -118,13 +118,25 @@
     innerStop();
   }
 
-  /* 首次用户手势后调用:浏览器允许出声了;顺带预加载全部曲目 */
+  /* 首次用户手势后调用:浏览器允许出声了;顺带预加载全部曲目。
+     小游戏端:先把 BGM 分包(bgm1/bgm2,构建时生成)加载完再播 */
   function unlock() {
     if (started) return;
     started = true;
-    if (!platform.isMinigame) {
-      for (var i = 0; i < SONGS.length; i++) webEl(i);
+    if (platform.isMinigame) {
+      if (platform.loadSubpackage) {
+        var pkgs = ['bgm1', 'bgm2'], doneN = 0;
+        var onOne = function () {
+          doneN++;
+          if (doneN >= pkgs.length && wantPlay && !muted) play();
+        };
+        for (var j = 0; j < pkgs.length; j++) platform.loadSubpackage(pkgs[j], onOne);
+        return;
+      }
+      if (wantPlay && !muted) play();
+      return;
     }
+    for (var i = 0; i < SONGS.length; i++) webEl(i);
     if (wantPlay && !muted) play();
   }
 
