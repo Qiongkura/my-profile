@@ -74,7 +74,7 @@
         var rvx = b.vx - mvx, rvy = b.vy - mvy;
         var vn = rvx * nx + rvy * ny;
         if (vn < 0) {
-          var e = c.kind === 'bumper' ? 1.0 : (c.e != null ? c.e : 0.5);
+          var e = c.e != null ? c.e : (c.kind === 'bumper' ? 0.35 : 0.5);
           /* 微小撞击不反弹:防止球在钉顶 perpetually 微颤卡住 */
           if (-vn < 40) e = 0;
           rvx -= (1 + e) * vn * nx;

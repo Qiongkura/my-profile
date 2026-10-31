@@ -124,7 +124,11 @@
       peg.kind = 'peg'; peg.e = 0.12;   /* 钉子要"拨"不要"弹":撞后仅回弹 12% */
       this.world.addCircle(peg);
     }
-    for (i = 0; i < this.board.bumpers.length; i++) this.world.addCircle(this.board.bumpers[i]);
+    for (i = 0; i < this.board.bumpers.length; i++) {
+      var bumper = this.board.bumpers[i];
+      bumper.e = 0.25;   /* 大弹柱调低:不再当炮台,只拨球 */
+      this.world.addCircle(bumper);
+    }
     for (i = 0; i < this.board.dividers.length; i++) this.world.addSeg(this.board.dividers[i]);
     for (i = 0; i < this.board.walls.length; i++) this.world.addSeg(this.board.walls[i]);
 
