@@ -871,14 +871,14 @@
 
     /* 安全提示(操作台底栏小字) */
     ctx.textAlign = 'center';
-    ui.font(ctx, 12, false);
+    ui.font(ctx, 11, false);
     ctx.fillStyle = C.finePrint;
-    ctx.fillText('本机不适合4岁以下儿童使用 · 弹珠只供游戏,严禁吞食', W / 2, panelY + 212);
+    ctx.fillText('本机不适合4岁以下儿童使用 · 弹珠只供游戏,严禁吞食', W / 2, panelY + 202);
 
     /* 提示 */
-    ui.font(ctx, 21, false);
+    ui.font(ctx, 20, false);
     ctx.fillStyle = ARC ? C.panelText : C.dim;
-    ctx.fillText('按住蓄力 · 松手弹珠', this._go.x, panelY + b.panelH - 26);
+    ctx.fillText('按住蓄力 · 松手弹珠', this._go.x, panelY + b.panelH - 20);
 
     this.bg = off;
   };
