@@ -203,7 +203,7 @@
     w.segs = segs || [];
     var b = w.addBall({ x: x, y: y, vx: vx, vy: vy, r: opts.r || 15 });
     var dt = opts.dt || (1 / 120);
-    var maxSteps = opts.maxSteps || 110;
+    var maxSteps = opts.maxSteps || 260;
     var pts = [];
     for (var i = 0; i < maxSteps; i++) {
       w.step(dt, 1);

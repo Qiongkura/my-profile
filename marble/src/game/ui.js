@@ -333,9 +333,6 @@
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    font(ctx, 30, false);
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
-    ctx.fillText('按住蓄力 · 松手弹珠', W / 2, top + 64);
 
     if (decoOnly) return;
 

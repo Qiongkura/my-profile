@@ -539,69 +539,8 @@
     ctx.lineWidth = 12;
     ctx.stroke();
 
-    /* ---- 背板:极简 = 浅色面板 + 墨色标题;复古 = 小狗 + 星星 + 红标题牌 ---- */
-    var backH = b.backH;
-    var ARC = CFG.themeName === 'arcade';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    if (ARC) {
-      ui.drawStarSticker(ctx, 60, 120, 13, 0.2, 0.8);
-      ui.drawStarSticker(ctx, 268, 44, 10, 0.5, 0.7);
-      ui.drawStarSticker(ctx, 600, 40, 12, 0.1, 0.8);
-      ui.drawStarSticker(ctx, 40, 240, 11, 0.7, 0.7);
-      ui.drawStarSticker(ctx, 300, 250, 9, 0.3, 0.6);
-      ui.drawPuppy(ctx, 152, 152, 58);
-      ctx.save();
-      ctx.translate(452, 78);
-      ctx.rotate(-0.025);
-      ui.rr(ctx, -172, -38, 344, 76, 20);
-      ctx.fillStyle = '#e8352e';
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 4;
-      ctx.stroke();
-      ui.font(ctx, 46);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText('弹弹珠机', 0, 2);
-      ui.drawStarSticker(ctx, -146, 0, 9, 0, 0.95);
-      ui.drawStarSticker(ctx, 146, 0, 9, 0, 0.95);
-      ctx.restore();
-    } else {
-      ui.font(ctx, 46);
-      ctx.fillStyle = C.panelText;
-      ctx.fillText('弹弹珠机', 160, 120);
-      ui.font(ctx, 17, false);
-      ctx.fillStyle = C.dim;
-      ctx.fillText('MARBLE MACHINE', 160, 158);
-    }
-
-    /* 深色 LED 显示屏:弹珠库 / 倍率 */
-    this._ledBank = { x: 300, y: 138, w: 200, h: 84 };
-    this._ledTier = { x: 512, y: 138, w: 140, h: 84 };
-    var leds = [this._ledBank, this._ledTier];
-    var labels = ['弹珠库', '倍率'];
-    for (var li = 0; li < 2; li++) {
-      var lr = leds[li];
-      ui.rr(ctx, lr.x, lr.y, lr.w, lr.h, 14);
-      ctx.fillStyle = C.segBg;
-      ctx.fill();
-      ui.font(ctx, 16, false);
-      ctx.fillStyle = C.ledLabel;
-      ctx.fillText(labels[li], lr.x + lr.w / 2, lr.y + 20);
-    }
-
-    /* 温馨提示行 */
-    ui.font(ctx, 15, false);
-    ctx.fillStyle = C.finePrint;
-    ctx.fillText('本机不适合4岁以下儿童使用 · 弹珠只供游戏,严禁吞食', W / 2 - 40, 272);
-
-    /* 背板与场地之间横梁 */
-    ui.rr(ctx, 8, backH - 16, W - 16, 24, 10);
-    ctx.fillStyle = C.frame;
-    ctx.fill();
-
     /* ---- 场地(浅暖灰斜面,铺满全宽;左右上角对称圆角与导轨重合) ---- */
+    var ARC = CFG.themeName === 'arcade';
     var R2 = b.cornerL.r;
     function fieldPath(c) {
       c.beginPath();
@@ -615,7 +554,7 @@
       c.closePath();
     }
     fieldPath(ctx);
-    var field = ctx.createLinearGradient(0, backH, 0, b.floorY);
+    var field = ctx.createLinearGradient(0, 0, 0, b.floorY);
     field.addColorStop(0, C.fieldTop);
     field.addColorStop(1, C.fieldBot);
     ctx.fillStyle = field;
@@ -633,15 +572,15 @@
       ctx.globalAlpha = 0.28;
       ctx.fillStyle = C.glassShine;
       ctx.beginPath();
-      ctx.moveTo(W * 0.16, backH);
-      ctx.lineTo(W * 0.4, backH);
+      ctx.moveTo(W * 0.16, 0);
+      ctx.lineTo(W * 0.4, 0);
       ctx.lineTo(W * 0.12, b.floorY);
       ctx.lineTo(-W * 0.12, b.floorY);
       ctx.closePath();
       ctx.fill();
       ctx.beginPath();
-      ctx.moveTo(W * 0.52, backH);
-      ctx.lineTo(W * 0.6, backH);
+      ctx.moveTo(W * 0.52, 0);
+      ctx.lineTo(W * 0.6, 0);
       ctx.lineTo(W * 0.32, b.floorY);
       ctx.lineTo(W * 0.24, b.floorY);
       ctx.closePath();
@@ -649,6 +588,60 @@
       ctx.globalAlpha = 1;
       ctx.restore();
     }
+
+    /* ---- 场内顶部标识(印在玻璃后):极简 = 墨色标题;复古 = 小狗 + 星星 + 红标题牌 ---- */
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (ARC) {
+      ui.drawStarSticker(ctx, 60, 160, 13, 0.2, 0.8);
+      ui.drawStarSticker(ctx, 268, 70, 10, 0.5, 0.7);
+      ui.drawStarSticker(ctx, 600, 66, 12, 0.1, 0.8);
+      ui.drawStarSticker(ctx, 40, 262, 11, 0.7, 0.7);
+      ui.drawStarSticker(ctx, 300, 270, 9, 0.3, 0.6);
+      ui.drawPuppy(ctx, 152, 152, 56);
+      ctx.save();
+      ctx.translate(452, 158);
+      ctx.rotate(-0.025);
+      ui.rr(ctx, -172, -38, 344, 76, 20);
+      ctx.fillStyle = '#e8352e';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      ui.font(ctx, 46);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('弹弹珠机', 0, 2);
+      ui.drawStarSticker(ctx, -146, 0, 9, 0, 0.95);
+      ui.drawStarSticker(ctx, 146, 0, 9, 0, 0.95);
+      ctx.restore();
+    } else {
+      ui.font(ctx, 46);
+      ctx.fillStyle = C.panelText;
+      ctx.fillText('弹弹珠机', 160, 132);
+      ui.font(ctx, 17, false);
+      ctx.fillStyle = C.dim;
+      ctx.fillText('MARBLE MACHINE', 160, 170);
+    }
+
+    /* 深色 LED 显示屏(玻璃后):弹珠库 / 倍率 */
+    this._ledBank = { x: 300, y: 30, w: 200, h: 84 };
+    this._ledTier = { x: 512, y: 30, w: 140, h: 84 };
+    var leds = [this._ledBank, this._ledTier];
+    var labels = ['弹珠库', '倍率'];
+    for (var li = 0; li < 2; li++) {
+      var lr = leds[li];
+      ui.rr(ctx, lr.x, lr.y, lr.w, lr.h, 14);
+      ctx.fillStyle = C.segBg;
+      ctx.fill();
+      ui.font(ctx, 16, false);
+      ctx.fillStyle = C.ledLabel;
+      ctx.fillText(labels[li], lr.x + lr.w / 2, lr.y + 20);
+    }
+
+    /* 温馨提示行 */
+    ui.font(ctx, 15, false);
+    ctx.fillStyle = C.finePrint;
+    ctx.fillText('本机不适合4岁以下儿童使用 · 弹珠只供游戏,严禁吞食', W / 2 - 40, 252);
 
     /* ---- 发射道槽(场内右侧,自内墙顶以下;槽宽 = 内墙 face 到右墙 face) ---- */
     ctx.fillStyle = C.laneSlot;
