@@ -1,4 +1,4 @@
-/* 弹弹珠机 - 游戏主逻辑 (命名空间: MG.Game)
+/* 弹弹弹珠吧 - 游戏主逻辑 (命名空间: MG.Game)
  * 复刻玻璃珠游艺机:
  *   - 右下角先选投入弹珠数(1~5 颗)= 选倍率 ×2~×10,投入越多亮灯的洞越少
  *   - 按住蓄力,松手把弹珠从右下角往上弹,冲过顶部导弧拐入斜面场地
@@ -584,14 +584,14 @@
       ctx.stroke();
       ui.font(ctx, 46);
       ctx.fillStyle = '#ffffff';
-      ctx.fillText('弹弹珠机', 0, 2);
+      ctx.fillText('弹弹弹珠吧', 0, 2);
       ui.drawStarSticker(ctx, -146, 0, 9, 0, 0.95);
       ui.drawStarSticker(ctx, 146, 0, 9, 0, 0.95);
       ctx.restore();
     } else {
       ui.font(ctx, 46);
       ctx.fillStyle = C.panelText;
-      ctx.fillText('弹弹珠机', 160, 120);
+      ctx.fillText('弹弹弹珠吧', 160, 120);
       ui.font(ctx, 17, false);
       ctx.fillStyle = C.dim;
       ctx.fillText('MARBLE MACHINE', 160, 158);

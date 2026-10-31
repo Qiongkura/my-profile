@@ -1,4 +1,4 @@
-/* 弹弹珠机 - UI 绘制与界面 (命名空间: MG.ui)
+/* 弹弹弹珠吧 - UI 绘制与界面 (命名空间: MG.ui)
  * 界面层走 ins 极简风:白卡片 + 墨色胶囊按钮 + 细线 + 柔和投影。
  * 机台本体(黄机台/LED/钉阵)保持街机质感;按钮为立即模式,由游戏层在按下时检测。
  */
@@ -557,7 +557,7 @@
     var by = cy + (compact ? 400 : 430);
     if (game.platform.isMinigame) {
       button(game, bx, by, bw, bh * 0.72, '分享给好友', function () {
-        game.platform.share('我在「弹弹珠机」中了 ' + game.wins + ' 次,最大单次赢 ' + U.fmt(game.maxWin) + ' 颗弹珠!');
+        game.platform.share('我在「弹弹弹珠吧」中了 ' + game.wins + ' 次,最大单次赢 ' + U.fmt(game.maxWin) + ' 颗弹珠!');
       }, { size: 26 });
       by += bh * 0.72 + 24;
     }
