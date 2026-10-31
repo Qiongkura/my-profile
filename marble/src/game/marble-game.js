@@ -385,12 +385,13 @@
     MG.audio.play('click');
   };
 
-  /* 切换机台主题(极简 / 复古街机),即时重建外观 */
+  /* 切换机台主题(极简 / 复古街机):只重绘外观缓存,
+     不动棋盘/物理世界——在飞的弹珠与亮灯洞口原样保留 */
   Game.prototype.setTheme = function (t) {
     this.theme = (t === 'arcade') ? 'arcade' : 'min';
     this.platform.storage.set('mm_theme', this.theme);
     MG.config.setTheme(this.theme);
-    this.buildBoard(this.round || 0);
+    this.buildBg();
   };
 
   Game.prototype.themeLabel = function () {
