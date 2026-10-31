@@ -592,7 +592,7 @@
       ui.drawStarSticker(ctx, 600, 40, 12, 0.1, 0.8);
       ui.drawStarSticker(ctx, 40, 240, 11, 0.7, 0.7);
       ui.drawStarSticker(ctx, 300, 250, 9, 0.3, 0.6);
-      ui.drawPuppy(ctx, 152, 208, 50);
+      ui.drawPuppy(ctx, 152, (this.iconRowY || 42) + 80, 50);
       ctx.save();
       ctx.translate(452, 78);
       ctx.rotate(-0.025);
@@ -609,12 +609,13 @@
       ui.drawStarSticker(ctx, 146, 0, 9, 0, 0.95);
       ctx.restore();
     } else {
+      var titleY = Math.max(196, (this.iconRowY || 42) + 64);   /* 跟随图标行,永不被按键遮挡 */
       ui.font(ctx, 46);
       ctx.fillStyle = C.panelText;
-      ctx.fillText('弹弹弹珠吧', 160, 120);
+      ctx.fillText('弹弹弹珠吧', 160, titleY);
       ui.font(ctx, 17, false);
       ctx.fillStyle = C.dim;
-      ctx.fillText('MARBLE MACHINE', 160, 158);
+      ctx.fillText('MARBLE MACHINE', 160, titleY + 40);
     }
 
     /* 深色 LED 显示屏:弹珠库 / 倍率 */
@@ -632,11 +633,6 @@
       ctx.fillText(labels[li], lr.x + lr.w / 2, lr.y + 20);
     }
 
-    /* 温馨提示行(两行,放在标题正下方,避让右侧显示屏) */
-    ui.font(ctx, 13, false);
-    ctx.fillStyle = C.finePrint;
-    ctx.fillText('本机不适合4岁以下儿童使用', 160, 268);
-    ctx.fillText('弹珠只供游戏,严禁吞食', 160, 292);
 
     /* ---- 场地(浅暖灰斜面,铺满全宽;左右上角对称圆角与导轨重合) ---- */
     var R2 = b.cornerL.r;
@@ -854,6 +850,12 @@
     ui.font(ctx, 16, false);
     ctx.fillStyle = C.dim;
     ctx.fillText('投入越多 · 倍率越高 · 亮灯越少', 536, panelY + 148);
+
+    /* 安全提示(操作台底栏小字) */
+    ctx.textAlign = 'center';
+    ui.font(ctx, 12, false);
+    ctx.fillStyle = C.finePrint;
+    ctx.fillText('本机不适合4岁以下儿童使用 · 弹珠只供游戏,严禁吞食', W / 2, panelY + 212);
 
     /* 提示 */
     ui.font(ctx, 21, false);
