@@ -233,6 +233,33 @@
       ctx.fillStyle = '#a4622a';
       ctx.fillRect(cx - r * 0.35, cy - r * 0.38, r * 0.24, r * 0.76);
       ctx.fillRect(cx + r * 0.11, cy - r * 0.38, r * 0.24, r * 0.76);
+    } else if (kind === 'music') {
+      var mc = game.muted ? '#c9b08a' : '#a4622a';
+      ctx.fillStyle = mc;
+      ctx.strokeStyle = mc;
+      ctx.lineWidth = Math.max(1.5, r * 0.14);
+      ctx.beginPath();
+      ctx.ellipse(cx - r * 0.16, cy + r * 0.3, r * 0.22, r * 0.15, -0.25, 0, U.TAU);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(cx + r * 0.04, cy + r * 0.26);
+      ctx.lineTo(cx + r * 0.04, cy - r * 0.44);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx + r * 0.04, cy - r * 0.44);
+      ctx.quadraticCurveTo(cx + r * 0.44, cy - r * 0.34, cx + r * 0.42, cy - r * 0.06);
+      ctx.stroke();
+    } else if (kind === 'home') {
+      ctx.fillStyle = '#a4622a';
+      ctx.beginPath();
+      ctx.moveTo(cx - r * 0.52, cy - r * 0.05);
+      ctx.lineTo(cx, cy - r * 0.52);
+      ctx.lineTo(cx + r * 0.52, cy - r * 0.05);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(cx - r * 0.36, cy - r * 0.05, r * 0.72, r * 0.46);
+      ctx.fillStyle = C.cream;
+      ctx.fillRect(cx - r * 0.11, cy + r * 0.1, r * 0.22, r * 0.31);
     } else {
       ctx.fillStyle = game.muted ? '#c9b08a' : '#a4622a';
       ctx.beginPath();
@@ -364,7 +391,7 @@
     ctx.fillStyle = 'rgba(50,30,5,0.6)';
     ctx.fillRect(0, 0, W, H);
 
-    var cw = 520, ch = 560;
+    var cw = 520, ch = 460;
     var cx = W / 2 - cw / 2, cy = H / 2 - ch / 2;
     rr(ctx, cx, cy, cw, ch, 26);
     ctx.fillStyle = C.cream;
@@ -383,7 +410,6 @@
     button(game, bx, cy + 140, bw, bh, '继续游戏', function () { game.state = 'play'; game.stateT = 0; }, { primary: true, size: 32 });
     button(game, bx, cy + 240, bw, bh, '重新开始', function () { game.restartRound(); }, { size: 30 });
     button(game, bx, cy + 340, bw, bh, game.muted ? '音效:关' : '音效:开', function () { game.toggleMute(); }, { size: 28 });
-    button(game, bx, cy + 440, bw, bh, '回主页', function () { game.backToMenu(); }, { size: 30 });
   }
 
   /* ---------- 结算 ---------- */
@@ -395,7 +421,7 @@
     ctx.fillRect(0, 0, W, H);
 
     var compact = H < 1400;
-    var cw = 620, ch = compact ? 580 : 660;
+    var cw = 620, ch = compact ? 540 : 600;
     var cx = W / 2 - cw / 2, cy = H / 2 - ch / 2;
     rr(ctx, cx, cy, cw, ch, 28);
     ctx.fillStyle = C.cream;
@@ -442,7 +468,6 @@
       by += bh * 0.72 + 24;
     }
     button(game, bx, by, bw, bh, '再来一局(补20颗)', function () { game.restartRound(); }, { primary: true, size: 32 });
-    button(game, bx, by + bh + 24, bw, bh * 0.8, '回主页', function () { game.backToMenu(); }, { size: 28 });
   }
 
   MG.ui = {

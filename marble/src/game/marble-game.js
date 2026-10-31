@@ -25,6 +25,9 @@
     this.prizeBallsTotal = platform.storage.get('mm_prizes', 0) | 0;
     this.giftCardsTotal = platform.storage.get('mm_cards', 0) | 0;
     this.bestWin = platform.storage.get('mm_bestwin', 0) | 0;
+    this.songIdx = platform.storage.get('mm_song', 0) | 0;
+    MG.music.init(platform);
+    MG.music.setSong(this.songIdx);
 
     /* 视口 */
     this.view = { scale: 1, offX: 0, offY: 0, W: CFG.DESIGN_W, H: 1500 };
@@ -156,6 +159,13 @@
     MG.audio.play('click');
   };
 
+  Game.prototype.cycleMusic = function () {
+    var name = MG.music.next();
+    this.platform.storage.set('mm_song', MG.music.current());
+    MG.fx.text(this.fx, 106, 96, '♪ ' + name, { size: 24, color: '#fff8ea', life: 1.5 });
+    MG.audio.play('click');
+  };
+
   Game.prototype.toggleMute = function () {
     this.muted = MG.audio.toggleMuted();
     this.platform.storage.set('mm_mute', this.muted);
@@ -261,7 +271,9 @@
     var lane = this.board.lane;
     var speed = U.lerp(CFG.launcher.minSpeed, CFG.launcher.maxSpeed, power);
     /* 垂直上升:无水平抖动 */
-    var m = new MG.entities.Marble(lane.spawn.x, lane.spawn.y, 0, -speed, this.skinIdx++ % C.marbleTints.length);
+    /* 出膛随机抖动:真机弹珠在弹道内颤动,混沌放大让每次落点不同 */
+    var jx = U.rand(-16, 16);
+    var m = new MG.entities.Marble(lane.spawn.x + jx * 0.4, lane.spawn.y, jx * 3, -speed * U.rand(0.975, 1.025), this.skinIdx++ % C.marbleTints.length);
     m.bet = t.cost;
     m.mult = t.mult;
     this.world.addBall(m);
@@ -744,6 +756,13 @@
 
     this.frameButtons.length = 0;
 
+    /* 顶部图标簇:音效 / 音乐 / 主页(主页非菜单态显示) */
+    MG.ui.iconButton(this, 56, 50, 24, 'sound', function () { this.toggleMute(); }.bind(this));
+    MG.ui.iconButton(this, 106, 50, 24, 'music', function () { this.cycleMusic(); }.bind(this));
+    if (st !== 'menu') {
+      MG.ui.iconButton(this, 156, 50, 24, 'home', function () { this.backToMenu(); }.bind(this));
+    }
+
     var st = this.state;
     if (st === 'menu') {
       MG.ui.renderMenu(this, false);
@@ -768,7 +787,6 @@
     /* ---- 背板:LED 数值 + 小按钮 ---- */
     this.drawSeg(this._ledBank, String(this.bank));
     this.drawSeg(this._ledTier, '×' + this.tier().mult);
-    ui.iconButton(this, 56, 50, 24, 'sound', function () { this.toggleMute(); }.bind(this));
     ui.iconButton(this, W - 56, 50, 24, 'pause', function () { this.state = 'pause'; this.stateT = 0; }.bind(this));
 
     /* ---- 弹道箭头 ---- */
@@ -813,7 +831,7 @@
       ctx.shadowColor = '#ffd166';
       ctx.shadowBlur = 18;
       ctx.beginPath();
-      ctx.arc(b.lane.cx, b.lane.floorY + 40, 17, 0, U.TAU);
+      ctx.arc(b.lane.cx, b.lane.floorY - 30, 17, 0, U.TAU);
       ctx.fillStyle = '#ffd166';
       ctx.fill();
       ctx.restore();
@@ -1051,6 +1069,7 @@
   /* ================= 主循环 ================= */
 
   Game.prototype.frame = function (dt) {
+    MG.music.tick(dt);
     this.update(dt);
     this.render();
   };

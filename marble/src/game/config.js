@@ -17,8 +17,8 @@
     H_MAX: 1800,
 
     /* 物理:斜面滚珠(低重力慢滚),弹道爬升需要较高初速 */
-    gravity: 850,
-    maxSpeed: 2000,        // 全局限速
+    gravity: 2000,       // 斜面下滑分量(真实 45° 倾斜比例)
+    maxSpeed: 3400,        // 全局限速
     airDrag: 0.1,
     ballR: 15,
     pegR: 9,
@@ -57,10 +57,10 @@
 
     /* 发射(右下角,竖直向上) */
     launcher: {
-      minSpeed: 1150,      // 太小 → 冲不到顶,滚回来退还(约 15% 力度带)
-      maxSpeed: 1780,      // 满力 → 贴弧后横扫到最左
+      minSpeed: 1800,      // 低于最小临界 → 弧中途失速滚回退还(约 5% 力度带)
+      maxSpeed: 3400,      // 满力 → 掠过顶轨直到左上角
       cooldown: 0.3,
-      tapPower: 0.4,       // 快速点按(落点中场偏左)
+      tapPower: 0.35,      // 快速点按(落点中场)
       chargeSpeed: 0.8,
       tapJudge: 0.16,
       refundSlow: 60,      // 弹道内低速视为滚回

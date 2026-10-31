@@ -124,10 +124,32 @@
   function toggleMuted() { _muted = !_muted; return _muted; }
   function isMuted() { return _muted; }
 
+  /* 背景音乐音符(芯片音) */
+  function note(freq, dur, type, vol) {
+    var a = ensureCtx();
+    if (!a) return;
+    try {
+      var t0 = a.currentTime;
+      var osc = a.createOscillator();
+      var g = a.createGain();
+      osc.type = type || 'square';
+      osc.frequency.setValueAtTime(Math.max(1, freq), t0);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.001, vol || 0.05), t0 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g); g.connect(_master);
+      osc.start(t0); osc.stop(t0 + dur + 0.03);
+    } catch (e) { }
+  }
+
+  function ready() { return !!_actx; }
+
   MG.audio = {
     init: init,
     unlock: unlock,
     play: play,
+    note: note,
+    ready: ready,
     setMuted: setMuted,
     toggleMuted: toggleMuted,
     isMuted: isMuted
