@@ -309,12 +309,12 @@
       MG.fx.text(this.fx, this.board.lane.cx - 10, this.board.lane.floorY - 130, '等上一颗落定', { size: 22, color: '#fff8ea', life: 0.8 });
       return;
     }
-    var t = this.tier();
-    if (this.bank < t.cost) {
+    var tier = this.tier();
+    if (this.bank < tier.cost) {
       MG.fx.text(this.fx, this.board.lane.cx - 10, this.board.lane.floorY - 80, '弹珠不够', { size: 22, color: '#e8352e' });
       return;
     }
-    this.bank -= t.cost;
+    this.bank -= tier.cost;
     this.launched++;
     /* 亮灯洞只在换档位时重排,发射前后保持不变 */
 
@@ -335,8 +335,8 @@
     /* 出膛随机抖动:真机弹珠在弹道内颤动,混沌放大让每次落点不同 */
     var jx = U.rand(-16, 16);
     var m = new MG.entities.Marble(lane.spawn.x + jx * 0.4, lane.spawn.y, jx * 3, -speed * U.rand(0.975, 1.025), this.skinIdx++ % C.marbleTints.length);
-    m.bet = t.cost;
-    m.mult = t.mult;
+    m.bet = tier.cost;
+    m.mult = tier.mult;
     this.world.addBall(m);
     this.launcherCool = CFG.launcher.cooldown;
     this.launcherPulse = 1;
