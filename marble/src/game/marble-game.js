@@ -121,7 +121,7 @@
     var i;
     for (i = 0; i < this.board.pegs.length; i++) {
       var peg = this.board.pegs[i];
-      peg.kind = 'peg'; peg.e = 0.55;
+      peg.kind = 'peg'; peg.e = 0.12;   /* 钉子要"拨"不要"弹":撞后仅回弹 12% */
       this.world.addCircle(peg);
     }
     for (i = 0; i < this.board.bumpers.length; i++) this.world.addCircle(this.board.bumpers[i]);
