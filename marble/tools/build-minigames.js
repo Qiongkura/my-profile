@@ -62,9 +62,15 @@ if (!mods.length) {
 /* 2. 压缩 BGM → 56k 单声道 m4a 到临时目录,并登记分包 */
 const bgmSrc = path.join(ROOT, 'assets', 'bgm');
 const bgmTmp = path.join(DIST, '_bgm');
-try { fs.rmSync(DIST, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 }); }
-catch (e) { console.error('dist 目录被占用(请先关闭微信开发者工具里打开的项目),然后重新运行'); process.exit(1); }
+var overwriteMode = false;
+try { fs.rmSync(DIST, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 }); }
+catch (e) {
+  /* 开发者工具占用目录时改为原地覆盖(旧文件保留,新文件全部更新) */
+  overwriteMode = true;
+  console.log('dist 被占用 → 原地覆盖模式');
+}
 fs.mkdirSync(bgmTmp, { recursive: true });
+var tryRm = function (p2) { try { fs.rmSync(p2, { recursive: true, force: true }); } catch (e) { } };
 for (const name of PKG1.concat(PKG2)) {
   const out = path.join(bgmTmp, name + '.m4a');
   execFileSync(FFMPEG, ['-hide_banner', '-loglevel', 'error', '-y',
@@ -90,15 +96,15 @@ function buildPlatform(plat, extraFiles) {
     fs.writeFileSync(path.join(dest, rel), code);
   }
   copyDir(path.join(ROOT, 'assets'), path.join(dest, 'assets'));
-  fs.rmSync(path.join(dest, 'assets', 'bgm'), { recursive: true, force: true });   /* 音乐走分包 */
+  tryRm(path.join(dest, 'assets', 'bgm'));   /* 音乐走分包 */
   copyDir(path.join(bgmTmp), path.join(dest, 'bgm1'));
-  fs.rmSync(path.join(dest, 'bgm1', '02-canon.m4a'), { force: true });
-  fs.rmSync(path.join(dest, 'bgm1', '04-cancan.m4a'), { force: true });
+  tryRm(path.join(dest, 'bgm1', '02-canon.m4a'));
+  tryRm(path.join(dest, 'bgm1', '04-cancan.m4a'));
   copyDir(path.join(bgmTmp), path.join(dest, 'bgm2'));
-  fs.rmSync(path.join(dest, 'bgm2', '01-ievan.m4a'), { force: true });
-  fs.rmSync(path.join(dest, 'bgm2', '03-ode.m4a'), { force: true });
-  fs.rmSync(path.join(dest, 'bgm2', '06-zuixuan.m4a'), { force: true });
-  fs.rmSync(path.join(dest, 'bgm2', '07-pingguo.m4a'), { force: true });
+  tryRm(path.join(dest, 'bgm2', '01-ievan.m4a'));
+  tryRm(path.join(dest, 'bgm2', '03-ode.m4a'));
+  tryRm(path.join(dest, 'bgm2', '06-zuixuan.m4a'));
+  tryRm(path.join(dest, 'bgm2', '07-pingguo.m4a'));
   /* 小游戏分包根目录必须各有 game.js 入口(即使为空) */
   fs.writeFileSync(path.join(dest, 'bgm1', 'game.js'), '/* BGM 分包入口(音频资源) */\n');
   fs.writeFileSync(path.join(dest, 'bgm2', 'game.js'), '/* BGM 分包入口(音频资源) */\n');

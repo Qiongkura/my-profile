@@ -53,7 +53,7 @@
     /* ---- 钉阵 ---- */
     var pegTop = L.pegTop;
     var pegBottom = floorY - L.pegBottomPad;
-    var rows = U.clamp(Math.floor((pegBottom - pegTop) / 82), 4, 9);
+    var rows = U.clamp(Math.floor((pegBottom - pegTop) / 92), 4, 7);   /* 上限 7 排:长屏不再堆满钉子 */
     var rowGap = (pegBottom - pegTop) / (rows - 1);
     var fieldW = fieldRight - fieldX0;
     var spacing = fieldW / 8;

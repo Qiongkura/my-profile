@@ -91,13 +91,15 @@
 
   Game.prototype.computeView = function () {
     var p = this.platform;
-    var H = U.clamp(CFG.DESIGN_W * p.cssH / p.cssW, CFG.H_MIN, CFG.H_MAX);
-    var scale = Math.min(p.cssW / CFG.DESIGN_W, p.cssH / H);
+    var safe = p.safeTop || 0;                 /* 状态栏+胶囊占用的顶部安全区 */
+    var availH = Math.max(400, p.cssH - safe);
+    var H = U.clamp(CFG.DESIGN_W * availH / p.cssW, CFG.H_MIN, CFG.H_MAX);
+    var scale = Math.min(p.cssW / CFG.DESIGN_W, availH / H);
     this.view.W = CFG.DESIGN_W;
     this.view.H = H;
     this.view.scale = scale;
     this.view.offX = (p.cssW - CFG.DESIGN_W * scale) / 2;
-    this.view.offY = (p.cssH - H * scale) / 2;
+    this.view.offY = safe + (availH - H * scale) / 2;
   };
 
   Game.prototype.toLogical = function (cx, cy) {
@@ -551,6 +553,10 @@
     var off = p.createOffscreen(p.canvas.width, p.canvas.height);
     var ctx = off.getContext('2d');
     var ui = MG.ui;
+    if (p.isMinigame) {                       /* 安全区/留边铺机身底色 */
+      ctx.fillStyle = C.cabYellowHi;
+      ctx.fillRect(0, 0, off.width, off.height);
+    }
 
     var s = this.view.scale * p.dpr;
     ctx.setTransform(s, 0, 0, s, this.view.offX * p.dpr, this.view.offY * p.dpr);

@@ -67,6 +67,22 @@
     api.applySize = applySize;
     api.onResize = function (cb) { api._resizeCbs.push(cb); };
 
+    /* 安全区:小游戏顶部的状态栏/胶囊按钮不能压住 UI */
+    var safeTop = 0;
+    if (isMinigame) {
+      try {
+        if (sys.getMenuButtonBoundingClientRect) {
+          var mb = sys.getMenuButtonBoundingClientRect();
+          if (mb && mb.bottom) safeTop = Math.max(0, mb.bottom + 6);
+        }
+        if (!safeTop && sys.getSystemInfoSync) {
+          var si = sys.getSystemInfoSync();
+          if (si && si.statusBarHeight) safeTop = si.statusBarHeight + 46;
+        }
+      } catch (e) { }
+    }
+    api.safeTop = safeTop;
+
     /* ---------- 触摸输入(统一为 CSS 像素坐标) ---------- */
     function normTouch(e) {
       var t = (e.touches && e.touches.length ? e.touches[0] : (e.changedTouches && e.changedTouches.length ? e.changedTouches[0] : e));
