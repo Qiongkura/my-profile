@@ -364,6 +364,30 @@
 
     this.world.step(dt, 10);
 
+    /* 顶部导轨:出弧后高速弹珠贴着顶轨滑行一段(滚动摩擦减速,慢了自然脱落) */
+    var tg = this.world.balls;
+    for (i = 0; i < tg.length; i++) {
+      var tb = tg[i];
+      if (tb.dead) continue;
+      if (!tb.topRail && tb.vx < -80 && tb.vy > -150 && tb.y > 344 && tb.y < 362 && tb.x > 195 && tb.x < 590) {
+        tb.topRail = true; /* 无瞬移:球本来就在轨线上,只是被导轨檐接住 */
+      }
+      if (tb.topRail) {
+        var tsp = Math.max(0, -tb.vx - 1350 * dt);
+        if (tsp < 450 || tb.x < 200) {
+          tb.topRail = false; /* 脱轨:自然抛体落入钉阵 */
+          tb.y = Math.max(tb.y, 353);
+          tb.vx = -tsp;
+          tb.vy = Math.max(tb.vy, 0);
+          continue;
+        }
+        tb.y = 353;
+        tb.vy = 0;
+        tb.x = Math.max(60, tb.x - tsp * dt);
+        tb.vx = -tsp;
+      }
+    }
+
     /* 弹珠簿记 */
     var balls = this.world.balls;
     var alive = 0;
