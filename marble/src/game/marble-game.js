@@ -592,7 +592,7 @@
       ui.drawStarSticker(ctx, 600, 40, 12, 0.1, 0.8);
       ui.drawStarSticker(ctx, 40, 240, 11, 0.7, 0.7);
       ui.drawStarSticker(ctx, 300, 250, 9, 0.3, 0.6);
-      ui.drawPuppy(ctx, 152, 152, 58);
+      ui.drawPuppy(ctx, 152, 208, 50);
       ctx.save();
       ctx.translate(452, 78);
       ctx.rotate(-0.025);
@@ -635,8 +635,8 @@
     /* 温馨提示行(两行,放在标题正下方,避让右侧显示屏) */
     ui.font(ctx, 13, false);
     ctx.fillStyle = C.finePrint;
-    ctx.fillText('本机不适合4岁以下儿童使用', 160, 232);
-    ctx.fillText('弹珠只供游戏,严禁吞食', 160, 256);
+    ctx.fillText('本机不适合4岁以下儿童使用', 160, 268);
+    ctx.fillText('弹珠只供游戏,严禁吞食', 160, 292);
 
     /* ---- 场地(浅暖灰斜面,铺满全宽;左右上角对称圆角与导轨重合) ---- */
     var R2 = b.cornerL.r;

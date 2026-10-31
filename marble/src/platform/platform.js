@@ -80,7 +80,7 @@
         if (sys.getMenuButtonBoundingClientRect) {
           var mb = sys.getMenuButtonBoundingClientRect();
           if (mb && mb.height) {
-            capsuleY = (mb.top + mb.bottom) / 2 - statusBarH;
+            capsuleY = (mb.top + mb.bottom) / 2;   /* 画布全屏,胶囊即画布坐标 */
             api._mbRaw = 'mb=' + Math.round(mb.top) + '-' + Math.round(mb.bottom);
           }
         }
