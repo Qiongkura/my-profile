@@ -652,7 +652,7 @@
 
     /* ---- 发射道槽(场内右侧,自内墙顶以下;槽宽 = 内墙 face 到右墙 face) ---- */
     ctx.fillStyle = C.laneSlot;
-    ctx.fillRect(b.lane.x0 + 8, b.lane.top, (W - 52) - (b.lane.x0 + 8), b.lane.floorY - b.lane.top);
+    ctx.fillRect(b.lane.x0 + 8, b.lane.top, (W - 28) - (b.lane.x0 + 8), b.lane.floorY - b.lane.top);
     ctx.fillStyle = C.laneEdge;
     ctx.fillRect(b.lane.x0 - 7, b.lane.top, 14, b.lane.floorY - b.lane.top);
     /* 边界与导流一体轨:左墙 → 左弧角 → 顶轨 → 右弧角 → 右墙(竖直段与弧端同 x,严丝合缝) */
@@ -667,7 +667,7 @@
     ctx.arc(b.cornerL.cx, b.cornerL.cy, b.cornerL.r, Math.PI, Math.PI * 1.5, false);
     ctx.lineTo(b.cornerR.cx, b.ceilingY);
     ctx.arc(b.cornerR.cx, b.cornerR.cy, b.cornerR.r, Math.PI * 1.5, Math.PI * 2, false);
-    ctx.lineTo(W - 45, b.floorY - 56);
+    ctx.lineTo(W - 21, b.floorY - 56);
     ctx.stroke();
     ctx.strokeStyle = C.trackHi;
     ctx.lineWidth = 3;

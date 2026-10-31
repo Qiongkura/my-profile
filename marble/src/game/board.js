@@ -20,7 +20,7 @@
     /* ---- 右侧弹道(右下角向上,单珠宽) ---- */
     var laneX0 = W - L.laneW;
     var laneX1 = W - 15;
-    var laneCx = (laneX0 + 8 + (W - 52)) / 2; /* 弹道内 face(laneX0+8) 与右墙内 face(W-52) 的正中 */
+    var laneCx = (laneX0 + 8 + (W - 28)) / 2; /* 弹道内 face(laneX0+8) 与右墙内 face(W-28) 的正中 */
     /* ---- 场地几何 ---- */
     var floorY = H - panelH - 14;
     var fieldRight = laneX0 - 10;
@@ -121,8 +121,9 @@
        右弧延长到 100°:出口略上仰,高速球靠惯性压弧贴行、出弧后贴顶滑翔,全真实碰撞) */
     var cornerL = { cx: fieldX0 + R, cy: ceilingY + R, r: R };   // 弧与左墙轨(x=fieldX0)相切
     var cornerR2 = { cx: W - 45 - R, cy: ceilingY + R, r: R };   // 弧与右墙轨(x=W-45)相切
-    /* 碰撞面与绘制轨对齐:half=7 → 胶囊面 = 画线中心±7 = 14px 轨的内缘,球缘贴轨走 */
-    var rightWallCx = W - 45;   /* 右墙轨中心 = 右上导弧端点(705),竖直向下 */
+    /* 碰撞面与绘制轨对齐:half=7 → 胶囊面 = 画线中心±7 = 14px 轨的内缘,球缘贴轨走。
+       两轨中心距机缘 21px(轨带与白框相接,沿边界走) */
+    var rightWallCx = W - 21;   /* 右墙轨中心 = 右上导弧端点,竖直向下 */
     var walls = [
       { x1: fieldX0, y1: ceilingY, x2: fieldX0, y2: floorY, half: 7, e: 0.45, kind: 'wall' },    // 左墙
       { x1: rightWallCx, y1: ceilingY, x2: rightWallCx, y2: laneFloorY, half: 7, e: 0.4, kind: 'wall' }, // 右墙(机身)
@@ -141,9 +142,9 @@
     var step = 46;
     for (var lx = cornerL.cx; lx <= cornerR2.cx; lx += step) leds.push({ x: lx, y: ceilingY });
     for (var la = -Math.PI / 2 + 0.4; la < -0.1; la += Math.PI / 9) leds.push({ x: cornerR2.cx + Math.cos(la) * (R - 10), y: cornerR2.cy + Math.sin(la) * (R - 10) });
-    for (var ly = cornerR2.cy + 30; ly <= floorY - 30; ly += step) leds.push({ x: W - 15 - 10, y: ly });
+    for (var ly = cornerR2.cy + 30; ly <= floorY - 30; ly += step) leds.push({ x: W - 21, y: ly });
     for (var bx = fieldRight - 20; bx >= fieldX0 + 30; bx -= step) leds.push({ x: bx, y: floorY + 6 });
-    for (var ly2 = floorY - 30; ly2 >= cornerL.cy + 30; ly2 -= step) leds.push({ x: fieldX0 + 10, y: ly2 });
+    for (var ly2 = floorY - 30; ly2 >= cornerL.cy + 30; ly2 -= step) leds.push({ x: fieldX0, y: ly2 });
     for (var la2 = -Math.PI + 0.4; la2 < -Math.PI / 2 - 0.1; la2 += Math.PI / 9) leds.push({ x: cornerL.cx + Math.cos(la2) * (R - 10), y: cornerL.cy + Math.sin(la2) * (R - 10) });
     for (var li = 0; li < leds.length; li++) leds[li].color = (li % 2 === 0) ? 'red' : 'green';
 
