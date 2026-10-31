@@ -107,7 +107,7 @@
         out.push({
           x1: cx + Math.cos(b0) * radius, y1: cy + Math.sin(b0) * radius,
           x2: cx + Math.cos(b1) * radius, y2: cy + Math.sin(b1) * radius,
-          half: 8, e: 0, kind: 'rail'   /* 无弹跳:弹珠贴着弧面滑行 */
+          half: 8, e: 0.05, kind: 'rail'   /* 近无弹跳:滑行且不与侧墙形成弹射泵 */
         });
       }
       return out;

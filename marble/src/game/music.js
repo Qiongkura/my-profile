@@ -7,12 +7,13 @@
   'use strict';
   var MG = root.MG || (root.MG = {});
 
+  /* mp3 = 原曲(用户放置);wav = 芯片音编曲兜底(tools/make-bgm.py 生成) */
   var SONGS = [
-    { name: '甩葱歌', file: 'assets/bgm/01-ievan.mp3' },
-    { name: '卡农', file: 'assets/bgm/02-canon.mp3' },
-    { name: '欢乐颂', file: 'assets/bgm/03-ode.mp3' },
-    { name: '康康舞曲', file: 'assets/bgm/04-cancan.mp3' },
-    { name: '小星星', file: 'assets/bgm/05-twinkle.mp3' }
+    { name: '甩葱歌', mp3: 'assets/bgm/01-ievan.mp3', wav: 'assets/bgm/01-ievan.wav' },
+    { name: '卡农', mp3: 'assets/bgm/02-canon.mp3', wav: 'assets/bgm/02-canon.wav' },
+    { name: '欢乐颂', mp3: 'assets/bgm/03-ode.mp3', wav: 'assets/bgm/03-ode.wav' },
+    { name: '康康舞曲', mp3: 'assets/bgm/04-cancan.mp3', wav: 'assets/bgm/04-cancan.wav' },
+    { name: '小星星', mp3: 'assets/bgm/05-twinkle.mp3', wav: 'assets/bgm/05-twinkle.wav' }
   ];
 
   var platform = null;
@@ -26,6 +27,7 @@
   function init(pl) {
     platform = pl;
     idx = (pl.storage.get('mm_song', 0) | 0) % SONGS.length;
+    wantPlay = true;   /* 默认开启背景音乐(静音/切歌可控) */
   }
 
   function song() { return SONGS[idx]; }
@@ -60,6 +62,10 @@
     return innerEl;
   }
 
+  function srcFor(s, preferMp3) {
+    return (preferMp3 && s.mp3) ? s.mp3 : s.wav;
+  }
+
   function play() {
     wantPlay = true;
     if (muted) return;
@@ -69,15 +75,26 @@
       if (!inel) return;
       try {
         inel.stop();
-        inel.src = s.file;
+        inel.src = s.mp3;
+        inel.onError(function () {
+          inel.offError && inel.offError(arguments.callee);
+          inel.src = s.wav;
+          inel.play();
+        });
         inel.play();
       } catch (e) { }
       return;
     }
     var a = ensureWebEl();
     if (!a) return;
+    a.onerror = function () {
+      a.onerror = null;
+      a.src = s.wav;
+      var pr2 = a.play();
+      if (pr2 && pr2.catch) pr2.catch(function () { });
+    };
     try {
-      a.src = s.file;
+      a.src = s.mp3;
       var pr = a.play();
       if (pr && pr.catch) pr.catch(function () { /* 自动播放被拦:等首次手势 */ });
     } catch (e) { }
@@ -104,6 +121,7 @@
 
   MG.music = {
     init: init,
+    _debug: function () { return el ? { src: el.src.split('/').pop(), paused: el.paused, volume: el.volume } : null; },
     song: song,
     songCount: songCount,
     current: current,
