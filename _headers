@@ -11,3 +11,7 @@
 
 /assets/audio/*
   X-Robots-Tag: noindex
+
+# 弹珠机:游戏代码始终拉最新(更新即刻生效)
+/marble/*
+  Cache-Control: no-cache
