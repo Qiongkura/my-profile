@@ -76,42 +76,42 @@
     },
 
     colors: {
-      /* 机台(金黄) */
-      cabYellow: '#f9b234',
-      cabYellowHi: '#ffcf5e',
-      cabYellowLo: '#e0961f',
-      frame: '#f8f4ea',
-      panelText: '#6b4409',
-      /* 场地(暖黄玻璃 + 白星) */
-      fieldTop: '#f8e3ad',
-      fieldBot: '#eccf85',
+      /* 机台(暖白极简) */
+      cabYellow: '#f6f4ef',
+      cabYellowHi: '#fbfaf7',
+      cabYellowLo: '#e7e4da',
+      frame: '#ffffff',
+      panelText: '#3a3a3a',
+      /* 场地(浅暖灰) */
+      fieldTop: '#f3f1ea',
+      fieldBot: '#eeebe2',
       star: 'rgba(255,255,255,0.8)',
       glassShine: 'rgba(255,255,255,0.30)',
       /* LED */
-      ledRed: '#ff4a3a',
-      ledGreen: '#3ce06a',
-      ledDim: 'rgba(120,80,30,0.35)',
-      segBg: '#1c0604',
-      segFrame: '#3a1508',
-      segRed: '#ff3222',
+      ledRed: '#e8553f',
+      ledGreen: '#58b26a',
+      ledDim: 'rgba(0,0,0,0.10)',
+      segBg: '#1d1d1f',
+      segFrame: 'rgba(255,255,255,0.06)',
+      segRed: '#ff5340',
       /* 场内元件 */
-      pegBody: 'rgba(255,255,255,0.85)',
-      pegRim: 'rgba(166,120,52,0.75)',
+      pegBody: '#ffffff',
+      pegRim: 'rgba(0,0,0,0.10)',
       pegFlash: '#ffffff',
-      bumperRing: 'rgba(166,120,52,0.9)',
+      bumperRing: 'rgba(0,0,0,0.12)',
       /* 洞口 */
-      rail: '#8a5a22',
-      railHi: '#a5712e',
-      holeDark: '#31200c',
-      holeLit: '#ff3b2e',
+      rail: '#2f2d29',
+      railHi: '#3a3833',
+      holeDark: '#141311',
+      holeLit: '#ff4a38',
       /* 玻璃弹珠 */
       marbleTints: ['#7ec8ff', '#ff9ecb', '#b5e8a0', '#ffd966', '#c9a8ff', '#ff8a5c'],
       /* 文案 */
-      text: '#6b4409',
-      cream: '#fff8ea',
-      dim: '#a8813f',
+      text: '#3a3a3a',
+      cream: '#ffffff',
+      dim: '#9a9a9a',
       gold: '#ffcf5e',
-      red: '#e8352e'
+      red: '#e8553f'
     }
   };
 

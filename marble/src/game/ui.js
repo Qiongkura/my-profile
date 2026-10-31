@@ -317,7 +317,7 @@
     var t = game.time;
     var top = CFG.layout.backH, bottom = H - CFG.layout.panelH;
 
-    ctx.fillStyle = 'rgba(30,26,20,0.38)';
+    ctx.fillStyle = 'rgba(30,26,20,0.55)';
     ctx.fillRect(0, top, W, bottom - top);
 
     /* 弹跳装饰玻璃珠 */

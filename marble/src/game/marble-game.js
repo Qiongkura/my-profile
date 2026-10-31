@@ -525,57 +525,36 @@
     ctx.lineWidth = 12;
     ctx.stroke();
 
-    /* ---- 背板 ---- */
+    /* ---- 背板(极简:浅色面板 + 墨色标题 + 两块深色显示屏) ---- */
     var backH = b.backH;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    ui.drawStarSticker(ctx, 60, 120, 13, 0.2, 0.8);
-    ui.drawStarSticker(ctx, 268, 44, 10, 0.5, 0.7);
-    ui.drawStarSticker(ctx, 600, 40, 12, 0.1, 0.8);
-    ui.drawStarSticker(ctx, 40, 240, 11, 0.7, 0.7);
-    ui.drawStarSticker(ctx, 300, 250, 9, 0.3, 0.6);
-
-    ui.drawPuppy(ctx, 152, 152, 58);
-
-    /* 标题贴纸 */
-    ctx.save();
-    ctx.translate(452, 78);
-    ctx.rotate(-0.025);
-    ui.rr(ctx, -172, -38, 344, 76, 20);
-    ctx.fillStyle = '#e8352e';
-    ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 4;
-    ctx.stroke();
     ui.font(ctx, 46);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('弹弹珠机', 0, 2);
-    ui.drawStarSticker(ctx, -146, 0, 9, 0, 0.95);
-    ui.drawStarSticker(ctx, 146, 0, 9, 0, 0.95);
-    ctx.restore();
+    ctx.fillStyle = C.panelText;
+    ctx.fillText('弹弹珠机', 160, 120);
+    ui.font(ctx, 17, false);
+    ctx.fillStyle = C.dim;
+    ctx.fillText('MARBLE MACHINE', 160, 158);
 
-    /* 红色 LED 数码管:弹珠库 / 倍率 */
+    /* 深色 LED 显示屏:弹珠库 / 倍率 */
     this._ledBank = { x: 300, y: 138, w: 200, h: 84 };
     this._ledTier = { x: 512, y: 138, w: 140, h: 84 };
     var leds = [this._ledBank, this._ledTier];
     var labels = ['弹珠库', '倍率'];
     for (var li = 0; li < 2; li++) {
       var lr = leds[li];
-      ui.rr(ctx, lr.x, lr.y, lr.w, lr.h, 12);
+      ui.rr(ctx, lr.x, lr.y, lr.w, lr.h, 14);
       ctx.fillStyle = C.segBg;
       ctx.fill();
-      ctx.strokeStyle = C.segFrame;
-      ctx.lineWidth = 4;
-      ctx.stroke();
-      ui.font(ctx, 18);
-      ctx.fillStyle = 'rgba(255,120,100,0.75)';
+      ui.font(ctx, 16, false);
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
       ctx.fillText(labels[li], lr.x + lr.w / 2, lr.y + 20);
     }
 
     /* 温馨提示行 */
-    ui.font(ctx, 16);
-    ctx.fillStyle = 'rgba(107,68,9,0.8)';
+    ui.font(ctx, 15, false);
+    ctx.fillStyle = 'rgba(58,58,58,0.55)';
     ctx.fillText('本机不适合4岁以下儿童使用 · 弹珠只供游戏,严禁吞食', W / 2 - 40, 272);
 
     /* 背板与场地之间横梁 */
@@ -583,7 +562,7 @@
     ctx.fillStyle = C.frame;
     ctx.fill();
 
-    /* ---- 场地(暖黄玻璃斜面,铺满全宽;左右上角对称圆角与导轨重合) ---- */
+    /* ---- 场地(浅暖灰斜面,铺满全宽;左右上角对称圆角与导轨重合) ---- */
     var R2 = b.cornerL.r;
     function fieldPath(c) {
       c.beginPath();
@@ -603,45 +582,17 @@
     ctx.fillStyle = field;
     ctx.fill();
 
-    /* 白星印花 */
-    ctx.save();
-    fieldPath(ctx);
-    ctx.clip();
-    var deco = [[120, 470, 16], [380, 430, 13], [560, 500, 15], [210, 700, 18], [480, 760, 14], [90, 950, 15], [340, 1000, 17], [560, 1010, 13], [160, 1150, 14], [420, 1180, 12]];
-    for (var di = 0; di < deco.length; di++) {
-      ui.drawStarSticker(ctx, deco[di][0], deco[di][1], deco[di][2], di * 0.7, 0.5);
-    }
-    /* 玻璃反光 */
-    ctx.globalAlpha = 0.28;
-    ctx.fillStyle = C.glassShine;
-    ctx.beginPath();
-    ctx.moveTo(W * 0.16, backH);
-    ctx.lineTo(W * 0.4, backH);
-    ctx.lineTo(W * 0.12, b.floorY);
-    ctx.lineTo(-W * 0.12, b.floorY);
-    ctx.closePath();
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(W * 0.52, backH);
-    ctx.lineTo(W * 0.6, backH);
-    ctx.lineTo(W * 0.32, b.floorY);
-    ctx.lineTo(W * 0.24, b.floorY);
-    ctx.closePath();
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.restore();
-
     /* ---- 发射道槽(场内右侧,自内墙顶以下) ---- */
-    ctx.fillStyle = 'rgba(120,80,30,0.14)';
+    ctx.fillStyle = 'rgba(0,0,0,0.045)';
     ctx.fillRect(b.lane.x0 + 4, b.lane.top, W - 15 - b.lane.x0 - 4, b.lane.floorY - b.lane.top);
-    ctx.fillStyle = C.cabYellowLo;
+    ctx.fillStyle = '#dcd8cc';
     ctx.fillRect(b.lane.x0 - 3, b.lane.top, 6, b.lane.floorY - b.lane.top);
-    /* 边界与导流一体轨:左墙 → 左弧角 → 顶轨 → 右弧角 → 右墙,同款样式一气呵成 */
+    /* 边界与导流一体轨:左墙 → 左弧角 → 顶轨 → 右弧角 → 右墙,单色细轨 */
     ctx.save();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = C.cabYellowLo;
-    ctx.lineWidth = 16;
+    ctx.strokeStyle = '#e0dcd1';
+    ctx.lineWidth = 14;
     ctx.beginPath();
     ctx.moveTo(b.fieldX0 + 2, b.floorY - 56);
     ctx.lineTo(b.fieldX0 + 2, b.cornerL.cy);
@@ -650,42 +601,20 @@
     ctx.arc(b.cornerR.cx, b.cornerR.cy, b.cornerR.r, Math.PI * 1.5, Math.PI * 2, false);
     ctx.lineTo(W - 17, b.floorY - 56);
     ctx.stroke();
-    ctx.strokeStyle = C.cabYellowHi;
-    ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 3;
     ctx.stroke();
     ctx.restore();
     /* 弹道内墙顶圆帽 */
     ctx.beginPath();
     ctx.arc(b.lane.x0, b.lane.top, 8, 0, U.TAU);
-    ctx.fillStyle = C.cabYellowHi;
+    ctx.fillStyle = '#dcd8cc';
     ctx.fill();
 
-    /* ---- 边框 LED 灯带(静态底) ---- */
-    for (var bi = 0; bi < b.borderLeds.length; bi++) {
-      var bd = b.borderLeds[bi];
-      var col = bd.color === 'red' ? C.ledRed : C.ledGreen;
-      ctx.beginPath();
-      ctx.arc(bd.x, bd.y, 7, 0, U.TAU);
-      ctx.fillStyle = C.ledDim;
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(bd.x, bd.y, 4.5, 0, U.TAU);
-      ctx.fillStyle = col;
-      ctx.globalAlpha = 0.55;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-
-    /* ---- 洞口木条 ---- */
-    ui.rr(ctx, b.fieldX0 - 8, b.floorY - 58, b.fieldRight - b.fieldX0 + 16, 66, 14);
-    var rail = ctx.createLinearGradient(0, b.floorY - 58, 0, b.floorY + 8);
-    rail.addColorStop(0, C.railHi);
-    rail.addColorStop(1, C.rail);
-    ctx.fillStyle = rail;
+    /* ---- 洞口深色条 ---- */
+    ui.rr(ctx, b.fieldX0 - 8, b.floorY - 58, b.fieldRight - b.fieldX0 + 16, 66, 16);
+    ctx.fillStyle = C.rail;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(90,55,15,0.6)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
 
     for (var hi = 0; hi < b.holes.length; hi++) {
       var hk = b.holes[hi];
@@ -693,14 +622,14 @@
       ctx.ellipse(hk.cx, b.floorY - 26, b.pw * 0.5 - 6, 14, 0, 0, U.TAU);
       ctx.fillStyle = C.holeDark;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.10)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
     }
     /* 隔针 */
     for (var dvi = 0; dvi < b.dividers.length; dvi++) {
       var dv = b.dividers[dvi];
-      ctx.strokeStyle = 'rgba(90,55,15,0.55)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.28)';
       ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.moveTo(dv.x1, dv.y1);
@@ -708,23 +637,20 @@
       ctx.stroke();
       ctx.beginPath();
       ctx.arc(dv.x1, dv.y1, 5.5, 0, U.TAU);
-      ctx.fillStyle = '#fdf9f2';
+      ctx.fillStyle = '#ffffff';
       ctx.fill();
-      ctx.strokeStyle = '#c9973f';
+      ctx.strokeStyle = 'rgba(0,0,0,0.12)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
     }
 
-    /* ---- 操作台 ---- */
+    /* ---- 操作台(浅色 + 发丝分隔线) ---- */
     var panelY = H - b.panelH;
     ui.rr(ctx, 8, panelY, W - 12, H - panelY - 4, 24);
-    var panel = ctx.createLinearGradient(0, panelY, 0, H);
-    panel.addColorStop(0, C.cabYellowHi);
-    panel.addColorStop(1, C.cabYellow);
-    ctx.fillStyle = panel;
+    ctx.fillStyle = C.cabYellowHi;
     ctx.fill();
-    ctx.strokeStyle = C.frame;
-    ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 2;
     ctx.stroke();
 
     /* 弹珠库托盘 */
@@ -733,32 +659,26 @@
     ctx.fillStyle = C.panelText;
     ctx.fillText('弹珠库', 46, panelY + 40);
 
-    /* GO 按钮(金属底座插孔) */
+    /* GO 按钮底座(柔和阴影) */
     this._go = { x: 195, y: panelY + 148, r: 44 };
-    ctx.beginPath();
-    ctx.arc(this._go.x, this._go.y, this._go.r + 12, 0, U.TAU);
-    var rim = ctx.createLinearGradient(this._go.x - 56, this._go.y - 56, this._go.x + 56, this._go.y + 56);
-    rim.addColorStop(0, '#e8eaee');
-    rim.addColorStop(0.5, '#b9bcc4');
-    rim.addColorStop(1, '#8f939e');
-    ctx.fillStyle = rim;
-    ctx.fill();
+    ctx.save();
+    ctx.shadowColor = 'rgba(40,35,25,0.22)';
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 6;
     ctx.beginPath();
     ctx.arc(this._go.x, this._go.y, this._go.r, 0, U.TAU);
-    ctx.fillStyle = 'rgba(70,40,8,0.3)';
+    ctx.fillStyle = '#3a3a3a';
     ctx.fill();
+    ctx.restore();
 
     /* 力度条 */
     this._bar = { x: 288, y: panelY + 56, w: 32, h: b.panelH - 118 };
     ui.rr(ctx, this._bar.x, this._bar.y, this._bar.w, this._bar.h, 10);
-    ctx.fillStyle = 'rgba(90,55,15,0.25)';
+    ctx.fillStyle = 'rgba(0,0,0,0.07)';
     ctx.fill();
-    ctx.strokeStyle = C.panelText;
-    ctx.lineWidth = 3;
-    ctx.stroke();
     ctx.textAlign = 'center';
-    ui.font(ctx, 18);
-    ctx.fillStyle = C.panelText;
+    ui.font(ctx, 18, false);
+    ctx.fillStyle = C.dim;
     ctx.fillText('力度', this._bar.x + this._bar.w / 2, this._bar.y - 16);
 
     /* 投入档位标签 */
@@ -766,12 +686,13 @@
     ui.font(ctx, 20);
     ctx.fillStyle = C.panelText;
     ctx.fillText('投入弹珠(选倍率)', 536, panelY + 40);
-    ui.font(ctx, 16);
-    ctx.fillStyle = 'rgba(107,68,9,0.75)';
+    ui.font(ctx, 16, false);
+    ctx.fillStyle = C.dim;
     ctx.fillText('投入越多 · 倍率越高 · 亮灯越少', 536, panelY + 148);
 
     /* 提示 */
-    ui.font(ctx, 21);
+    ui.font(ctx, 21, false);
+    ctx.fillStyle = C.dim;
     ctx.fillText('按住蓄力 · 松手弹珠', this._go.x, panelY + b.panelH - 26);
 
     this.bg = off;
@@ -835,7 +756,7 @@
     var gap = 90;
     var anim = (t * 170) % gap;
     ctx.save();
-    ctx.fillStyle = 'rgba(255,209,102,0.5)';
+      ctx.fillStyle = 'rgba(0,0,0,0.14)';
     for (i = 0; i < 5; i++) {
       var ay = b.lane.floorY - 60 - i * gap + anim;
       if (ay < b.lane.top + 30 || ay > b.lane.floorY - 20) continue;
@@ -848,68 +769,33 @@
     }
     ctx.restore();
 
-    /* ---- 边框 LED 追逐灯 ---- */
-    var bl = b.borderLeds;
-    var head = Math.floor(t * 7) % bl.length;
-    for (var k = 0; k < 3; k++) {
-      var idx = (head + k) % bl.length;
-      var bd = bl[idx];
-      var col = bd.color === 'red' ? C.ledRed : C.ledGreen;
-      ctx.save();
-      ctx.shadowColor = col;
-      ctx.shadowBlur = 12;
-      ctx.beginPath();
-      ctx.arc(bd.x, bd.y, 5.5, 0, U.TAU);
-      ctx.fillStyle = '#ffffff';
-      ctx.globalAlpha = 0.9 - k * 0.25;
-      ctx.fill();
-      ctx.restore();
-    }
-
     /* ---- 拉杆闪亮(发射瞬间) ---- */
     if (this.launcherPulse > 0) {
       ctx.save();
-      ctx.globalAlpha = this.launcherPulse * 0.7;
-      ctx.shadowColor = '#ffd166';
-      ctx.shadowBlur = 18;
+      ctx.globalAlpha = this.launcherPulse * 0.55;
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 16;
       ctx.beginPath();
       ctx.arc(b.lane.cx, b.lane.floorY - 30, 17, 0, U.TAU);
-      ctx.fillStyle = '#ffd166';
+      ctx.fillStyle = '#ffffff';
       ctx.fill();
       ctx.restore();
     }
 
-    /* ---- 钉子 ---- */
+    /* ---- 钉子(极简:白圆 + 发丝圈 + 柔影) ---- */
     for (i = 0; i < b.pegs.length; i++) {
       var p = b.pegs[i];
-      if (p.led) {
-        var lc = p.led === 'red' ? C.ledRed : C.ledGreen;
-        var pulse = 0.5 + 0.5 * Math.sin(t * 2.2 + i * 1.7);
-        ctx.save();
-        ctx.shadowColor = lc;
-        ctx.shadowBlur = 8 + pulse * 6;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, U.TAU);
-        ctx.fillStyle = lc;
-        ctx.fill();
-        ctx.restore();
-        ctx.beginPath();
-        ctx.arc(p.x - p.r * 0.3, p.y - p.r * 0.3, p.r * 0.3, 0, U.TAU);
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        ctx.fill();
-      } else {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, U.TAU);
-        ctx.fillStyle = C.pegBody;
-        ctx.fill();
-        ctx.strokeStyle = C.pegRim;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(p.x - p.r * 0.3, p.y - p.r * 0.3, p.r * 0.32, 0, U.TAU);
-        ctx.fillStyle = 'rgba(255,255,255,0.9)';
-        ctx.fill();
-      }
+      ctx.beginPath();
+      ctx.arc(p.x + 1, p.y + 2, p.r, 0, U.TAU);
+      ctx.fillStyle = 'rgba(0,0,0,0.07)';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, U.TAU);
+      ctx.fillStyle = C.pegBody;
+      ctx.fill();
+      ctx.strokeStyle = C.pegRim;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
       if (p.flash > 0) {
         ctx.globalAlpha = p.flash * 0.9;
         ctx.fillStyle = C.pegFlash;
@@ -920,20 +806,25 @@
       }
     }
 
-    /* ---- 大弹柱 ---- */
+    /* ---- 大弹柱(白圆环,击中脉冲) ---- */
     for (i = 0; i < b.bumpers.length; i++) {
       var bp = b.bumpers[i];
       var r = bp.r + bp.pulse * 5;
-      var bg2 = ctx.createRadialGradient(bp.x - r * 0.3, bp.y - r * 0.3, 2, bp.x, bp.y, r);
-      bg2.addColorStop(0, 'rgba(255,255,255,0.95)');
-      bg2.addColorStop(0.6, 'rgba(235,225,200,0.9)');
-      bg2.addColorStop(1, 'rgba(180,150,95,0.9)');
+      ctx.beginPath();
+      ctx.arc(bp.x + 1.5, bp.y + 2.5, r, 0, U.TAU);
+      ctx.fillStyle = 'rgba(0,0,0,0.08)';
+      ctx.fill();
       ctx.beginPath();
       ctx.arc(bp.x, bp.y, r, 0, U.TAU);
-      ctx.fillStyle = bg2;
+      ctx.fillStyle = '#ffffff';
       ctx.fill();
       ctx.strokeStyle = C.bumperRing;
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(bp.x, bp.y, r * 0.55, 0, U.TAU);
+      ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+      ctx.lineWidth = 2;
       ctx.stroke();
     }
 
@@ -985,12 +876,16 @@
       ui.drawMarble(ctx, m.x, m.y, m.r, tintC);
     }
 
-    /* ---- 特效 ---- */
+    /* ---- 特效(裁剪进机台:粒子不许飞到机台外的留黑区) ---- */
+    ctx.save();
+    ui.rr(ctx, 2, 2, W - 4, H - 4, 34);
+    ctx.clip();
     MG.fx.render(ctx, this.fx);
+    ctx.restore();
 
     /* ---- 操作台动态:档位按钮 / GO / 力度条 / 托盘 ---- */
 
-    /* 投入档位按钮(右下角) */
+    /* 投入档位按钮(极简:白卡 / 墨色选中) */
     var cw = 70, ch = 64, gap2 = 5;
     var cx0 = 536 - (CFG.tiers.length * (cw + gap2) - gap2) / 2;
     for (i = 0; i < CFG.tiers.length; i++) {
@@ -999,29 +894,27 @@
       var cy = H - b.panelH + 62;
       var selected = i === this.selIdx;
       var disabled = tp.cost > this.bank;
-      ui.rr(ctx, cx, cy, cw, ch, 12);
+      ui.rr(ctx, cx, cy, cw, ch, 14);
       if (selected) {
-        ctx.fillStyle = '#e8352e';
+        ctx.fillStyle = '#3a3a3a';
         ctx.fill();
-        ctx.strokeStyle = '#ffffff';
       } else if (disabled) {
-        ctx.fillStyle = 'rgba(120,90,50,0.35)';
+        ctx.fillStyle = 'rgba(0,0,0,0.04)';
         ctx.fill();
-        ctx.strokeStyle = 'rgba(120,90,50,0.4)';
       } else {
-        ctx.fillStyle = C.cream;
+        ctx.fillStyle = '#ffffff';
         ctx.fill();
-        ctx.strokeStyle = '#e8b45a';
       }
-      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = selected ? '#3a3a3a' : 'rgba(0,0,0,0.08)';
+      ctx.lineWidth = 1.5;
       ctx.stroke();
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ui.font(ctx, 17);
-      ctx.fillStyle = selected ? '#ffd9c9' : (disabled ? 'rgba(107,68,9,0.5)' : C.dim);
+      ui.font(ctx, 17, false);
+      ctx.fillStyle = selected ? 'rgba(255,255,255,0.7)' : (disabled ? 'rgba(0,0,0,0.28)' : C.dim);
       ctx.fillText(tp.cost + '颗', cx + cw / 2, cy + 18);
       ui.font(ctx, 26);
-      ctx.fillStyle = selected ? '#ffffff' : (disabled ? 'rgba(107,68,9,0.5)' : '#6b4409');
+      ctx.fillStyle = selected ? '#ffffff' : (disabled ? 'rgba(0,0,0,0.28)' : '#3a3a3a');
       ctx.fillText('×' + tp.mult, cx + cw / 2, cy + 44);
       if (!disabled) {
         (function (idx) {
@@ -1031,31 +924,25 @@
     }
 
     var power = this.charging ? this.chargePower() : 0;
+    var pc = power < 0.4 ? '#c9c5bc' : (power < 0.8 ? '#3a3a3a' : '#e8553f');
 
     /* 力度条填充 */
     if (power > 0.01) {
       var bar = this._bar;
       var fh = (bar.h - 8) * power;
-      var pc = power < 0.5 ? '#7ec850' : (power < 0.8 ? '#ffb84d' : '#ff5c47');
       ui.rr(ctx, bar.x + 4, bar.y + bar.h - 4 - fh, bar.w - 8, fh, 7);
       ctx.fillStyle = pc;
       ctx.fill();
     }
 
-    /* GO 按钮 */
+    /* GO 按钮(墨色圆,蓄力时微缩) */
     var go = this._go;
     var pressed = this.charging;
-    var gg = ctx.createRadialGradient(go.x - 12, go.y - 14, 6, go.x, go.y, go.r);
-    gg.addColorStop(0, pressed ? '#ff8f7a' : '#ff6a52');
-    gg.addColorStop(1, pressed ? '#c62f2f' : '#e0392e');
     ctx.beginPath();
     ctx.arc(go.x, go.y, pressed ? go.r - 3 : go.r, 0, U.TAU);
-    ctx.fillStyle = gg;
+    ctx.fillStyle = pressed ? '#2e2e2e' : '#3a3a3a';
     ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ui.font(ctx, 32);
+    ui.font(ctx, 30);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
@@ -1063,17 +950,17 @@
 
     if (this.charging) {
       ctx.beginPath();
-      ctx.arc(go.x, go.y, go.r + 12, -Math.PI / 2, -Math.PI / 2 + power * U.TAU * 0.83);
-      ctx.strokeStyle = power < 0.5 ? '#7ec850' : (power < 0.8 ? '#ffb84d' : '#ff5c47');
-      ctx.lineWidth = 7;
+      ctx.arc(go.x, go.y, go.r + 10, -Math.PI / 2, -Math.PI / 2 + power * U.TAU * 0.83);
+      ctx.strokeStyle = pc;
+      ctx.lineWidth = 6;
       ctx.lineCap = 'round';
       ctx.stroke();
       ctx.lineCap = 'butt';
     }
     if (this.launcherPulse > 0) {
       ctx.beginPath();
-      ctx.arc(go.x, go.y, go.r + 12 + this.launcherPulse * 14, 0, U.TAU);
-      ctx.strokeStyle = 'rgba(255,255,255,' + (0.5 * this.launcherPulse) + ')';
+      ctx.arc(go.x, go.y, go.r + 10 + this.launcherPulse * 14, 0, U.TAU);
+      ctx.strokeStyle = 'rgba(58,58,58,' + (0.45 * this.launcherPulse) + ')';
       ctx.lineWidth = 4;
       ctx.stroke();
     }

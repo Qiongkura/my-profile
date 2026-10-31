@@ -133,17 +133,7 @@
     for (var a1 = 0; a1 < arcTL.length; a1++) walls.push(arcTL[a1]);
     for (var a2 = 0; a2 < arcTR.length; a2++) walls.push(arcTR[a2]);
 
-    /* ---- 边框 LED 灯带点位(顶部导轨上 + 两弧角 + 两侧) ---- */
-    var leds = [];
-    var step = 46;
-    for (var lx = cornerL.cx; lx <= cornerR2.cx; lx += step) leds.push({ x: lx, y: ceilingY });
-    for (var la = -Math.PI / 2 + 0.4; la < -0.1; la += Math.PI / 9) leds.push({ x: cornerR2.cx + Math.cos(la) * (R - 10), y: cornerR2.cy + Math.sin(la) * (R - 10) });
-    for (var ly = cornerR2.cy + 30; ly <= floorY - 30; ly += step) leds.push({ x: W - 15 - 10, y: ly });
-    for (var bx = fieldRight - 20; bx >= fieldX0 + 30; bx -= step) leds.push({ x: bx, y: floorY + 6 });
-    for (var ly2 = floorY - 30; ly2 >= cornerL.cy + 30; ly2 -= step) leds.push({ x: fieldX0 + 10, y: ly2 });
-    for (var la2 = -Math.PI + 0.4; la2 < -Math.PI / 2 - 0.1; la2 += Math.PI / 9) leds.push({ x: cornerL.cx + Math.cos(la2) * (R - 10), y: cornerL.cy + Math.sin(la2) * (R - 10) });
-    for (var li = 0; li < leds.length; li++) leds[li].color = (li % 2 === 0) ? 'red' : 'green';
-
+    /* 极简版:不再有边框 LED 灯带(保留空数组兼容旧引用) */
     return {
       W: W, H: H,
       backH: backH, panelH: panelH,
@@ -153,7 +143,7 @@
       holes: holes, pw: pw, capY: capY, holeN: n, innerX0: innerX0,
       dividers: dividers, walls: walls,
       ceilingY: ceilingY, cornerL: cornerL, cornerR: cornerR2,
-      borderLeds: leds
+      borderLeds: []
     };
   }
 
