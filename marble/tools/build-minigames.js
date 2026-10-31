@@ -62,7 +62,8 @@ if (!mods.length) {
 /* 2. 压缩 BGM → 56k 单声道 m4a 到临时目录,并登记分包 */
 const bgmSrc = path.join(ROOT, 'assets', 'bgm');
 const bgmTmp = path.join(DIST, '_bgm');
-fs.rmSync(DIST, { recursive: true, force: true });
+try { fs.rmSync(DIST, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 }); }
+catch (e) { console.error('dist 目录被占用(请先关闭微信开发者工具里打开的项目),然后重新运行'); process.exit(1); }
 fs.mkdirSync(bgmTmp, { recursive: true });
 for (const name of PKG1.concat(PKG2)) {
   const out = path.join(bgmTmp, name + '.m4a');
@@ -98,6 +99,9 @@ function buildPlatform(plat, extraFiles) {
   fs.rmSync(path.join(dest, 'bgm2', '03-ode.m4a'), { force: true });
   fs.rmSync(path.join(dest, 'bgm2', '06-zuixuan.m4a'), { force: true });
   fs.rmSync(path.join(dest, 'bgm2', '07-pingguo.m4a'), { force: true });
+  /* 小游戏分包根目录必须各有 game.js 入口(即使为空) */
+  fs.writeFileSync(path.join(dest, 'bgm1', 'game.js'), '/* BGM 分包入口(音频资源) */\n');
+  fs.writeFileSync(path.join(dest, 'bgm2', 'game.js'), '/* BGM 分包入口(音频资源) */\n');
   for (const f of Object.keys(extraFiles)) {
     fs.writeFileSync(path.join(dest, f), extraFiles[f]);
   }
@@ -116,7 +120,7 @@ buildPlatform('wx', {
   'game.json': JSON.stringify({
     deviceOrientation: 'portrait',
     showStatusBar: false,
-    subpackages: [{ root: 'bgm1' }, { root: 'bgm2' }]
+    subpackages: [{ name: 'bgm1', root: 'bgm1' }, { name: 'bgm2', root: 'bgm2' }]
   }, null, 2),
   'project.config.json': JSON.stringify({
     description: '弹弹珠机 - 微信小游戏',
@@ -134,7 +138,7 @@ buildPlatform('douyin', {
   'game.json': JSON.stringify({
     deviceOrientation: 'portrait',
     showStatusBar: false,
-    subpackages: [{ root: 'bgm1' }, { root: 'bgm2' }]
+    subpackages: [{ name: 'bgm1', root: 'bgm1' }, { name: 'bgm2', root: 'bgm2' }]
   }, null, 2),
   'project.config.json': JSON.stringify({
     miniprogramRoot: './',
