@@ -484,9 +484,9 @@
       } else {
         m.refundT = 0;
 
-        /* 落入洞口:球到达洞口区(隔针顶即计)即按所在洞落袋。
-           底部整行都是洞口,隔针只是导流——球一触针高度就落袋,无从粘滞 */
-        if (m.y > b.capY - 42 && m.y < b.floorY + 30 && m.x < b.lane.x0 - 10) {
+        /* 落入洞口:球必须完全落进洞口内(帽线以下、两针之间)才计算,
+           在隔针顶/侧面弹跳一律不算 */
+        if (m.y > b.capY - 6 && m.y < b.floorY + 30 && m.x < b.lane.x0 - 10) {
           this.captureHole(m);
           continue;
         }
