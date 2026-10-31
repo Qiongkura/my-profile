@@ -343,7 +343,10 @@
     var by0 = top + (bottom - top) * 0.40;
     button(game, bx, by0, bw, bh, '开始游戏', function () { game.startGame(); }, { primary: true, size: 38 });
     button(game, bx, by0 + 116, bw, bh, '玩法说明', function () { game.state = 'help'; game.stateT = 0; }, { size: 32 });
-    button(game, bx, by0 + 232, bw, bh * 0.78, game.muted ? '音效:关' : '音效:开', function () { game.toggleMute(); }, { size: 26 });
+    button(game, bx, by0 + 232, bw, bh * 0.72, game.muted ? '音效:关' : '音效:开', function () { game.toggleMute(); }, { size: 26 });
+    button(game, bx, by0 + 232 + bh * 0.72 + 16, bw, bh * 0.62, '机台风格 · ' + game.themeLabel(), function () {
+      game.setTheme(game.theme === 'arcade' ? 'min' : 'arcade');
+    }, { size: 24, bold: false });
 
     ctx.textAlign = 'center';
     font(ctx, 23, false);
@@ -400,7 +403,7 @@
     ctx.fillStyle = 'rgba(25,22,18,0.45)';
     ctx.fillRect(0, 0, W, H);
 
-    var cw = 520, ch = 420;
+    var cw = 520, ch = 464;
     var cx = W / 2 - cw / 2, cy = H / 2 - ch / 2;
     card(ctx, cx, cy, cw, ch, 30);
 
@@ -408,14 +411,17 @@
     ctx.textBaseline = 'middle';
     font(ctx, 36);
     ctx.fillStyle = INK;
-    ctx.fillText('已暂停', W / 2, cy + 58);
+    ctx.fillText('已暂停', W / 2, cy + 56);
 
     var bw = 400, bh = 66, bx = W / 2 - bw / 2;
-    button(game, bx, cy + 102, bw, bh, '继续游戏', function () { game.state = 'play'; game.stateT = 0; }, { primary: true, size: 30 });
-    button(game, bx, cy + 184, bw, bh, '重新开始', function () { game.restartRound(); }, { size: 28 });
+    button(game, bx, cy + 96, bw, bh, '继续游戏', function () { game.state = 'play'; game.stateT = 0; }, { primary: true, size: 30 });
+    button(game, bx, cy + 172, bw, bh, '重新开始', function () { game.restartRound(); }, { size: 28 });
+    button(game, bx, cy + 242, bw, 48, '机台风格 · ' + game.themeLabel(), function () {
+      game.setTheme(game.theme === 'arcade' ? 'min' : 'arcade');
+    }, { size: 24, bold: false });
 
     /* 音量滑条 */
-    var tx = cx + 60, tw = cw - 120, trackY = cy + 316;
+    var tx = cx + 60, tw = cw - 120, trackY = cy + 334;
     game.sliderRect = { x: tx, y: trackY - 14, w: tw, knobY: trackY };
     rr(ctx, tx, trackY - 6, tw, 12, 6);
     ctx.fillStyle = 'rgba(0,0,0,0.08)';

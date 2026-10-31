@@ -75,45 +75,78 @@
       bonusScore: 0        // 已由弹珠库经济取代
     },
 
-    colors: {
-      /* 机台(暖白极简) */
-      cabYellow: '#f6f4ef',
-      cabYellowHi: '#fbfaf7',
-      cabYellowLo: '#e7e4da',
-      frame: '#ffffff',
-      panelText: '#3a3a3a',
-      /* 场地(浅暖灰) */
-      fieldTop: '#f3f1ea',
-      fieldBot: '#eeebe2',
-      star: 'rgba(255,255,255,0.8)',
-      glassShine: 'rgba(255,255,255,0.30)',
-      /* LED */
-      ledRed: '#e8553f',
-      ledGreen: '#58b26a',
-      ledDim: 'rgba(0,0,0,0.10)',
-      segBg: '#1d1d1f',
-      segFrame: 'rgba(255,255,255,0.06)',
-      segRed: '#ff5340',
-      /* 场内元件 */
-      pegBody: '#ffffff',
-      pegRim: 'rgba(0,0,0,0.10)',
-      pegFlash: '#ffffff',
-      bumperRing: 'rgba(0,0,0,0.12)',
-      /* 洞口 */
-      rail: '#2f2d29',
-      railHi: '#3a3833',
-      holeDark: '#141311',
-      holeLit: '#ff4a38',
-      /* 玻璃弹珠 */
-      marbleTints: ['#7ec8ff', '#ff9ecb', '#b5e8a0', '#ffd966', '#c9a8ff', '#ff8a5c'],
-      /* 文案 */
-      text: '#3a3a3a',
-      cream: '#ffffff',
-      dim: '#9a9a9a',
-      gold: '#ffcf5e',
-      red: '#e8553f'
+    colors: {},
+    themeName: 'min',
+
+    /* 双主题配色:极简(默认)/ 复古街机(可选,setTheme 原地覆写 colors) */
+    palettes: {
+      min: {
+        /* 机台(暖白极简) */
+        cabYellow: '#f6f4ef', cabYellowHi: '#fbfaf7', cabYellowLo: '#e7e4da',
+        frame: '#ffffff', panelText: '#3a3a3a',
+        fieldTop: '#f3f1ea', fieldBot: '#eeebe2',
+        star: 'rgba(255,255,255,0.8)', glassShine: 'rgba(255,255,255,0.30)',
+        ledRed: '#e8553f', ledGreen: '#58b26a', ledDim: 'rgba(0,0,0,0.10)',
+        segBg: '#1d1d1f', segFrame: 'rgba(255,255,255,0.06)', segRed: '#ff5340',
+        pegBody: '#ffffff', pegRim: 'rgba(0,0,0,0.10)', pegFlash: '#ffffff',
+        bumperRing: 'rgba(0,0,0,0.12)',
+        rail: '#2f2d29', railHi: '#3a3833', holeDark: '#141311', holeLit: '#ff4a38',
+        marbleTints: ['#7ec8ff', '#ff9ecb', '#b5e8a0', '#ffd966', '#c9a8ff', '#ff8a5c'],
+        text: '#3a3a3a', cream: '#ffffff', dim: '#9a9a9a', gold: '#ffcf5e', red: '#e8553f',
+        /* 主题差异件 */
+        laneArrow: 'rgba(0,0,0,0.14)', laneSlot: 'rgba(0,0,0,0.045)',
+        laneEdge: '#dcd8cc', capDot: '#dcd8cc',
+        trackMain: '#e0dcd1', trackHi: 'rgba(255,255,255,0.85)',
+        dividerLine: 'rgba(255,255,255,0.28)', capFill: '#ffffff', capStroke: 'rgba(0,0,0,0.12)',
+        holeStroke: 'rgba(255,255,255,0.10)',
+        ledLabel: 'rgba(255,255,255,0.4)', finePrint: 'rgba(58,58,58,0.55)',
+        barTrack: 'rgba(0,0,0,0.07)',
+        goBg: '#3a3a3a', goPress: '#2e2e2e', goRing: null,
+        selBg: '#3a3a3a', selSub: 'rgba(255,255,255,0.7)',
+        pillBg: '#ffffff', pillLine: 'rgba(0,0,0,0.08)', pillText: '#3a3a3a',
+        pillDis: 'rgba(0,0,0,0.04)', pillDisText: 'rgba(0,0,0,0.28)',
+        pow1: '#c9c5bc', pow2: '#3a3a3a', pow3: '#e8553f',
+        pulseColor: '#ffffff', pulseRing: 'rgba(58,58,58,'
+      },
+      arcade: {
+        /* 机台(金黄街机) */
+        cabYellow: '#f9b234', cabYellowHi: '#ffcf5e', cabYellowLo: '#e0961f',
+        frame: '#f8f4ea', panelText: '#6b4409',
+        fieldTop: '#f8e3ad', fieldBot: '#eccf85',
+        star: 'rgba(255,255,255,0.8)', glassShine: 'rgba(255,255,255,0.30)',
+        ledRed: '#ff4a3a', ledGreen: '#3ce06a', ledDim: 'rgba(120,80,30,0.35)',
+        segBg: '#1c0604', segFrame: '#3a1508', segRed: '#ff3222',
+        pegBody: 'rgba(255,255,255,0.85)', pegRim: 'rgba(166,120,52,0.75)', pegFlash: '#ffffff',
+        bumperRing: 'rgba(166,120,52,0.9)',
+        rail: '#8a5a22', railHi: '#a5712e', holeDark: '#31200c', holeLit: '#ff3b2e',
+        marbleTints: ['#7ec8ff', '#ff9ecb', '#b5e8a0', '#ffd966', '#c9a8ff', '#ff8a5c'],
+        text: '#6b4409', cream: '#fff8ea', dim: '#a8813f', gold: '#ffcf5e', red: '#e8352e',
+        /* 主题差异件 */
+        laneArrow: 'rgba(255,209,102,0.5)', laneSlot: 'rgba(120,80,30,0.14)',
+        laneEdge: '#e0961f', capDot: '#ffcf5e',
+        trackMain: '#e0961f', trackHi: '#ffcf5e',
+        dividerLine: 'rgba(90,55,15,0.55)', capFill: '#fdf9f2', capStroke: '#c9973f',
+        holeStroke: 'rgba(255,255,255,0.28)',
+        ledLabel: 'rgba(255,120,100,0.75)', finePrint: 'rgba(107,68,9,0.8)',
+        barTrack: 'rgba(90,55,15,0.25)',
+        goBg: '#e0392e', goPress: '#c62f2f', goRing: '#ffffff',
+        selBg: '#e8352e', selSub: '#ffd9c9',
+        pillBg: '#fff8ea', pillLine: '#e8b45a', pillText: '#6b4409',
+        pillDis: 'rgba(120,90,50,0.35)', pillDisText: 'rgba(107,68,9,0.5)',
+        pow1: '#7ec850', pow2: '#ffb84d', pow3: '#ff5c47',
+        pulseColor: '#ffd166', pulseRing: 'rgba(255,255,255,'
+      }
+    },
+
+    setTheme: function (name) {
+      var p = this.palettes[name] || this.palettes.min;
+      var c = this.colors;
+      for (var k in p) c[k] = p[k];
+      this.themeName = (name === 'arcade') ? 'arcade' : 'min';
     }
   };
+
+  CFG.setTheme('min');
 
   MG.config = CFG;
 })(typeof GameGlobal !== 'undefined' ? GameGlobal : (typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this)));
