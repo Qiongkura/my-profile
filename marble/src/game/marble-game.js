@@ -613,8 +613,8 @@
     }
 
     /* 深色 LED 显示屏:弹珠库 / 倍率 */
-    this._ledBank = { x: 300, y: 138, w: 200, h: 84 };
-    this._ledTier = { x: 512, y: 138, w: 140, h: 84 };
+    this._ledBank = { x: 300, y: 200, w: 200, h: 84 };   /* 胶囊下方,躲开右上角 */
+    this._ledTier = { x: 512, y: 200, w: 140, h: 84 };
     var leds = [this._ledBank, this._ledTier];
     var labels = ['弹珠库', '倍率'];
     for (var li = 0; li < 2; li++) {
@@ -627,10 +627,11 @@
       ctx.fillText(labels[li], lr.x + lr.w / 2, lr.y + 20);
     }
 
-    /* 温馨提示行 */
-    ui.font(ctx, 15, false);
+    /* 温馨提示行(两行,放在标题正下方,避让右侧显示屏) */
+    ui.font(ctx, 13, false);
     ctx.fillStyle = C.finePrint;
-    ctx.fillText('本机不适合4岁以下儿童使用 · 弹珠只供游戏,严禁吞食', W / 2 - 40, 272);
+    ctx.fillText('本机不适合4岁以下儿童使用', 160, 232);
+    ctx.fillText('弹珠只供游戏,严禁吞食', 160, 256);
 
     /* ---- 场地(浅暖灰斜面,铺满全宽;左右上角对称圆角与导轨重合) ---- */
     var R2 = b.cornerL.r;
@@ -864,6 +865,8 @@
     var p = this.platform;
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = C.cabYellowHi;               /* 安全区/letterbox 铺机身底色 */
+    ctx.fillRect(0, 0, p.canvas.width, p.canvas.height);
     if (this.bg) {
       ctx.drawImage(this.bg, 0, 0);
     } else {

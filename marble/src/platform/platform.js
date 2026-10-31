@@ -67,17 +67,13 @@
     api.applySize = applySize;
     api.onResize = function (cb) { api._resizeCbs.push(cb); };
 
-    /* 安全区:小游戏顶部的状态栏/胶囊按钮不能压住 UI */
+    /* 安全区:只让出状态栏高度;胶囊区域由 HUD 布局避开(显示屏下移) */
     var safeTop = 0;
     if (isMinigame) {
       try {
-        if (sys.getMenuButtonBoundingClientRect) {
-          var mb = sys.getMenuButtonBoundingClientRect();
-          if (mb && mb.bottom) safeTop = Math.max(0, mb.bottom + 6);
-        }
-        if (!safeTop && sys.getSystemInfoSync) {
+        if (sys.getSystemInfoSync) {
           var si = sys.getSystemInfoSync();
-          if (si && si.statusBarHeight) safeTop = si.statusBarHeight + 46;
+          if (si && si.statusBarHeight) safeTop = si.statusBarHeight + 6;
         }
       } catch (e) { }
     }
