@@ -1226,15 +1226,23 @@
   Game.prototype.start = function () {
     var self = this;
     this._last = 0;
+    /* RAF 三级兜底:全局 → canvas.requestAnimationFrame → 定时器 */
+    var g = typeof GameGlobal !== 'undefined' ? GameGlobal : (typeof window !== 'undefined' ? window : null);
+    var cvs = this.platform.canvas;
+    var raf = null;
+    if (typeof requestAnimationFrame === 'function') raf = requestAnimationFrame;
+    else if (cvs && typeof cvs.requestAnimationFrame === 'function') raf = function (cb) { cvs.requestAnimationFrame(cb); };
+    else if (g && typeof g.requestAnimationFrame === 'function') raf = function (cb) { g.requestAnimationFrame(cb); };
     function loop(ts) {
       var t = (ts || Date.now()) / 1000;
       if (!self._last) self._last = t;
       var dt = Math.min(0.05, t - self._last);
       self._last = t;
       self.frame(dt);
-      requestAnimationFrame(loop);
+      if (raf) raf(loop);
     }
-    requestAnimationFrame(loop);
+    if (raf) raf(loop);
+    else setInterval(function () { loop(Date.now()); }, 16);
   };
 
   MG.Game = Game;
