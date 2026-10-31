@@ -306,12 +306,12 @@
   Game.prototype.launch = function (power) {
     if (this.state !== 'play' || this.launcherCool > 0) return;
     if (this.world.balls.length > 0) {
-      MG.fx.text(this.fx, this.board.lane.cx - 10, this.board.lane.floorY - 130, '等上一颗落定', { size: 22, color: '#fff8ea', life: 0.8 });
+      this.fxLabel(this.board.lane.cx - 10, this.board.lane.floorY - 130, '等上一颗落定', { size: 22, color: '#fff8ea', life: 0.8 });
       return;
     }
     var tier = this.tier();
     if (this.bank < tier.cost) {
-      MG.fx.text(this.fx, this.board.lane.cx - 10, this.board.lane.floorY - 80, '弹珠不够', { size: 22, color: '#e8352e' });
+      this.fxLabel(this.board.lane.cx - 10, this.board.lane.floorY - 80, '弹珠不够', { size: 22, color: '#e8352e' });
       return;
     }
     this.bank -= tier.cost;
@@ -373,13 +373,22 @@
     }
   };
 
+  /* 居中特效文字并夹在机台内(中文按约 0.92em 估算宽度,防两端被裁) */
+  Game.prototype.fxLabel = function (x, y, str, opts) {
+    opts = opts || {};
+    var size = opts.size || 24;
+    var half = str.length * size * 0.46 + 14;
+    var cx = U.clamp(x, half, this.view.W - half);
+    MG.fx.text(this.fx, cx, y, str, opts);
+  };
+
   /* 弹道内滚回:退还投入 */
   Game.prototype.refund = function (m) {
     this.bank += (m.bet || 1);
     MG.fx.drop(this.fx, m.x, m.y, m.r, C.marbleTints[m.skin % C.marbleTints.length]);
     m.dead = true;
     var lane = this.board.lane;
-    MG.fx.text(this.fx, lane.cx - 20, lane.floorY - 90, '力气太小 退' + (m.bet || 1) + '颗', { size: 24, color: '#fff8ea', life: 1.1 });
+    this.fxLabel(lane.cx - 20, lane.floorY - 90, '力气太小 退' + (m.bet || 1) + '颗', { size: 24, color: '#fff8ea', life: 1.1 });
     MG.audio.play('click');
   };
 
@@ -424,7 +433,7 @@
       MG.fx.drop(this.fx, m.x, m.y, m.r, C.marbleTints[m.skin % C.marbleTints.length]);
 
       MG.fx.text(this.fx, this.view.W / 2, b.floorY - 170, '中 奖  ×' + (m.mult || 2), { size: 56, color: '#e8352e', life: 1.6 });
-      MG.fx.text(this.fx, hole.cx, b.floorY - 96, '+' + gained + ' 颗  玩具球+1' + (gotCard ? '  礼品卡+1' : ''), { size: 26, color: '#fff8ea', life: 1.5 });
+      this.fxLabel(hole.cx, b.floorY - 96, '+' + gained + ' 颗  玩具球+1' + (gotCard ? '  礼品卡+1' : ''), { size: 26, color: '#fff8ea', life: 1.5 });
       MG.fx.burst(this.fx, hole.cx, b.floorY - 30, '#ff4a3a', 44, 440);
       MG.fx.ring(this.fx, hole.cx, b.floorY - 30, '#ff4a3a', 120, 0.5, 6);
       MG.audio.play('jackpot');

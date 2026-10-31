@@ -365,7 +365,9 @@
     if (decoOnly) return;
 
     var bw = 400, bh = 88, bx = W / 2 - bw / 2;
-    var by0 = top + (bottom - top) * 0.40;
+    /* 四颗按钮整块高约 366:上移起点并保证统计行与其留出间距(各屏高比例下不重叠) */
+    var by0 = Math.min(top + (bottom - top) * 0.24, bottom - 72 - 34 - 366);
+    by0 = Math.max(by0, top + 24);
     button(game, bx, by0, bw, bh, '开始游戏', function () { game.startGame(); }, { primary: true, size: 38 });
     button(game, bx, by0 + 116, bw, bh, '玩法说明', function () { game.state = 'help'; game.stateT = 0; }, { size: 32 });
     button(game, bx, by0 + 232, bw, bh * 0.72, game.muted ? '声音:关' : '声音:开', function () { game.toggleMute(); }, { size: 26 });
@@ -377,7 +379,7 @@
     font(ctx, 23, false);
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
     var ft = '玩具球 ' + game.prizeBallsTotal + '    礼品卡 ' + game.giftCardsTotal + '    最大单次 +' + U.fmt(game.bestWin);
-    ctx.fillText(ft, W / 2, bottom - 86);
+    ctx.fillText(ft, W / 2, bottom - 72);
   }
 
   /* ---------- 玩法说明 ---------- */
