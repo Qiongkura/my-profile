@@ -136,7 +136,7 @@
       if (wantPlay && !muted) play();
       return;
     }
-    for (var i = 0; i < SONGS.length; i++) webEl(i);
+    webEl(idx);   /* 只预加载当前曲目,其余切歌时按需加载(省流量) */
     if (wantPlay && !muted) play();
   }
 
