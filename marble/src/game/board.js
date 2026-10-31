@@ -120,7 +120,7 @@
     /* 两只对称的导流圆弧角:左上(横扫到边顺弧滚下)/ 右上(弹道冲顶顺弧拐入,
        右弧延长到 100°:出口略上仰,高速球靠惯性压弧贴行、出弧后贴顶滑翔,全真实碰撞) */
     var cornerL = { cx: fieldX0 + R, cy: ceilingY + R, r: R };   // 弧与左墙轨(x=fieldX0)相切
-    var cornerR2 = { cx: W - 45 - R, cy: ceilingY + R, r: R };   // 弧与右墙轨(x=W-45)相切
+    var cornerR2 = { cx: W - 21 - R, cy: ceilingY + R, r: R };   // 弧与右墙轨(x=W-21)相切
     /* 碰撞面与绘制轨对齐:half=7 → 胶囊面 = 画线中心±7 = 14px 轨的内缘,球缘贴轨走。
        两轨中心距机缘 21px(轨带与白框相接,沿边界走) */
     var rightWallCx = W - 21;   /* 右墙轨中心 = 右上导弧端点,竖直向下 */
