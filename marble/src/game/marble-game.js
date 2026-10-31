@@ -28,6 +28,7 @@
     this.songIdx = platform.storage.get('mm_song', 0) | 0;
     this.volume = Math.max(0, Math.min(1, platform.storage.get('mm_vol', 0.8)));
     MG.music.init(platform);
+    MG.music.setMuted(this.muted);   /* 同步存档静音态:静音时解锁手势后不得自启 BGM */
     MG.music.setVolume(this.volume);
     MG.audio.setVolume(this.volume);
     MG.music.setSong(this.songIdx);

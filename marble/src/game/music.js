@@ -130,8 +130,13 @@
 
   function setMuted(m) {
     muted = !!m;
-    if (muted) pause();
-    else if (wantPlay && started) play();
+    if (muted) {
+      /* 停声但保留 wantPlay:取消静音后音乐能接续回来 */
+      webPauseAll();
+      innerStop();
+    } else if (wantPlay && started) {
+      play();
+    }
   }
 
   function setVolume(v) {
@@ -147,7 +152,10 @@
     setVolume: setVolume,
     _debug: function () {
       var a = cache[idx];
-      return a ? { src: (a.src || '').split('/').pop(), paused: a.paused, volume: a.volume } : null;
+      return {
+        idx: idx, started: started, wantPlay: wantPlay, muted: muted, cached: cache.length,
+        el: a ? { src: (a.src || '').split('/').pop(), paused: a.paused, volume: a.volume } : null
+      };
     },
     song: song,
     songCount: songCount,
