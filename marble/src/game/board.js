@@ -93,7 +93,8 @@
       var peg = pegs[pi];
       var bad = false;
       for (var q = 0; q < bumpers.length; q++) {
-        if (U.dist(peg.x, peg.y, bumpers[q].x, bumpers[q].y) < bumpers[q].r + peg.r + 24) { bad = true; break; }
+        /* 大弹柱与小钉之间必须留出 > 一个球直径的缝:球(直径 30)既能通过,也不会被夹死 */
+        if (U.dist(peg.x, peg.y, bumpers[q].x, bumpers[q].y) < bumpers[q].r + peg.r + CFG.ballR * 2 + 6) { bad = true; break; }
       }
       if (!bad) cleared.push(peg);
     }
