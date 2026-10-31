@@ -873,7 +873,7 @@
     ctx.textAlign = 'center';
     ui.font(ctx, 11, false);
     ctx.fillStyle = C.finePrint;
-    ctx.fillText('本机不适合4岁以下儿童使用 · 弹珠只供游戏,严禁吞食', W / 2, panelY + 202);
+    ctx.fillText('本游戏适合 8 岁以上用户使用 · 弹珠只供游戏,严禁吞食', W / 2, panelY + 202);
 
     /* 提示 */
     ui.font(ctx, 20, false);
