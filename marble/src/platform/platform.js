@@ -79,6 +79,18 @@
     }
     api.safeTop = safeTop;
 
+    /* 胶囊按钮中心高度(css px):顶部图标簇与之同高对齐 */
+    var capsuleY = 0;
+    if (isMinigame) {
+      try {
+        if (sys.getMenuButtonBoundingClientRect) {
+          var mb = sys.getMenuButtonBoundingClientRect();
+          if (mb && mb.height) capsuleY = (mb.top + mb.bottom) / 2;
+        }
+      } catch (e) { }
+    }
+    api.capsuleY = capsuleY;
+
     /* ---------- 触摸输入(统一为 CSS 像素坐标) ---------- */
     function normTouch(e) {
       var t = (e.touches && e.touches.length ? e.touches[0] : (e.changedTouches && e.changedTouches.length ? e.changedTouches[0] : e));

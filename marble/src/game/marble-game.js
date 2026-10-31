@@ -100,6 +100,11 @@
     this.view.scale = scale;
     this.view.offX = (p.cssW - CFG.DESIGN_W * scale) / 2;
     this.view.offY = safe + (availH - H * scale) / 2;
+    /* 顶部图标簇的高度:小游戏端对齐胶囊按钮中心,浏览器端固定 42 */
+    this.iconRowY = 42;
+    if (p.capsuleY) {
+      this.iconRowY = U.clamp((p.capsuleY - this.view.offY) / scale, 24, 96);
+    }
   };
 
   Game.prototype.toLogical = function (cx, cy) {
@@ -882,10 +887,10 @@
     this.frameButtons.length = 0;
 
     /* 顶部图标簇:音效 / 音乐 / 主页(主页非菜单态显示) */
-    MG.ui.iconButton(this, 56, 42, 24, 'sound', function () { this.toggleMute(); }.bind(this));
-    MG.ui.iconButton(this, 106, 42, 24, 'music', function () { this.cycleMusic(); }.bind(this));
+    MG.ui.iconButton(this, 56, this.iconRowY, 24, 'sound', function () { this.toggleMute(); }.bind(this));
+    MG.ui.iconButton(this, 106, this.iconRowY, 24, 'music', function () { this.cycleMusic(); }.bind(this));
     if (st !== 'menu') {
-      MG.ui.iconButton(this, 156, 42, 24, 'home', function () { this.backToMenu(); }.bind(this));
+      MG.ui.iconButton(this, 156, this.iconRowY, 24, 'home', function () { this.backToMenu(); }.bind(this));
     }
 
     var st = this.state;
@@ -912,7 +917,7 @@
     /* ---- 背板:LED 数值 + 小按钮 ---- */
     this.drawSeg(this._ledBank, String(this.bank));
     this.drawSeg(this._ledTier, '×' + this.tier().mult);
-    ui.iconButton(this, 206, 42, 24, 'pause', function () { this.state = 'pause'; this.stateT = 0; }.bind(this));
+    ui.iconButton(this, 206, this.iconRowY, 24, 'pause', function () { this.state = 'pause'; this.stateT = 0; }.bind(this));
 
     /* ---- 弹道箭头 ---- */
     var gap = 90;
