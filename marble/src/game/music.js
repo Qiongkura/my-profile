@@ -1,179 +1,117 @@
-/* 弹弹珠机 - 背景音乐(芯片音步进音序器,公版/传统旋律) (命名空间: MG.music)
- * 仅网页端播放(小游戏端建议后续接 bgm 音频文件循环)。
- * 音量刻意压低作为氛围背景,主开关(音效按钮)关闭时静音。
+/* 弹弹珠机 - 背景音乐:原曲播放器 (命名空间: MG.music)
+ * 播放 assets/bgm/ 下的原曲音频文件(用户自行放置,见 assets/bgm/README.txt)。
+ * 网页端用 <audio>,小游戏端用 InnerAudioContext;缺文件自动跳过不报错。
+ * 点击左上角音符图标切歌;音效按钮静音时一并暂停。
  */
 (function (root) {
   'use strict';
   var MG = root.MG || (root.MG = {});
 
-  function m2f(m) { return 440 * Math.pow(2, (m - 69) / 12); }
-
-  /* 每首:名称 / BPM / lead・bass 均为八分音符网格(MIDI 音高,0=休止) */
   var SONGS = [
-    {
-      name: '甩葱歌', bpm: 150,
-      lead: [
-        76, 74, 76, 71, 76, 74, 76, 0,
-        76, 74, 76, 71, 76, 74, 76, 0,
-        76, 74, 76, 71, 76, 74, 76, 0,
-        76, 74, 76, 71, 81, 79, 78, 76,
-        72, 0, 71, 72, 69, 0, 72, 71,
-        72, 0, 71, 72, 69, 0, 72, 0,
-        76, 74, 76, 71, 76, 74, 76, 0,
-        76, 74, 76, 71, 81, 79, 78, 74
-      ],
-      bass: [
-        40, 47, 40, 47, 40, 47, 40, 47,
-        40, 47, 40, 47, 40, 47, 40, 47,
-        40, 47, 40, 47, 40, 47, 40, 47,
-        40, 47, 40, 47, 40, 47, 40, 47,
-        45, 52, 45, 52, 45, 52, 45, 52,
-        45, 52, 45, 52, 45, 52, 45, 52,
-        40, 47, 40, 47, 40, 47, 40, 47,
-        40, 47, 40, 47, 40, 47, 40, 47
-      ]
-    },
-    {
-      name: '卡农', bpm: 122,
-      lead: [
-        78, 76, 74, 73, 71, 69, 71, 73,
-        74, 73, 71, 69, 79, 78, 79, 76,
-        78, 76, 74, 73, 71, 69, 71, 73,
-        74, 73, 71, 69, 79, 78, 79, 76,
-        78, 76, 74, 73, 71, 69, 71, 73,
-        74, 73, 71, 69, 79, 78, 79, 76,
-        78, 76, 74, 73, 71, 69, 71, 73,
-        74, 73, 71, 69, 79, 78, 79, 76
-      ],
-      bass: [
-        50, 50, 50, 50, 45, 45, 45, 45,
-        47, 47, 47, 47, 42, 42, 42, 42,
-        43, 43, 43, 43, 50, 50, 50, 50,
-        43, 43, 43, 43, 45, 45, 45, 45,
-        50, 50, 50, 50, 45, 45, 45, 45,
-        47, 47, 47, 47, 42, 42, 42, 42,
-        43, 43, 43, 43, 50, 50, 50, 50,
-        43, 43, 43, 43, 45, 45, 45, 45
-      ]
-    },
-    {
-      name: '欢乐颂', bpm: 118,
-      lead: [
-        78, 78, 79, 81, 81, 79, 78, 76,
-        74, 74, 76, 78, 78, 0, 76, 0,
-        78, 78, 79, 81, 81, 79, 78, 76,
-        74, 74, 76, 78, 76, 0, 74, 0,
-        78, 78, 79, 81, 81, 79, 78, 76,
-        74, 74, 76, 78, 76, 0, 74, 0,
-        74, 74, 76, 78, 78, 0, 76, 0,
-        74, 74, 74, 0, 74, 76, 74, 0
-      ],
-      bass: [
-        50, 50, 50, 50, 45, 45, 45, 45,
-        43, 43, 43, 43, 50, 50, 50, 50,
-        43, 43, 43, 43, 50, 50, 50, 50,
-        43, 43, 43, 43, 45, 45, 45, 45,
-        50, 50, 50, 50, 45, 45, 45, 45,
-        43, 43, 43, 43, 50, 50, 50, 50,
-        43, 43, 43, 43, 50, 50, 50, 50,
-        43, 43, 43, 43, 50, 50, 50, 50
-      ]
-    },
-    {
-      name: '康康舞曲', bpm: 152,
-      lead: [
-        79, 79, 76, 72, 76, 79, 84, 79,
-        81, 81, 79, 81, 84, 0, 81, 0,
-        79, 79, 76, 72, 76, 79, 84, 79,
-        77, 76, 74, 76, 72, 0, 0, 0,
-        79, 79, 76, 72, 76, 79, 84, 79,
-        81, 81, 79, 81, 84, 0, 81, 0,
-        79, 79, 76, 72, 76, 79, 84, 79,
-        77, 76, 74, 76, 72, 74, 76, 0
-      ],
-      bass: [
-        36, 43, 36, 43, 36, 43, 36, 43,
-        41, 48, 41, 48, 41, 48, 41, 48,
-        36, 43, 36, 43, 36, 43, 36, 43,
-        43, 50, 43, 50, 43, 50, 43, 50,
-        36, 43, 36, 43, 36, 43, 36, 43,
-        41, 48, 41, 48, 41, 48, 41, 48,
-        36, 43, 36, 43, 36, 43, 36, 43,
-        43, 50, 43, 50, 43, 50, 43, 50
-      ]
-    },
-    {
-      name: '小星星', bpm: 104,
-      lead: [
-        72, 72, 79, 79, 81, 81, 79, 0,
-        77, 77, 76, 76, 74, 74, 72, 0,
-        79, 79, 77, 77, 76, 76, 74, 0,
-        79, 79, 77, 77, 76, 76, 74, 0,
-        72, 72, 79, 79, 81, 81, 79, 0,
-        77, 77, 76, 76, 74, 74, 72, 0
-      ],
-      bass: [
-        48, 48, 48, 48, 41, 41, 41, 41,
-        43, 43, 43, 43, 48, 48, 48, 48,
-        43, 43, 43, 43, 48, 48, 48, 48,
-        43, 43, 43, 43, 48, 48, 48, 48,
-        48, 48, 48, 48, 41, 41, 41, 41,
-        43, 43, 43, 43, 48, 48, 48, 48
-      ]
-    }
+    { name: '甩葱歌', file: 'assets/bgm/01-ievan.mp3' },
+    { name: '卡农', file: 'assets/bgm/02-canon.mp3' },
+    { name: '欢乐颂', file: 'assets/bgm/03-ode.mp3' },
+    { name: '康康舞曲', file: 'assets/bgm/04-cancan.mp3' },
+    { name: '小星星', file: 'assets/bgm/05-twinkle.mp3' }
   ];
 
-  var audio = null;
+  var platform = null;
   var idx = 0;
-  var pos = 0;   /* 八分音符网格位置(浮点) */
-  var acc = 0;   /* 帧内累计 */
+  var el = null;        /* 网页端 <audio> */
+  var innerEl = null;   /* 小游戏端 InnerAudio */
+  var wantPlay = false;
   var started = false;
+  var muted = false;
 
-  function init(platform) {
-    audio = root.MG.audio;
-    idx = (platform.storage.get('mm_song', 0) | 0) % SONGS.length;
+  function init(pl) {
+    platform = pl;
+    idx = (pl.storage.get('mm_song', 0) | 0) % SONGS.length;
   }
 
   function song() { return SONGS[idx]; }
   function songCount() { return SONGS.length; }
+  function current() { return idx; }
+
   function setSong(i) {
     idx = ((i % SONGS.length) + SONGS.length) % SONGS.length;
-    pos = 0; acc = 0;
+    if (wantPlay && started && !muted) play();
     return SONGS[idx].name;
   }
 
-  function tick(dt) {
-    if (!audio || _muted() || !audio.ready()) return;
-    var s = song();
-    var eps = s.bpm / 30;   /* 每秒几个八分音符 */
-    acc += dt * eps;
-    var guard = 0;
-    while (acc >= 1 && guard++ < 8) {
-      acc -= 1;
-      var i8 = pos % s.lead.length;
-      var ln = s.lead[i8], bn = s.bass[i8];
-      if (ln) audio.note(m2f(ln), 60 / s.bpm / 2 * 0.9, 'square', 0.05);
-      if (bn) audio.note(m2f(bn), 60 / s.bpm / 2 * 0.95, 'triangle', 0.065);
-      if (i8 % 2 === 0) audio.note(3200, 0.03, 'square', 0.012); /* 响镲 */
-      pos++;
-    }
+  function next() { return setSong(idx + 1); }
+
+  function ensureWebEl() {
+    if (el) return el;
+    try {
+      el = new root.Audio();
+      el.loop = true;
+      el.volume = 0.28;
+    } catch (e) { el = null; }
+    return el;
   }
 
-  function _muted() { return audio && audio.isMuted(); }
+  function ensureInner() {
+    if (innerEl) return innerEl;
+    if (platform.createInnerAudio) innerEl = platform.createInnerAudio();
+    if (innerEl) {
+      innerEl.loop = true;
+      innerEl.volume = 0.3;
+    }
+    return innerEl;
+  }
 
-  function next() {
-    var name = setSong(idx + 1);
+  function play() {
+    wantPlay = true;
+    if (muted) return;
+    var s = SONGS[idx];
+    if (platform.isMinigame) {
+      var inel = ensureInner();
+      if (!inel) return;
+      try {
+        inel.stop();
+        inel.src = s.file;
+        inel.play();
+      } catch (e) { }
+      return;
+    }
+    var a = ensureWebEl();
+    if (!a) return;
+    try {
+      a.src = s.file;
+      var pr = a.play();
+      if (pr && pr.catch) pr.catch(function () { /* 自动播放被拦:等首次手势 */ });
+    } catch (e) { }
+  }
+
+  function pause() {
+    wantPlay = false;
+    try { if (el) el.pause(); } catch (e) { }
+    try { if (innerEl) innerEl.pause(); } catch (e) { }
+  }
+
+  /* 首次用户手势后调用:浏览器允许出声了 */
+  function unlock() {
+    if (started) return;
     started = true;
-    return name;
+    if (wantPlay && !muted) play();
+  }
+
+  function setMuted(m) {
+    muted = !!m;
+    if (muted) pause();
+    else if (wantPlay && started) play();
   }
 
   MG.music = {
     init: init,
-    tick: tick,
     song: song,
     songCount: songCount,
+    current: current,
     setSong: setSong,
-    current: function () { return idx; },
-    next: next
+    next: next,
+    play: play,
+    pause: pause,
+    unlock: unlock,
+    setMuted: setMuted
   };
 })(typeof GameGlobal !== 'undefined' ? GameGlobal : (typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this)));

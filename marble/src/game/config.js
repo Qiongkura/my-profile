@@ -59,7 +59,8 @@
     launcher: {
       minSpeed: 500,       // 0% = 只弹起一点点,滚回退还
       maxSpeed: 2450,      // 100% = 掠过顶轨直到最左
-      curve: 0.18,         // 非线性指数:40% 恰好飞出发射区,以上落点铺开
+      crestPower: 0.4,     // 蓄力 40% = 恰好飞出发射区(前段曲线终点)
+      crestSpeed: 2000,    // 40% 时的临界速度;后 60% 线性增大到 maxSpeed
       cooldown: 0.3,
       tapPower: 0.05,      // 快速点按 = 5% 轻弹(必须蓄力才有速度)
       chargeSpeed: 0.8,

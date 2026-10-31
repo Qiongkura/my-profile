@@ -153,6 +153,11 @@
       } catch (e) { return false; }
     };
 
+    /* ---------- 背景音乐(小游戏端 InnerAudio;网页端用 <audio>) ---------- */
+    api.createInnerAudio = function () {
+      try { return sys.createInnerAudioContext(); } catch (e) { return null; }
+    };
+
     /* ---------- 离屏画布(背景缓存用) ---------- */
     api.createOffscreen = function (w, h) {
       var c;

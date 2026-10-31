@@ -169,6 +169,7 @@
   Game.prototype.toggleMute = function () {
     this.muted = MG.audio.toggleMuted();
     this.platform.storage.set('mm_mute', this.muted);
+    MG.music.setMuted(this.muted);
     if (!this.muted) MG.audio.play('click');
   };
 
@@ -223,6 +224,7 @@
 
   Game.prototype.handleDown = function (pt) {
     MG.audio.unlock();
+    MG.music.unlock();
     var p = this.toLogical(pt.x, pt.y);
     for (var i = this.frameButtons.length - 1; i >= 0; i--) {
       var b = this.frameButtons[i];
@@ -244,7 +246,6 @@
     var quick = (this.time - this._downT) < CFG.launcher.tapJudge;
     /* 点按绕过非线性曲线,直接用原始力度(5% 轻弹) */
     var power = quick ? CFG.launcher.tapPower : this.chargePower();
-    this._powerIsRaw = quick;
     this.launch(power);
   };
 
@@ -271,8 +272,18 @@
     /* 亮灯洞只在换档位时重排,发射前后保持不变 */
 
     var lane = this.board.lane;
-    /* 非线性:蓄力 40% 恰好飞出发射区(指数见 config.launcher.curve) */
-    var speed = U.lerp(CFG.launcher.minSpeed, CFG.launcher.maxSpeed, Math.pow(power, this._powerIsRaw ? 1 : CFG.launcher.curve));
+    /* 两段式力度:前 40% 曲线(到临界),后 60% 线性到最大 */
+    var cp = CFG.launcher.crestPower;
+    var frac = (CFG.launcher.crestSpeed - CFG.launcher.minSpeed) / (CFG.launcher.maxSpeed - CFG.launcher.minSpeed);
+    var lp;
+    if (power <= cp) {
+      var t = power / cp;
+      t = t * t * (3 - 2 * t);   /* smoothstep 曲线 */
+      lp = t * frac;
+    } else {
+      lp = frac + (1 - frac) * ((power - cp) / (1 - cp));
+    }
+    var speed = U.lerp(CFG.launcher.minSpeed, CFG.launcher.maxSpeed, lp);
     /* 垂直上升:无水平抖动 */
     /* 出膛随机抖动:真机弹珠在弹道内颤动,混沌放大让每次落点不同 */
     var jx = U.rand(-16, 16);
@@ -1072,7 +1083,6 @@
   /* ================= 主循环 ================= */
 
   Game.prototype.frame = function (dt) {
-    MG.music.tick(dt);
     this.update(dt);
     this.render();
   };
