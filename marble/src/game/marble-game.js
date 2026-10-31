@@ -300,6 +300,7 @@
   /* 弹道内滚回:退还投入 */
   Game.prototype.refund = function (m) {
     this.bank += (m.bet || 1);
+    MG.fx.drop(this.fx, m.x, m.y, m.r, C.marbleTints[m.skin % C.marbleTints.length]);
     m.dead = true;
     var lane = this.board.lane;
     MG.fx.text(this.fx, lane.cx - 20, lane.floorY - 90, '力气太小 退' + (m.bet || 1) + '颗', { size: 24, color: '#fff8ea', life: 1.1 });
@@ -322,6 +323,7 @@
       var gotCard = (m.mult || 2) >= CFG.giftCardMult;
       if (gotCard) this.giftCards += 1;
       hole.flash = 1;
+      MG.fx.drop(this.fx, m.x, m.y, m.r, C.marbleTints[m.skin % C.marbleTints.length]);
 
       MG.fx.text(this.fx, this.view.W / 2, b.floorY - 170, '中 奖  ×' + (m.mult || 2), { size: 56, color: '#e8352e', life: 1.6 });
       MG.fx.text(this.fx, hole.cx, b.floorY - 96, '+' + gained + ' 颗  玩具球+1' + (gotCard ? '  礼品卡+1' : ''), { size: 26, color: '#fff8ea', life: 1.5 });
@@ -332,6 +334,7 @@
       this.platform.vibrate();
     } else {
       hole.flash = 0.6;
+      MG.fx.drop(this.fx, m.x, m.y, m.r, C.marbleTints[m.skin % C.marbleTints.length]);
       MG.fx.burst(this.fx, m.x, b.floorY - 26, '#d9b26a', 8, 180);
       MG.audio.play('slot', { pitch: 0.85, vol: 0.6 });
     }
@@ -352,63 +355,14 @@
     var b = this.board;
     var i, k;
 
-    if (this.charging) this.chargeT += dt;
+    /* 蓄力:场上还有球或冷却中时,力度条冻结(松手即所见力度) */
+    if (this.charging && this.world.balls.length === 0 && this.launcherCool <= 0) {
+      this.chargeT += dt;
+    }
     this.launcherCool -= dt;
     this.launcherPulse = Math.max(0, this.launcherPulse - dt * 4);
 
-    /* 导流弧角:进入检测(在物理碰撞发生前吸附,避免撞弧反弹) */
-    var pre = this.world.balls;
-    for (i = 0; i < pre.length; i++) {
-      var pb = pre[i];
-      if (pb.dead || pb.rail) continue;
-      if (pb.railCd > 0) { pb.railCd -= dt; continue; }
-      if (pb.vy < -0.5 && pb.x > b.cornerR.cx - 6 && pb.y < b.cornerR.cy + 40) {
-        var dxr = pb.x - b.cornerR.cx, dyr = pb.y - b.cornerR.cy;
-        var dr = Math.sqrt(dxr * dxr + dyr * dyr);
-        if (dr <= 59 && dr > 25) {
-          var a0 = Math.atan2(dyr, dxr);
-          if (a0 > 0.05) a0 = 0.05;
-          if (a0 < -1.55) a0 = -1.55;
-          pb.rail = { cx: b.cornerR.cx, cy: b.cornerR.cy, a: a0, aEnd: -Math.PI / 2 };
-        }
-      } else if (pb.vx < -0.5 && pb.x < b.cornerL.cx + 50 && pb.y < b.cornerL.cy + 40) {
-        var dxl = pb.x - b.cornerL.cx, dyl = pb.y - b.cornerL.cy;
-        var dl = Math.sqrt(dxl * dxl + dyl * dyl);
-        if (dl <= 59 && dl > 25) {
-          var aL = Math.atan2(dyl, dxl);
-          if (aL > -Math.PI / 2 + 0.2) aL = -Math.PI / 2 + 0.2;
-          if (aL < -Math.PI + 0.1) aL = -Math.PI + 0.1;
-          pb.rail = { cx: b.cornerL.cx, cy: b.cornerL.cy, a: aL, aEnd: -Math.PI };
-        }
-      }
-    }
-
     this.world.step(dt, 10);
-
-    /* 导流弧角:贴轨滑行(吸附在圆弧路径上,不反弹) */
-    var bl = this.world.balls;
-    for (i = 0; i < bl.length; i++) {
-      var rb = bl[i];
-      if (rb.dead || !rb.rail) continue;
-      var railR = 57; /* 弧半径 80 - 半厚 8 - 球半径 15 = 球心轨半径 */
-      var sp = Math.sqrt(rb.vx * rb.vx + rb.vy * rb.vy) * (1 - 0.06 * dt);
-      if (sp < 220 || rb.rail.a <= rb.rail.aEnd) {
-        /* 滑到弧角末端:沿切线自然飞出(短时间不再吸附) */
-        var ta = Math.max(rb.rail.a, rb.rail.aEnd);
-        rb.x = rb.rail.cx + Math.cos(ta) * railR;
-        rb.y = rb.rail.cy + Math.sin(ta) * railR;
-        rb.vx = Math.sin(ta) * sp;
-        rb.vy = -Math.cos(ta) * sp;
-        rb.rail = null;
-        rb.railCd = 0.6;
-        continue;
-      }
-      rb.rail.a -= (sp / railR) * dt;
-      rb.x = rb.rail.cx + Math.cos(rb.rail.a) * railR;
-      rb.y = rb.rail.cy + Math.sin(rb.rail.a) * railR;
-      rb.vx = Math.sin(rb.rail.a) * sp;
-      rb.vy = -Math.cos(rb.rail.a) * sp;
-    }
 
     /* 弹珠簿记 */
     var balls = this.world.balls;
@@ -432,7 +386,7 @@
       var speed = Math.sqrt(m.vx * m.vx + m.vy * m.vy);
 
       /* 弹道内滚回检测 */
-      if (m.x > b.lane.x0 - 5 && m.y > this.view.H - 280) {
+      if (m.x > b.lane.x0 - 5 && m.y > b.lane.floorY - 190) {
         if (speed < CFG.launcher.refundSlow) m.refundT = (m.refundT || 0) + dt;
         else m.refundT = 0;
         if (m.refundT > CFG.launcher.refundTime) { this.refund(m); continue; }
@@ -627,15 +581,6 @@
     ctx.fillRect(b.lane.x0 + 4, b.lane.top, W - 15 - b.lane.x0 - 4, b.lane.floorY - b.lane.top);
     ctx.fillStyle = C.cabYellowLo;
     ctx.fillRect(b.lane.x0 - 3, b.lane.top, 6, b.lane.floorY - b.lane.top);
-    /* 拉杆旋钮 */
-    ctx.beginPath();
-    ctx.arc(b.lane.cx, b.lane.floorY + 40, 17, 0, U.TAU);
-    ctx.fillStyle = '#c9302c';
-    ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
     /* 边界与导流一体轨:左墙 → 左弧角 → 顶轨 → 右弧角 → 右墙,同款样式一气呵成 */
     ctx.save();
     ctx.lineCap = 'round';

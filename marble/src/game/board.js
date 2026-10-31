@@ -21,12 +21,13 @@
     var laneX0 = W - L.laneW;
     var laneX1 = W - 15;
     var laneCx = (laneX0 + 8 + (W - 30)) / 2; /* 弹道内 face 与右墙内面的正中 */
-    var laneFloorY = H - 170;
-    var spawn = { x: laneCx, y: laneFloorY - 22 };
-
     /* ---- 场地几何 ---- */
     var floorY = H - panelH - 14;
     var fieldRight = laneX0 - 10;
+
+    /* ---- 右侧弹道(右下角向上,单珠宽;底部与场地底线齐平) ---- */
+    var laneFloorY = floorY;
+    var spawn = { x: laneCx, y: laneFloorY - 42 };
 
     /* ---- 底部洞口(13 个,无分数):整体右移避开左侧导轨边框 ---- */
     var n = CFG.pockets.count;
@@ -46,7 +47,7 @@
     var dividers = [];
     for (var d = 1; d < n; d++) {
       var dx = innerX0 + d * pw;
-      dividers.push({ x1: dx, y1: capY - 40, x2: dx, y2: floorY, half: 3, e: 0.15, friction: 0.85, kind: 'divider' });
+      dividers.push({ x1: dx, y1: capY - 40, x2: dx, y2: floorY, half: 3, e: 0.35, friction: 0.92, kind: 'divider' });
     }
 
     /* ---- 钉阵 ---- */
@@ -104,7 +105,7 @@
         out.push({
           x1: cx + Math.cos(b0) * radius, y1: cy + Math.sin(b0) * radius,
           x2: cx + Math.cos(b1) * radius, y2: cy + Math.sin(b1) * radius,
-          half: 8, e: 0.5, kind: 'wall'
+          half: 8, e: 0, kind: 'rail'   /* 无弹跳:弹珠贴着弧面滑行 */
         });
       }
       return out;
@@ -119,10 +120,9 @@
     var walls = [
       { x1: fieldX0, y1: ceilingY, x2: fieldX0, y2: floorY, half: 15, e: 0.45, kind: 'wall' },   // 左墙
       { x1: W - 15, y1: ceilingY, x2: W - 15, y2: laneFloorY, half: 15, e: 0.4, kind: 'wall' },  // 右墙(机身)
-      { x1: cornerL.cx, y1: ceilingY, x2: cornerR2.cx, y2: ceilingY, half: 10, e: 0.3, kind: 'wall' }, // 顶部导轨
-      { x1: laneX0, y1: L.laneTop, x2: laneX0, y2: laneFloorY, half: 8, e: 0.4, kind: 'wall' },  // 弹道内墙
-      { x1: laneX0, y1: laneFloorY, x2: laneX1, y2: laneFloorY, half: 6, e: 0.12, kind: 'wall' },// 弹道底
-      { x1: fieldX0, y1: floorY, x2: laneX0, y2: floorY, half: 8, e: 0.2, kind: 'wall' }         // 场地地面
+      { x1: cornerL.cx, y1: ceilingY, x2: cornerR2.cx, y2: ceilingY, half: 10, e: 0.05, kind: 'wall' }, // 顶部导轨(贴轨滑行)
+      { x1: laneX0, y1: L.laneTop, x2: laneX0, y2: laneFloorY, half: 8, e: 0.1, kind: 'wall' },  // 弹道内墙
+      { x1: fieldX0, y1: floorY, x2: W - 15, y2: floorY, half: 8, e: 0.2, kind: 'wall' }         // 场地地面(含弹道底)
     ];
     var arcTL = arcSegs(cornerL.cx, cornerL.cy, R, -Math.PI / 2, -Math.PI, 6); // (110,330)→(30,410)
     var arcTR = arcSegs(cornerR2.cx, cornerR2.cy, R, -Math.PI / 2, 0, 6);      // (640,330)→(720,410)

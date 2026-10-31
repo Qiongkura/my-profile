@@ -60,7 +60,7 @@
       minSpeed: 700,       // 太小 → 冲不到顶,滚回来退还
       maxSpeed: 2000,      // 最高速度
       cooldown: 0.3,
-      tapPower: 0.88,      // 快速点按(足以翻过导弧)
+      tapPower: 0.6,       // 快速点按力度
       chargeSpeed: 0.8,
       tapJudge: 0.16,
       refundSlow: 60,      // 弹道内低速视为滚回

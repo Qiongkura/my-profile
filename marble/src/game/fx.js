@@ -7,7 +7,13 @@
   var MAX_PARTS = 500;
 
   function create() {
-    return { parts: [], rings: [], texts: [], shake: 0, sx: 0, sy: 0 };
+    return { parts: [], rings: [], texts: [], drops: [], shake: 0, sx: 0, sy: 0 };
+  }
+
+  /* 弹珠落入洞口/滚回的缩球动画 */
+  function drop(fx, x, y, r, color) {
+    if (fx.drops.length > 16) fx.drops.shift();
+    fx.drops.push({ x: x, y: y, r: r, color: color, age: 0, life: 0.22 });
   }
 
   function burst(fx, x, y, color, n, spd) {
@@ -63,6 +69,12 @@
       t.y += t.vy * dt;
       t.vy *= (1 - 1.6 * dt);
     }
+    for (i = fx.drops.length - 1; i >= 0; i--) {
+      var dr = fx.drops[i];
+      dr.age += dt;
+      dr.y += 46 * dt;
+      if (dr.age >= dr.life) fx.drops.splice(i, 1);
+    }
     if (fx.shake > 0) {
       fx.shake = Math.max(0, fx.shake - dt * 22);
       fx.sx = U.rand(-1, 1) * fx.shake;
@@ -93,6 +105,19 @@
       ctx.arc(r.x, r.y, r.r0 + (r.r1 - r.r0) * U.easeOut(k), 0, U.TAU);
       ctx.stroke();
     }
+    for (i = 0; i < fx.drops.length; i++) {
+      var dp = fx.drops[i];
+      var dk = dp.age / dp.life;
+      ctx.globalAlpha = 1 - dk;
+      ctx.beginPath();
+      ctx.arc(dp.x, dp.y, dp.r * (1 - dk * 0.8), 0, U.TAU);
+      ctx.fillStyle = dp.color;
+      ctx.fill();
+      ctx.globalAlpha = (1 - dk) * 0.6;
+      ctx.strokeStyle = 'rgba(90,55,15,0.8)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
     ctx.restore();
 
     ctx.save();
@@ -120,5 +145,5 @@
     fx.shake = 0;
   }
 
-  MG.fx = { create: create, burst: burst, ring: ring, text: text, shake: shake, update: update, render: render, reset: reset };
+  MG.fx = { create: create, burst: burst, ring: ring, text: text, drop: drop, shake: shake, update: update, render: render, reset: reset };
 })(typeof GameGlobal !== 'undefined' ? GameGlobal : (typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this)));
