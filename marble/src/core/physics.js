@@ -48,6 +48,7 @@
       if (b.dead) continue;
       b.vy += this.g * h;
       b.vx *= damp; b.vy *= damp;
+      if (b.nudgeCd > 0) b.nudgeCd -= h;
       var sp = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
       if (sp > this.maxSpeed) { var k = this.maxSpeed / sp; b.vx *= k; b.vy *= k; }
       b.x += b.vx * h; b.y += b.vy * h;
@@ -87,11 +88,14 @@
             this._emit({ type: 'bumper', x: c.x, y: c.y, ball: b, circle: c, speed: -vn });
           } else if (c.kind === 'peg') {
             if (-vn > 60) this._emit({ type: 'peg', x: c.x, y: c.y, ball: b, circle: c, speed: -vn });
-            /* 钉顶平衡破坏:球 nearly 静止在钉顶附近时,沿肩部向下滑出(真机圆钉不会卡球) */
-            if (-vn < 120 && -vn > 25 && dy < 0) {
+            /* 钉顶平衡破坏:球 nearly 静止在钉顶附近时,沿肩部向下滑出(真机圆钉不会卡球)。
+               必须带冷却:step(dt,12) 每帧 12 个子步,若球被钉+墙夹住反复轻触,
+               不设冷却会每子步 +130/+30 速度 → 一帧内凭空加速到数千(弹射泵) */
+            if (-vn < 120 && -vn > 25 && dy < 0 && !(b.nudgeCd > 0)) {
               var side = c.slideDir || (dx >= 0 ? 1 : -1);
               b.vx += side * 130;
               b.vy += 30;
+              b.nudgeCd = 0.4;
             }
           } else if (c.kind === 'mover') {
             this._emit({ type: 'mover', x: c.x, y: c.y, ball: b, circle: c, speed: -vn });
@@ -162,6 +166,14 @@
           }
         }
       }
+    }
+
+    /* 结算后统一限速:夹缝里多次反射叠加的速度不允许带出子步 */
+    for (i = 0; i < balls.length; i++) {
+      b = balls[i];
+      if (b.dead) continue;
+      var sp2 = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+      if (sp2 > this.maxSpeed) { var k2 = this.maxSpeed / sp2; b.vx *= k2; b.vy *= k2; }
     }
   };
 
