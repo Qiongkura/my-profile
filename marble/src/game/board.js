@@ -20,7 +20,7 @@
     /* ---- 右侧弹道(右下角向上,单珠宽) ---- */
     var laneX0 = W - L.laneW;
     var laneX1 = W - 15;
-    var laneCx = (laneX0 + 8 + (W - 30)) / 2; /* 弹道内 face 与右墙内面的正中 */
+    var laneCx = (laneX0 + 8 + (W - 52)) / 2; /* 弹道内 face(laneX0+8) 与右墙内 face(W-52) 的正中 */
     /* ---- 场地几何 ---- */
     var floorY = H - panelH - 14;
     var fieldRight = laneX0 - 10;
@@ -64,7 +64,8 @@
       var y = pegTop + r * rowGap + (rng() - 0.5) * 10;
       for (var c = 0; c < count; c++) {
         var x = fieldX0 + off + c * spacing + (rng() - 0.5) * 10;
-        x = U.clamp(x, fieldX0 + 26, fieldRight - 26);
+        /* 两墙各留 36px 过球通道:靠左墙/弹道墙的钉不许把球卡在缝里 */
+        x = U.clamp(x, fieldX0 + 52, fieldRight - 43);
         var led = rng();
         pegs.push({
           x: x, y: y, r: CFG.pegR, flash: 0,
@@ -120,10 +121,12 @@
        右弧延长到 100°:出口略上仰,高速球靠惯性压弧贴行、出弧后贴顶滑翔,全真实碰撞) */
     var cornerL = { cx: fieldX0 + R, cy: ceilingY + R, r: R };   // (110,410)
     var cornerR2 = { cx: laneX1 - 15 - R, cy: ceilingY + R, r: R }; // 右墙内面(720) - R
+    /* 碰撞面与绘制轨对齐:half=7 → 胶囊面 = 画线中心±7 = 14px 轨的内缘,球缘贴轨走 */
+    var rightWallCx = W - 45;   /* 右墙轨中心 = 右上导弧端点(705),竖直向下 */
     var walls = [
-      { x1: fieldX0, y1: ceilingY, x2: fieldX0, y2: floorY, half: 15, e: 0.45, kind: 'wall' },   // 左墙
-      { x1: W - 15, y1: ceilingY, x2: W - 15, y2: laneFloorY, half: 15, e: 0.4, kind: 'wall' },  // 右墙(机身)
-      { x1: cornerL.cx, y1: ceilingY, x2: cornerR2.cx, y2: ceilingY, half: 10, e: 0.05, kind: 'wall' }, // 顶部导轨(贴轨滑行)
+      { x1: fieldX0, y1: ceilingY, x2: fieldX0, y2: floorY, half: 7, e: 0.45, kind: 'wall' },    // 左墙
+      { x1: rightWallCx, y1: ceilingY, x2: rightWallCx, y2: laneFloorY, half: 7, e: 0.4, kind: 'wall' }, // 右墙(机身)
+      { x1: cornerL.cx, y1: ceilingY, x2: cornerR2.cx, y2: ceilingY, half: 7, e: 0.05, kind: 'wall' }, // 顶部导轨(贴轨滑行)
       { x1: laneX0, y1: L.laneTop, x2: laneX0, y2: laneFloorY, half: 8, e: 0.1, kind: 'wall' },  // 弹道内墙(贴壁顺滑)
       { x1: fieldX0, y1: floorY, x2: W - 15, y2: floorY, half: 8, e: 0.2, kind: 'wall' }         // 场地地面(含弹道底)
     ];
