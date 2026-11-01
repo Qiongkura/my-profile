@@ -297,6 +297,25 @@
       ctx.moveTo(cx + r * 0.04, cy - r * 0.44);
       ctx.quadraticCurveTo(cx + r * 0.44, cy - r * 0.34, cx + r * 0.42, cy - r * 0.06);
       ctx.stroke();
+    } else if (kind === 'sidebar') {
+      /* 侧边栏图标:书签形 */
+      ctx.strokeStyle = ic;
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx - r * 0.32, cy - r * 0.52);
+      ctx.lineTo(cx + r * 0.32, cy - r * 0.52);
+      ctx.lineTo(cx + r * 0.32, cy + r * 0.55);
+      ctx.lineTo(cx, cy + r * 0.22);
+      ctx.lineTo(cx - r * 0.32, cy + r * 0.55);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r * 0.3);
+      ctx.lineTo(cx, cy + r * 0.1);
+      ctx.moveTo(cx - r * 0.18, cy - r * 0.1);
+      ctx.lineTo(cx + r * 0.18, cy - r * 0.1);
+      ctx.stroke();
     } else if (kind === 'home') {
       ctx.fillStyle = ic;
       ctx.beginPath();

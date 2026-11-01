@@ -904,9 +904,7 @@
 
     this.frameButtons.length = 0;
 
-
-
-
+    var st = this.state;   /* 先取状态再画图标(此前 var 提升导致判断时 st 为 undefined) */
 
     /* 顶部图标簇:音效 / 音乐 / 主页(主页非菜单态显示) */
     MG.ui.iconButton(this, 56, this.iconRowY, 24, 'sound', function () { this.toggleMute(); }.bind(this));
@@ -919,7 +917,6 @@
       MG.ui.iconButton(this, 156, this.iconRowY, 24, 'home', function () { this.backToMenu(); }.bind(this));
     }
 
-    var st = this.state;
     if (st === 'menu') {
       MG.ui.renderMenu(this, false);
     } else if (st === 'help') {
@@ -934,6 +931,7 @@
 
   Game.prototype.renderPlay = function () {
     var ctx = this.ctx;
+    var p = this.platform;   /* 侧边栏图标判断用(此前未声明,进入游戏即抛 TypeError 冻死画面) */
     var b = this.board;
     var W = this.view.W, H = this.view.H;
     var t = this.time;
@@ -1271,12 +1269,21 @@
     else if (cvs && typeof cvs.requestAnimationFrame === 'function') raf = function (cb) { cvs.requestAnimationFrame(cb); };
     else if (g && typeof g.requestAnimationFrame === 'function') raf = function (cb) { g.requestAnimationFrame(cb); };
     function loop(ts) {
+      /* 先排下一帧再画本帧:任何一帧 update/render 抛异常,
+         都只跳过该帧并记录,绝不永久冻死主循环 */
+      if (raf) raf(loop);
       var t = (ts || Date.now()) / 1000;
       if (!self._last) self._last = t;
       var dt = Math.min(0.05, t - self._last);
       self._last = t;
-      self.frame(dt);
-      if (raf) raf(loop);
+      try {
+        self.frame(dt);
+      } catch (e) {
+        var msg = String((e && e.stack) || e);
+        if (!self.errors) self.errors = [];
+        if (self.errors.indexOf(msg) < 0 && self.errors.length < 20) self.errors.push(msg);
+        try { console.error('[MG frame]', e); } catch (e2) { }
+      }
     }
     if (raf) raf(loop);
     else setInterval(function () { loop(Date.now()); }, 16);
