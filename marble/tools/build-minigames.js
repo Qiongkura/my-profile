@@ -70,7 +70,7 @@ function readSavedAppid(plat, fallback) {
   } catch (e) { }
   return fallback;
 }
-var savedWxAppid = readSavedAppid('wx', 'touristappid');
+var savedWxAppid = readSavedAppid('wx', 'wxb50c82e104da0f57');
 var savedDyAppid = readSavedAppid('douyin', 'ttxxxxxxxxxxxxxxxx');
 var overwriteMode = false;
 try { fs.rmSync(DIST, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 }); }
