@@ -71,7 +71,7 @@ function readSavedAppid(plat, fallback) {
   return fallback;
 }
 var savedWxAppid = readSavedAppid('wx', 'wxb50c82e104da0f57');
-var savedDyAppid = readSavedAppid('douyin', 'ttxxxxxxxxxxxxxxxx');
+var savedDyAppid = readSavedAppid('douyin', 'tt69951f28f7eace8c02');
 var overwriteMode = false;
 try { fs.rmSync(DIST, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 }); }
 catch (e) {
