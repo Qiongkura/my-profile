@@ -84,6 +84,7 @@
             api._mbRaw = 'mb=' + Math.round(mb.top) + '-' + Math.round(mb.bottom);
           }
         }
+        api.iconRowAdjCss = name === 'douyin' ? 21 : 0;   /* 抖音返回的矩形比实际画的高 ~20px,校正 */
       } catch (e) { }
     }
     api.statusBarH = statusBarH;

@@ -103,7 +103,7 @@
     /* 顶部图标簇的高度:小游戏端对齐胶囊按钮中心,浏览器端固定 42 */
     this.iconRowY = 42;
     if (p.capsuleY) {
-      this.iconRowY = U.clamp((p.capsuleY - this.view.offY) / scale, 8, 96);
+      this.iconRowY = U.clamp((p.capsuleY + (p.iconRowAdjCss || 0) - this.view.offY) / scale, 8, 96);
     }
   };
 
