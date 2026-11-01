@@ -381,23 +381,26 @@
     var ft = '玩具球 ' + game.prizeBallsTotal + '    礼品卡 ' + game.giftCardsTotal + '    最大单次 +' + U.fmt(game.bestWin);
     ctx.fillText(ft, W / 2, bottom - 166);
 
-    /* ---- 审核要求:健康游戏忠告 + 适龄提示(启动界面必须展示) ---- */
-    font(ctx, 12, false);
-    ctx.fillStyle = 'rgba(255,255,255,0.62)';
-    ctx.fillText('健康游戏忠告:抵制不良游戏,拒绝盗版游戏。注意自我保护,谨防受骗上当。', W / 2, bottom - 134);
-    ctx.fillText('适度游戏益脑,沉迷游戏伤身。合理安排时间,享受健康生活。', W / 2, bottom - 114);
-
-    var badgeY = bottom - 80;
-    rr(ctx, W / 2 - 148, badgeY - 15, 34, 30, 8);
+    /* ---- 审核要求:健康游戏忠告(官方原文) + 适龄提示(官方绿标 8+) ---- */
+    font(ctx, 13);
     ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.fillText('《健康游戏忠告》', W / 2, bottom - 142);
+    font(ctx, 12, false);
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.fillText('抵制不良游戏，拒绝盗版游戏。注意自我保护，谨防受骗上当。', W / 2, bottom - 118);
+    ctx.fillText('适度游戏益脑，沉迷游戏伤身。合理安排时间，享受健康生活。', W / 2, bottom - 96);
+
+    var badgeY = bottom - 62;
+    rr(ctx, W / 2 - 156, badgeY - 17, 40, 34, 8);
+    ctx.fillStyle = '#2fa84f';
     ctx.fill();
-    font(ctx, 17);
-    ctx.fillStyle = '#3a3a3a';
-    ctx.fillText('8+', W / 2 - 131, badgeY);
+    font(ctx, 18);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('8+', W / 2 - 136, badgeY);
     ctx.textAlign = 'left';
     font(ctx, 13, false);
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fillText('适龄提示:本游戏适合 8 岁以上用户使用', W / 2 - 104, badgeY);
+    ctx.fillStyle = 'rgba(255,255,255,0.88)';
+    ctx.fillText('适龄提示：本游戏适合8周岁以上用户使用', W / 2 - 106, badgeY);
   }
 
   /* ---------- 玩法说明 ---------- */
