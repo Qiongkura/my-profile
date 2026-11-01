@@ -366,7 +366,7 @@
 
     var bw = 400, bh = 88, bx = W / 2 - bw / 2;
     /* 四颗按钮整块高约 366:上移起点并保证统计行与其留出间距(各屏高比例下不重叠) */
-    var by0 = Math.min(top + (bottom - top) * 0.20, bottom - 190 - 34 - 366);
+    var by0 = Math.min(top + (bottom - top) * 0.20, bottom - 556);
     by0 = Math.max(by0, top + 24);
     button(game, bx, by0, bw, bh, '开始游戏', function () { game.startGame(); }, { primary: true, size: 38 });
     button(game, bx, by0 + 116, bw, bh, '玩法说明', function () { game.state = 'help'; game.stateT = 0; }, { size: 32 });
@@ -381,40 +381,31 @@
     var ft = '玩具球 ' + game.prizeBallsTotal + '    礼品卡 ' + game.giftCardsTotal + '    最大单次 +' + U.fmt(game.bestWin);
     ctx.fillText(ft, W / 2, bottom - 166);
 
-    /* ---- 审核要求:健康游戏忠告(官方原文) + 适龄提示(官方绿标 8+) ---- */
+    /* ---- 审核要求:健康游戏忠告(官方原文) + 适龄提示(官方 CADPA 标识) ---- */
     font(ctx, 13);
     ctx.fillStyle = 'rgba(255,255,255,0.92)';
-    ctx.fillText('《健康游戏忠告》', W / 2, bottom - 142);
+    ctx.fillText('《健康游戏忠告》', W / 2, bottom - 146);
     font(ctx, 12, false);
     ctx.fillStyle = 'rgba(255,255,255,0.72)';
-    ctx.fillText('抵制不良游戏，拒绝盗版游戏。注意自我保护，谨防受骗上当。', W / 2, bottom - 118);
-    ctx.fillText('适度游戏益脑，沉迷游戏伤身。合理安排时间，享受健康生活。', W / 2, bottom - 96);
+    ctx.fillText('抵制不良游戏，拒绝盗版游戏。注意自我保护，谨防受骗上当。', W / 2, bottom - 122);
+    ctx.fillText('适度游戏益脑，沉迷游戏伤身。合理安排时间，享受健康生活。', W / 2, bottom - 100);
 
-    var badgeY = bottom - 62;
-    if (!game.ageBadge && MG.ageBadgeData && !game.ageBadgeFailed) {
-      try {
-        var bi = game.platform.createImage();
-        bi.onload = function () { game.ageBadge = bi; };
-        bi.onerror = function () { game.ageBadgeFailed = true; };
-        bi.src = MG.ageBadgeData;
-      } catch (e) { game.ageBadgeFailed = true; }
-    }
+    var badgeY = bottom - 52;
     if (game.ageBadge) {
-      /* 官方 CADPA 适龄提示标识 */
-      var bh2 = 92, bw2 = bh2 * (game.ageBadge.width / game.ageBadge.height);
-      ctx.drawImage(game.ageBadge, W / 2 - 186 - bw2 / 2, badgeY - bh2 / 2, bw2, bh2);
+      var bh2 = 64, bw2 = bh2 * (game.ageBadge.width / game.ageBadge.height);
+      ctx.drawImage(game.ageBadge, W / 2 - 250, badgeY - bh2 / 2, bw2, bh2);
     } else {
-      rr(ctx, W / 2 - 156, badgeY - 17, 40, 34, 8);
+      rr(ctx, W / 2 - 250, badgeY - 17, 40, 34, 8);
       ctx.fillStyle = '#2fa84f';
       ctx.fill();
       font(ctx, 18);
       ctx.fillStyle = '#ffffff';
-      ctx.fillText('8+', W / 2 - 136, badgeY);
+      ctx.fillText('8+', W / 2 - 230, badgeY);
     }
     ctx.textAlign = 'left';
     font(ctx, 13, false);
     ctx.fillStyle = 'rgba(255,255,255,0.88)';
-    ctx.fillText('适龄提示：本游戏适合8周岁以上用户使用', W / 2 - 106, badgeY);
+    ctx.fillText('适龄提示：本游戏适合8周岁以上用户使用', W / 2 - 150, badgeY);
   }
 
   /* ---------- 玩法说明 ---------- */
