@@ -62,6 +62,16 @@ if (!mods.length) {
 /* 2. 压缩 BGM → 56k 单声道 m4a 到临时目录,并登记分包 */
 const bgmSrc = path.join(ROOT, 'assets', 'bgm');
 const bgmTmp = path.join(DIST, '_bgm');
+/* 保留开发者在工具里设置的 AppID:重建前快照,构建后回写 */
+function readSavedAppid(plat, fallback) {
+  try {
+    var c = JSON.parse(fs.readFileSync(path.join(DIST, plat, 'project.config.json'), 'utf8'));
+    if (c.appid && c.appid !== 'touristappid' && c.appid.indexOf('xxxx') < 0) return c.appid;
+  } catch (e) { }
+  return fallback;
+}
+var savedWxAppid = readSavedAppid('wx', 'touristappid');
+var savedDyAppid = readSavedAppid('douyin', 'ttxxxxxxxxxxxxxxxx');
 var overwriteMode = false;
 try { fs.rmSync(DIST, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 }); }
 catch (e) {
@@ -131,7 +141,7 @@ buildPlatform('wx', {
   'project.config.json': JSON.stringify({
     description: '弹弹珠机 - 微信小游戏',
     compileType: 'game',
-    appid: 'touristappid',   /* TODO: 替换为你的微信小游戏 AppID */
+    appid: savedWxAppid,
     projectname: 'marble-machine',
     libVersion: 'latest',
     setting: { es6: true, minified: false, urlCheck: false, ignoreUploadUnusedFiles: true }
@@ -149,7 +159,7 @@ buildPlatform('douyin', {
   'project.config.json': JSON.stringify({
     miniprogramRoot: './',
     compileType: 'game',
-    appid: 'ttxxxxxxxxxxxxxxxx',   /* TODO: 替换为你的抖音小游戏 AppID */
+    appid: savedDyAppid,
     projectName: 'marble-machine',
     setting: { es6: true, minified: false }
   }, null, 2)
