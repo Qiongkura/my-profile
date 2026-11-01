@@ -92,6 +92,20 @@
     api.capsuleY = capsuleY;   /* 画布坐标系中的胶囊中心 */
 
     /* 图片加载(小程序用 wx.createImage,浏览器用 Image) */
+    /* 抖音侧边栏复访(审核必接能力):引导用户将小游戏加入侧边栏 */
+    api.addToSidebar = function (cb) {
+      if (name === 'douyin' && typeof tt !== 'undefined' && tt.navigateToScene) {
+        try {
+          tt.navigateToScene({
+            scene: 'sidebar',
+            success: function () { if (cb) cb(true); },
+            fail: function () { if (cb) cb(false); }
+          });
+          return;
+        } catch (e) { }
+      }
+      if (cb) cb(false);
+    };
     api.createImage = function () {
       if (isMinigame && sys.createImage) return sys.createImage();
       return new Image();

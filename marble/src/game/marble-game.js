@@ -911,6 +911,10 @@
     /* 顶部图标簇:音效 / 音乐 / 主页(主页非菜单态显示) */
     MG.ui.iconButton(this, 56, this.iconRowY, 24, 'sound', function () { this.toggleMute(); }.bind(this));
     MG.ui.iconButton(this, 106, this.iconRowY, 24, 'music', function () { this.cycleMusic(); }.bind(this));
+    /* 抖音:侧边栏复访入口(审核必接能力):菜单态在主页后,游戏态在暂停后 */
+    if (p.name === 'douyin' && st === 'menu') {
+      MG.ui.iconButton(this, 206, this.iconRowY, 24, 'sidebar', function () { this.platform.addToSidebar(); }.bind(this));
+    }
     if (st !== 'menu') {
       MG.ui.iconButton(this, 156, this.iconRowY, 24, 'home', function () { this.backToMenu(); }.bind(this));
     }
@@ -940,6 +944,9 @@
     this.drawSeg(this._ledBank, String(this.bank));
     this.drawSeg(this._ledTier, '×' + this.tier().mult);
     ui.iconButton(this, 206, this.iconRowY, 24, 'pause', function () { this.state = 'pause'; this.stateT = 0; MG.music.pause(); }.bind(this));
+    if (p.name === 'douyin') {
+      ui.iconButton(this, 256, this.iconRowY, 24, 'sidebar', function () { this.platform.addToSidebar(); }.bind(this));
+    }
 
     /* ---- 弹道箭头 ---- */
     var gap = 90;
