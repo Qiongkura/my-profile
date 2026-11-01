@@ -70,14 +70,6 @@
     this.theme = platform.storage.get('mm_theme', 'min') === 'arcade' ? 'arcade' : 'min';
     CFG.setTheme(this.theme);
 
-    /* CADPA 适龄提示标识(异步加载,主菜单绘制) */
-    this.ageBadge = null;
-    try {
-      var badgeImg = p.createImage();
-      badgeImg.onload = function () { self.ageBadge = badgeImg; };
-      badgeImg.src = 'assets/logo/cadpa-8.png';
-    } catch (e) { }
-
     this.buildBoard(0);
 
     /* 输入 */

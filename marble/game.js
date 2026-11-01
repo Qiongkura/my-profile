@@ -6,6 +6,7 @@
 require('./src/core/util.js');
 require('./src/platform/platform.js');
 require('./src/core/audio.js');
+require('./src/game/agebadge.js');
 require('./src/game/music.js');
 require('./src/core/physics.js');
 require('./src/game/config.js');

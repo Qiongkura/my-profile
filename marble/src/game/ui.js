@@ -391,6 +391,14 @@
     ctx.fillText('适度游戏益脑，沉迷游戏伤身。合理安排时间，享受健康生活。', W / 2, bottom - 96);
 
     var badgeY = bottom - 62;
+    if (!game.ageBadge && MG.ageBadgeData && !game.ageBadgeFailed) {
+      try {
+        var bi = game.platform.createImage();
+        bi.onload = function () { game.ageBadge = bi; };
+        bi.onerror = function () { game.ageBadgeFailed = true; };
+        bi.src = MG.ageBadgeData;
+      } catch (e) { game.ageBadgeFailed = true; }
+    }
     if (game.ageBadge) {
       /* 官方 CADPA 适龄提示标识 */
       var bh2 = 92, bw2 = bh2 * (game.ageBadge.width / game.ageBadge.height);
