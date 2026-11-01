@@ -90,6 +90,12 @@
     api.safeTop = 0;
     api.capsuleY = capsuleY;   /* 画布坐标系中的胶囊中心 */
 
+    /* 图片加载(小程序用 wx.createImage,浏览器用 Image) */
+    api.createImage = function () {
+      if (isMinigame && sys.createImage) return sys.createImage();
+      return new Image();
+    };
+
     /* ---------- 触摸输入(统一为 CSS 像素坐标) ---------- */
     function normTouch(e) {
       var t = (e.touches && e.touches.length ? e.touches[0] : (e.changedTouches && e.changedTouches.length ? e.changedTouches[0] : e));
