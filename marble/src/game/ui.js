@@ -391,6 +391,20 @@
     ctx.fillText('适度游戏益脑，沉迷游戏伤身。合理安排时间，享受健康生活。', W / 2, bottom - 100);
 
     var badgeY = bottom - 52;
+    /* 三级加载:文件路径 → 内嵌 data URI → 手绘兜底 */
+    if (!game.ageBadge && MG.ageBadgeData && !game.ageBadgeFailed) {
+      try {
+        var bi = game.platform.createImage();
+        var failToData = function () {
+          bi.onload = function () { game.ageBadge = bi; };
+          bi.onerror = function () { game.ageBadgeFailed = true; };
+          bi.src = MG.ageBadgeData;
+        };
+        bi.onload = function () { game.ageBadge = bi; };
+        bi.onerror = failToData;
+        bi.src = 'assets/logo/cadpa-8.png';
+      } catch (e) { game.ageBadgeFailed = true; }
+    }
     if (game.ageBadge) {
       var bh2 = 64, bw2 = bh2 * (game.ageBadge.width / game.ageBadge.height);
       ctx.drawImage(game.ageBadge, W / 2 - 250, badgeY - bh2 / 2, bw2, bh2);
