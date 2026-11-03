@@ -99,6 +99,7 @@ th { background: #f2f2f2; }
 figure { margin: 0; text-align: center; }
 figure img { width: 100%; border: 1px solid #ddd; }
 figcaption { font-size: 9.5pt; color: #555; margin-top: 1.5mm; }
+.mhead { display: flex; justify-content: space-between; font-size: 9pt; color: #666; border-bottom: 0.5px solid #bbb; padding-bottom: 1.5mm; margin-bottom: 4mm; }
 @media print { .sheet { width: auto; min-height: auto; margin: 0; padding: 0; box-shadow: none; page-break-after: always; page-break-inside: avoid; } }
 @media screen { body { background: #666; } .sheet { background: #fff; width: 210mm; min-height: 297mm; margin: 8mm auto; padding: 20mm 18mm; box-shadow: 0 2px 8px rgba(0,0,0,.4); box-sizing: border-box; } }
 </style></head><body>
@@ -164,7 +165,14 @@ figcaption { font-size: 9.5pt; color: #555; margin-top: 1.5mm; }
 </div>
 
 </body></html>`;
-fs.writeFileSync(path.join(OUT, '操作说明书.html'), manual);
+/* 页眉注入(软件名称+版本号+页码):登记规范要求,封面除外 */
+const mparts = manual.split('<div class="sheet">');
+const totalSheets = mparts.length;   /* 封面 + 内容页 */
+let manualWithHeads = mparts[0];
+for (let i = 1; i < mparts.length; i++) {
+  manualWithHeads += '<div class="sheet"><div class="mhead"><span>' + NAME + VER + '</span><span>第 ' + (i + 1) + ' 页 / 共 ' + totalSheets + ' 页</span></div>' + mparts[i];
+}
+fs.writeFileSync(path.join(OUT, '操作说明书.html'), manualWithHeads);
 
 /* ---------- 6. 统计输出 ---------- */
 console.log('源文件 ' + fileCount + ' 个,有效代码行 ' + lines.length);
