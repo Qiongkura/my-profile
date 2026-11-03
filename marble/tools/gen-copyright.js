@@ -101,8 +101,8 @@ figure { margin: 0; text-align: center; }
 figure img { width: 100%; border: 1px solid #ddd; }
 figcaption { font-size: 9.5pt; color: #555; margin-top: 1.5mm; }
 .note { background: #faf6ea; border: 1px solid #e0d6b8; padding: 3mm 4mm; font-size: 10.5pt; }
+@media print { .sheet { width: auto; min-height: auto; margin: 0; padding: 0; box-shadow: none; page-break-after: always; page-break-inside: avoid; } }
 @media screen { body { background: #666; } .sheet { background: #fff; width: 210mm; min-height: 297mm; margin: 8mm auto; padding: 20mm 18mm; box-shadow: 0 2px 8px rgba(0,0,0,.4); box-sizing: border-box; } }
-@media print { .sheet { width: auto; min-height: auto; margin: 0; padding: 0; box-shadow: none; } }
 </style></head><body>
 
 <div class="sheet cover">
