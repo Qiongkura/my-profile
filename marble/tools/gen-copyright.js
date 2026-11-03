@@ -13,7 +13,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const OUT = path.join(ROOT, 'docs', 'copyright');
-const NAME = '弹弹弹珠吧游戏软件';
+const NAME = '弹弹弹珠吧应用软件';
 const VER = 'V1.0';
 const PER_PAGE = 50;      /* 每页源程序行数(登记要求 ≥50) */
 const WRAP = 95;          /* 超长行硬折宽度 */
