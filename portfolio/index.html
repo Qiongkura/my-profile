@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Qiongkura · 代码手账 2026</title>
+<meta name="description" content="Qiongkura 的代码手账：自动驾驶研究、嵌入式固件、本地优先工具与一本 300 万字的小说。全部数据来自本机 git 历史。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23d4491f'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='19' fill='%23f4f1e8' text-anchor='middle'%3EQ%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f4f1e8; --paper2:#eceadf; --ink:#171512; --ink2:#403c33;
+  --muted:#6f6a5e; --line:#d9d3c2; --line2:#c8c1ac;
+  --acc:#d4491f; --acc2:#b23a15;
+  --serif:"Fraunces","Noto Serif SC","Songti SC",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+  --mono:"IBM Plex Mono",Consolas,"SFMono-Regular",Menlo,monospace;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+::selection{background:var(--acc);color:var(--paper)}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .035 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E")}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.55;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px);
+  background-size:100% 220px;
+  mask-image:linear-gradient(180deg,transparent,#000 140px,#000 calc(100% - 200px),transparent)}
+.wrap{max-width:1160px;margin:0 auto;padding:0 28px;position:relative;z-index:1}
+.mono{font-family:var(--mono)}
+a{color:inherit}
+h1,h2,h3{margin:0;font-weight:600}
+
+/* progress */
+#progress{position:fixed;top:0;left:0;height:2px;width:0;background:var(--acc);z-index:99}
+
+/* nav */
+header{position:sticky;top:0;z-index:50;background:rgba(244,241,232,.88);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nav{max-width:1160px;margin:0 auto;padding:0 28px;height:58px;display:flex;
+  align-items:center;justify-content:space-between;gap:24px}
+.logo{font-family:var(--mono);font-size:13px;letter-spacing:.22em;text-decoration:none;
+  display:inline-flex;align-items:center;gap:9px}
+.logo i{width:9px;height:9px;background:var(--acc);display:inline-block}
+.nav-links{display:flex;gap:22px;font-size:13px}
+.nav-links a{color:var(--ink2);text-decoration:none;font-family:var(--mono);font-size:12px;
+  letter-spacing:.04em}
+.nav-meta{display:flex;align-items:center;gap:16px;font-family:var(--mono);font-size:11px;
+  color:var(--muted)}
+.nav-gh{color:var(--ink);text-decoration:none;border:1px solid var(--ink);padding:5px 11px;
+  font-size:11px;letter-spacing:.06em;transition:background .2s,color .2s}
+.nav-gh:hover{background:var(--ink);color:var(--paper)}
+
+/* links with animated underline */
+.u{color:var(--ink);text-decoration:none;
+  background:linear-gradient(var(--acc),var(--acc)) no-repeat 0 100%/0 2px;
+  transition:background-size .35s var(--ease);padding-bottom:2px}
+.u:hover{background-size:100% 2px}
+
+/* hero */
+.hero{padding:86px 0 64px;display:grid;grid-template-columns:1.25fr .75fr;gap:48px;
+  align-items:end}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--acc);
+  margin:0 0 22px}
+h1{font-family:var(--serif);font-size:clamp(46px,6.4vw,84px);line-height:1.06;
+  letter-spacing:-.02em;font-weight:600}
+h1 em{font-style:normal;color:var(--acc)}
+.lede{margin:26px 0 0;font-size:16.5px;line-height:1.85;color:var(--ink2);max-width:600px}
+.lede b{color:var(--ink);font-weight:600}
+.cta-row{display:flex;gap:12px;margin-top:34px}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:12px 22px;background:var(--ink);
+  color:var(--paper);font-size:13px;font-weight:600;text-decoration:none;
+  font-family:var(--mono);letter-spacing:.06em;transition:background .2s;will-change:transform}
+.btn:hover{background:var(--acc)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+.btn.ghost:hover{background:var(--ink);color:var(--paper)}
+.hero-stats{display:grid;grid-template-columns:1fr 1fr;border-left:1px solid var(--line)}
+.hs{padding:18px 20px;border-bottom:1px solid var(--line)}
+.hs:nth-child(odd){border-right:1px solid var(--line)}
+.hs:nth-last-child(-n+2){border-bottom:0}
+.hs b{display:block;font-family:var(--mono);font-size:30px;font-weight:500;
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hs span{font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.06em}
+.scroll-hint{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--muted);
+  margin-top:26px;display:flex;align-items:center;gap:12px}
+.scroll-hint::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* ticker */
+.ticker{border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);background:var(--ink);
+  color:var(--paper);overflow:hidden;position:relative;z-index:1}
+.ticker-inner{display:flex;align-items:center;height:46px}
+.tick-label{flex:none;padding:0 18px;border-right:1px solid rgba(244,241,232,.25);
+  font-family:var(--mono);font-size:10px;letter-spacing:.18em;display:flex;align-items:center;
+  gap:8px;height:100%;background:var(--ink)}
+.tick-label i{width:7px;height:7px;border-radius:50%;background:var(--acc);
+  animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25}}
+.tick-viewport{flex:1;overflow:hidden;height:100%;display:flex;align-items:center;
+  mask-image:linear-gradient(90deg,transparent,#000 40px,#000 calc(100% - 40px),transparent)}
+.tick-track{display:flex;gap:44px;width:max-content;animation:tick 70s linear infinite;
+  padding-left:44px}
+.ticker:hover .tick-track{animation-play-state:paused}
+@keyframes tick{to{transform:translateX(-50%)}}
+.tick-item{display:flex;align-items:baseline;gap:10px;font-size:12.5px;white-space:nowrap}
+.tick-item b{font-family:var(--mono);font-size:10px;color:var(--acc);font-weight:500;
+  letter-spacing:.04em}
+
+/* sections */
+section{padding:86px 0 0;scroll-margin-top:70px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:20px;
+  flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:8px}
+.sec-index{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--acc)}
+.sec-head h2{font-family:var(--serif);font-size:34px;letter-spacing:-.01em}
+.sec-sub{color:var(--muted);font-size:13.5px;font-family:var(--mono)}
+
+/* case studies */
+.case{display:grid;grid-template-columns:1.02fr .98fr;gap:44px;padding:44px 0;
+  border-bottom:1px solid var(--line)}
+.case.flip .case-media{order:2}
+.case-media figure{margin:0}
+.case-shot{margin:0;border:1px solid var(--ink);background:var(--paper2);overflow:hidden;
+  transform-style:preserve-3d;
+  transition:transform .18s ease-out,box-shadow .3s var(--ease)}
+.case-shot img{display:block;width:100%;height:auto;transform:scale(1.001);
+  transition:transform .8s var(--ease);will-change:transform}
+.case:hover .case-shot img{transform:scale(1.025)}
+.case:hover .case-shot{box-shadow:6px 6px 0 var(--ink)}
+figcaption{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:10px;
+  letter-spacing:.04em}
+.case-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.case-no{font-family:var(--mono);font-size:12px;color:var(--acc);letter-spacing:.14em}
+.stamp{font-family:var(--mono);font-size:10px;letter-spacing:.14em;border:1px solid var(--ink);
+  padding:4px 10px;display:inline-flex;align-items:center;gap:7px}
+.stamp i{width:6px;height:6px;background:var(--acc);display:inline-block}
+.case h3{font-family:var(--serif);font-size:30px;letter-spacing:-.01em;margin-bottom:14px}
+.case .why{color:var(--ink2);margin:0 0 16px}
+.how{list-style:none;margin:0 0 20px;padding:0;font-family:var(--mono);font-size:12.5px;
+  line-height:1.6}
+.how li{padding:9px 0 9px 20px;border-top:1px dashed var(--line2);position:relative;color:var(--ink2)}
+.how li::before{content:"—";position:absolute;left:0;color:var(--acc)}
+.case-meta{display:flex;gap:26px;flex-wrap:wrap;margin-bottom:16px}
+.case-meta span{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.case-meta b{display:block;font-family:var(--mono);font-size:21px;font-weight:500;
+  color:var(--ink);letter-spacing:-.01em}
+.honest{font-size:12.5px;color:var(--acc2);border-left:2px solid var(--acc);
+  padding:4px 0 4px 12px;margin:0 0 18px;font-family:var(--mono)}
+.case-link{font-family:var(--mono);font-size:12px;letter-spacing:.08em}
+
+/* index table */
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin:20px 0 14px}
+.filter{background:transparent;border:1px solid var(--ink);color:var(--ink);border-radius:0;
+  padding:6px 12px;font-size:11.5px;cursor:pointer;font-family:var(--mono);letter-spacing:.04em;
+  transition:background .15s,color .15s}
+.filter span{color:var(--muted);margin-left:5px;font-size:10px}
+.filter.on{background:var(--ink);color:var(--paper)}
+.filter.on span{color:rgba(244,241,232,.6)}
+.filter:hover:not(.on){background:var(--paper2)}
+.index-table{width:100%;border-collapse:collapse;font-size:13px}
+.index-table th{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--muted);
+  text-align:left;font-weight:500;padding:9px 12px;border-bottom:2px solid var(--ink)}
+.index-table td{padding:12px;border-bottom:1px solid var(--line);vertical-align:top}
+.index-table tr{transition:background .15s}
+.index-table tbody tr:hover{background:var(--paper2)}
+.index-table .t-no{font-family:var(--mono);font-size:11px;color:var(--muted);width:34px}
+.index-table .t-name{font-weight:600;white-space:nowrap}
+.index-table .t-name a{text-decoration:none}
+.index-table .t-name a:hover{color:var(--acc)}
+.index-table .t-desc{color:var(--ink2)}
+.index-table .t-stack{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.index-table .t-loc{font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums}
+.index-table .t-status{font-family:var(--mono);font-size:11px;white-space:nowrap}
+.index-table .t-status.hot{color:var(--acc)}
+.index-note{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:12px}
+
+/* numbers */
+.num-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:26px;margin-top:34px}
+.num-panel{border:1px solid var(--ink);padding:22px;background:var(--paper)}
+.num-panel h3{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:var(--muted);
+  font-weight:500;margin-bottom:18px}
+.num-panel h3 b{color:var(--acc);font-weight:500}
+.stack{display:flex;height:14px;border:1px solid var(--ink)}
+.stack i{display:block;height:100%}
+.stack-labels{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);
+  margin-top:8px;font-family:var(--mono)}
+.bar-row{display:flex;align-items:center;gap:12px;margin:10px 0;font-size:12.5px}
+.bar-name{width:130px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:10px;border:1px solid var(--ink);background:var(--paper)}
+.bar-track i{display:block;height:100%;background:var(--ink);transform-origin:left;
+  transform:scaleX(0);transition:transform 1s var(--ease)}
+.in .bar-track i{transform:scaleX(1)}
+.bar-val{width:52px;text-align:right;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.lang-bar{display:flex;height:26px;border:1px solid var(--ink);margin-bottom:14px}
+.lang-bar i{display:block;height:100%;position:relative}
+.lang-bar i+ i{border-left:1px solid var(--paper)}
+.lang-legend{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:12px}
+.lang-legend div{display:flex;align-items:center;gap:8px;color:var(--ink2);
+  font-family:var(--mono);font-size:11.5px}
+.lang-legend b{margin-left:auto;font-weight:500;color:var(--ink)}
+.sq{width:9px;height:9px;flex:none}
+.hour-chart{display:flex;align-items:flex-end;gap:3px;height:120px}
+.hour-bar{flex:1;background:var(--ink);min-height:2px;transform-origin:bottom;
+  transform:scaleY(0);transition:transform .8s var(--ease)}
+.in .hour-bar{transform:scaleY(1)}
+.hour-bar.peak{background:var(--acc)}
+.hour-labels{display:flex;gap:3px;margin-top:8px;font-family:var(--mono);font-size:9px;
+  color:var(--muted)}
+.hour-labels span{flex:1;text-align:center}
+.heat-panel{margin-top:26px}
+.heat-wrap{width:max-content;max-width:100%;margin:0 auto;overflow-x:auto;padding:6px 2px 2px;
+  border:1px solid var(--ink);background:var(--paper)}
+.months{display:grid;grid-template-columns:repeat(12,1fr);font-family:var(--mono);font-size:9px;
+  color:var(--muted);margin-bottom:6px}
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,13px);
+  grid-auto-columns:13px;gap:3px}
+.cell{width:13px;height:13px;background:var(--paper2)}
+.cell.out{background:transparent}
+.cell.l1{background:#ddd6c4}.cell.l2{background:#a89f88}.cell.l3{background:#5c554a}
+.cell.l4{background:var(--ink)}
+.cell.l4.today{outline:2px solid var(--acc);outline-offset:1px}
+.heat-legend{display:flex;align-items:center;justify-content:center;gap:4px;font-size:10px;
+  color:var(--muted);margin-top:12px;font-family:var(--mono)}
+.heat-legend .cell{width:10px;height:10px}
+.num-note{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:16px;line-height:1.9}
+
+/* next */
+.next-list{margin-top:8px}
+.next-row{display:grid;grid-template-columns:130px 220px 1fr;gap:20px;padding:22px 0;
+  border-bottom:1px solid var(--line);align-items:baseline}
+.next-when{font-family:var(--mono);font-size:12px;color:var(--acc)}
+.next-what{font-family:var(--serif);font-size:19px}
+.next-how{color:var(--ink2);font-size:13.5px}
+.quote{margin:44px 0 0;padding:6px 0 6px 26px;border-left:3px solid var(--acc);
+  font-family:var(--serif);font-size:26px;line-height:1.5;color:var(--ink)}
+.quote small{display:block;font-family:var(--mono);font-size:10.5px;color:var(--muted);
+  margin-top:10px;letter-spacing:.1em}
+
+/* footer */
+footer{border-top:2px solid var(--ink);margin-top:90px;padding:24px 0 44px}
+.foot-in{max-width:1160px;margin:0 auto;padding:0 28px;display:flex;
+  justify-content:space-between;gap:14px;flex-wrap:wrap;font-family:var(--mono);
+  font-size:11px;color:var(--muted)}
+.foot-in a{color:var(--ink);text-decoration:none}
+.foot-in a:hover{color:var(--acc)}
+
+/* reveal animation */
+.rv{opacity:0;transform:translateY(20px);
+  transition:opacity .75s var(--ease),transform .75s var(--ease);
+  transition-delay:var(--d,0ms)}
+.rv.in{opacity:1;transform:none}
+.rv-line{opacity:0;transform:translateY(30px);
+  transition:opacity .85s var(--ease),transform .85s var(--ease);
+  transition-delay:var(--d,0ms)}
+.rv-line.in{opacity:1;transform:none}
+.sec-line{height:2px;background:var(--ink);transform:scaleX(0);transform-origin:left;
+  transition:transform .9s var(--ease) .1s}
+.sec-line.in{transform:scaleX(1)}
+
+@media(max-width:920px){
+  .hero{grid-template-columns:1fr;gap:36px;padding-top:56px}
+  .hero-stats{border-left:0;grid-template-columns:repeat(4,1fr)}
+  .hs{border-right:0!important;border-bottom:1px solid var(--line)}
+  .hs:nth-last-child(-n+2){border-bottom:1px solid var(--line)}
+  .case,.case.flip{grid-template-columns:1fr}
+  .case.flip .case-media{order:0}
+  .num-grid{grid-template-columns:1fr}
+  .next-row{grid-template-columns:1fr;gap:6px;padding:18px 0}
+}
+@media(max-width:640px){
+  .wrap,.nav,.foot-in{padding-left:20px;padding-right:20px}
+  .hero-stats{grid-template-columns:1fr 1fr}
+  .nav-links{display:none}
+  h1{font-size:44px}
+  .index-table .t-stack,.index-table .t-desc{display:none}
+  .quote{font-size:21px}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .rv,.rv-line{opacity:1!important;transform:none!important;clip-path:none!important}
+  .sec-line,.bar-track i,.hour-bar{transform:none!important;opacity:1!important}
+  .tick-track{animation:none!important}
+}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<header>
+  <div class="nav">
+    <a class="logo" href="../index.html"><i></i>QIONGKURA</a>
+    <div class="nav-links">
+      <a href="../index.html">← 主页 / Home</a>
+      <a href="#work">作品</a><a href="#numbers">数字</a><a href="#next">计划</a>
+    </div>
+    <div class="nav-meta">
+      <span id="clock">--:--:--</span>
+      <a class="nav-gh" href="https://github.com/Qiongkura" target="_blank" rel="noopener">GITHUB ↗</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <div class="wrap">
+    <section class="hero">
+      <div>
+        <p class="kicker rv">I:\PROJECTS · 30+ REPOS · EST. 2024</p>
+        <h1 class="rv-line"><span>我先把它做出来，</span><br><em>再告诉你为什么。</em></h1>
+        <p class="lede rv" style="--d:160ms">白天写代码，晚上也在写代码。BeamNG 里训自动驾驶，STM32 上写固件，
+        把整首歌变成蜂鸣器的旋律，还在写一本 <b>300 万字</b>的小说。
+        这里是全部 <b>30+ 个项目</b>的户口本——每个数字都来自本机 git，不是简历形容词。</p>
+        <div class="cta-row rv" style="--d:260ms">
+          <a class="btn" href="#work">看作品</a>
+          <a class="btn ghost" href="#numbers">看数字</a>
+        </div>
+      </div>
+      <div>
+        <div class="hero-stats">
+      <div class="hs rv" style="--d:120ms"><b data-count="239.9" data-dec="1" data-suffix="k">0</b><span>行自有代码</span></div>
+      <div class="hs rv" style="--d:190ms"><b data-count="1247" data-sep>0</b><span>2026 次提交</span></div>
+      <div class="hs rv" style="--d:260ms"><b data-count="30" data-suffix="+">0</b><span>个项目目录</span></div>
+      <div class="hs rv" style="--d:330ms"><b data-count="58">0</b><span>个活跃日</span></div>
+    </div>
+        <p class="scroll-hint rv" style="--d:420ms">SCROLL — 下面都是真的</p>
+      </div>
+    </section>
+  </div>
+
+  
+    <div class="ticker" aria-label="最近的真实提交记录">
+      <div class="ticker-inner">
+        <div class="tick-label"><i></i>LIVE · GIT</div>
+        <div class="tick-viewport">
+          <div class="tick-track"><span class="tick-item"><b>audiotransfer</b>Initial audio-to-buzzer converter and STM32 OLED player</span><span class="tick-item"><b>audiotransfer</b>Protect vocal sections and add instrumental melody mode</span><span class="tick-item"><b>audiotransfer</b>Cross-check sung pitch and regularize rapid vocal note changes</span><span class="tick-item"><b>audiotransfer</b>Add note-level singing transcription and keep caches on project drive</span><span class="tick-item"><b>audiotransfer</b>Unify automatic melody conversion across songs and preserve pitch timing</span><span class="tick-item"><b>audiotransfer</b>Record verified STM32 upload and on-board pause tests</span><span class="tick-item"><b>marble-machine</b>Critical fix: play-state freeze from undeclared platform var in renderPlay</span><span class="tick-item"><b>marble-machine</b>Douyin capsule rect offset correction (+21css) for HUD icon row alignment</span><span class="tick-item"><b>marble-machine</b>Age rating badge: embed the official CADPA 8+ badge as base64</span><span class="tick-item"><b>marble-machine</b>Menu compliance block: smaller CADPA badge beside the text</span><span class="tick-item"><b>audio-visualizer</b>修复：关窗后仍会触发已排队的定时器，刷 invalid command name</span><span class="tick-item"><b>audio-visualizer</b>修复 test_keeps_only_latest_frame 的竞态</span><span class="tick-item"><b>focus-time-tracker</b>CI：windows-latest 上跑 Python 3.10/3.12 矩阵测试</span><span class="tick-item"><b>focus-time-tracker</b>README：补 CI 徽章与 Release 下载入口，CI 说明改为实际状态</span><span class="tick-item"><b>my-profile</b>Add one-command web deploy script: md5-diff sync to Aliyun ECS</span><span class="tick-item"><b>SmartCar-STM32</b>Add STM32 smart car and remote controller modules</span><span class="tick-item"><b>audiotransfer</b>Initial audio-to-buzzer converter and STM32 OLED player</span><span class="tick-item"><b>audiotransfer</b>Protect vocal sections and add instrumental melody mode</span><span class="tick-item"><b>audiotransfer</b>Cross-check sung pitch and regularize rapid vocal note changes</span><span class="tick-item"><b>audiotransfer</b>Add note-level singing transcription and keep caches on project drive</span><span class="tick-item"><b>audiotransfer</b>Unify automatic melody conversion across songs and preserve pitch timing</span><span class="tick-item"><b>audiotransfer</b>Record verified STM32 upload and on-board pause tests</span><span class="tick-item"><b>marble-machine</b>Critical fix: play-state freeze from undeclared platform var in renderPlay</span><span class="tick-item"><b>marble-machine</b>Douyin capsule rect offset correction (+21css) for HUD icon row alignment</span><span class="tick-item"><b>marble-machine</b>Age rating badge: embed the official CADPA 8+ badge as base64</span><span class="tick-item"><b>marble-machine</b>Menu compliance block: smaller CADPA badge beside the text</span><span class="tick-item"><b>audio-visualizer</b>修复：关窗后仍会触发已排队的定时器，刷 invalid command name</span><span class="tick-item"><b>audio-visualizer</b>修复 test_keeps_only_latest_frame 的竞态</span><span class="tick-item"><b>focus-time-tracker</b>CI：windows-latest 上跑 Python 3.10/3.12 矩阵测试</span><span class="tick-item"><b>focus-time-tracker</b>README：补 CI 徽章与 Release 下载入口，CI 说明改为实际状态</span><span class="tick-item"><b>my-profile</b>Add one-command web deploy script: md5-diff sync to Aliyun ECS</span><span class="tick-item"><b>SmartCar-STM32</b>Add STM32 smart car and remote controller modules</span></div>
+        </div>
+      </div>
+    </div>
+    
+
+  <div class="wrap">
+    <section id="work">
+      <div class="sec-head rv">
+        <div><div class="sec-index">01 / SELECTED WORK</div><h2>三件值得展开讲的</h2></div>
+        <span class="sec-sub">问题 → 做法 → 结果，含未完成的部分</span>
+      </div>
+      <div class="sec-line"></div>
+      
+    <article class="case">
+      <div class="case-media">
+        <figure>
+          <div class="case-shot"><img src="assets/beamng.png" alt="BeamNG Autopilot" loading="lazy"></div>
+          <figcaption>fig.01 — 训练监控：车道线分割模型 accuracy 99.7%</figcaption>
+        </figure>
+      </div>
+      <div class="case-body">
+        <div class="case-top">
+          <span class="case-no">№ 01</span>
+          <span class="stamp"><i></i>研究 · 未完</span>
+        </div>
+        <h3>BeamNG Autopilot</h3>
+        <p class="why">想真正搞明白「车怎么自己开」，纸上看论文不如在仿真里从零造一遍。这是目前最大的一块代码，也是唯一一个我给自己设了验收门的项目。</p>
+        <ul class="how"><li>感知 / 决策 / 控制三层架构，再向端到端模仿学习推进</li><li>车道线分割模型长期迭代，训练监控、数据回流、离线验证全套自建</li><li>自设 strict 闭环验收门：不合格的模型不上线、不写进结论</li></ul>
+        <div class="case-meta"><span><b>165.9k</b>行 Python</span><span><b>964</b>commits</span><span><b>224</b>篇实验文档</span></div>
+        <p class="honest">strict 闭环验收 4 次 0/4 —— 不合格就是不合格，研究还在继续。</p>
+        <a class="u case-link" href="https://github.com/Qiongkura/BeamNG-autopilot" target="_blank" rel="noopener">GitHub ↗</a>
+      </div>
+    </article>
+    
+      
+    <article class="case flip">
+      <div class="case-media">
+        <figure>
+          <div class="case-shot"><img src="assets/audiotransfer.png" alt="AudioTransfer Studio" loading="lazy"></div>
+          <figcaption>fig.02 — 桌面工作台：拖入歌曲，一键转换、试听、烧录</figcaption>
+        </figure>
+      </div>
+      <div class="case-body">
+        <div class="case-top">
+          <span class="case-no">№ 02</span>
+          <span class="stamp"><i></i>v0.5.0</span>
+        </div>
+        <h3>AudioTransfer Studio</h3>
+        <p class="why">STM32 蜂鸣器的示例永远是单音 demo。我想让它唱一首完整的歌——有人声、有换气、有间奏的那种。</p>
+        <ul class="how"><li>Demucs 分离人声，RMVPE + CREPE 双模型交叉校验音高</li><li>连续旋律路径判定：换气不接伴奏、颤音不碎成新音符</li><li>自动生成 STM32 固件并一键烧录，六首完整录音统一验证并留档</li></ul>
+        <div class="case-meta"><span><b>8.3k</b>行 Python</span><span><b>6</b>首全曲验证</span><span><b>1</b>键烧录</span></div>
+        <p class="honest">模型权重是 CC BY-NC-SA，所以这个项目明确标注非商用。</p>
+        <a class="u case-link" href="https://github.com/Qiongkura/audiotransfer" target="_blank" rel="noopener">GitHub ↗</a>
+      </div>
+    </article>
+    
+      
+    <article class="case">
+      <div class="case-media">
+        <figure>
+          <div class="case-shot"><img src="assets/focus.png" alt="Focus Time Tracker" loading="lazy"></div>
+          <figcaption>fig.03 — 统计页：每小时分布与近 7 天趋势</figcaption>
+        </figure>
+      </div>
+      <div class="case-body">
+        <div class="case-top">
+          <span class="case-no">№ 03</span>
+          <span class="stamp"><i></i>成熟</span>
+        </div>
+        <h3>Focus Time Tracker</h3>
+        <p class="why">想知道时间到底去哪了，但不想把屏幕使用记录交给任何一家云。</p>
+        <ul class="how"><li>Win32 API 采样前台窗口，纯 ctypes，零第三方采集依赖</li><li>游戏按「启动器 / 安装目录」规则引擎识别；网站读浏览器本地历史库匹配</li><li>SQLite WAL 本地存储 + 托盘常驻，CI 跑 Python 3.10/3.12 矩阵</li></ul>
+        <div class="case-meta"><span><b>7.4k</b>行 Python</span><span><b>686</b>个应用识别</span><span><b>100%</b>本地，不联网</span></div>
+        <p class="honest">所有数据都在本机一个 SQLite 文件里，删掉即消失。</p>
+        <a class="u case-link" href="https://github.com/Qiongkura/Focus-time-tracker" target="_blank" rel="noopener">GitHub ↗</a>
+      </div>
+    </article>
+    
+
+      <div class="sec-head rv" style="margin-top:56px">
+        <div><div class="sec-index">02 / FULL INDEX</div><h2>全部项目索引</h2></div>
+        <span class="sec-sub">包括没做完的和不好意思讲的</span>
+      </div>
+      <div class="sec-line"></div>
+      
+    <div class="filters"><button class="filter on" data-filter="all">全部<span>18</span></button><button class="filter" data-filter="research">研究<span>1</span></button><button class="filter" data-filter="embedded">嵌入式<span>3</span></button><button class="filter" data-filter="tools">工具<span>5</span></button><button class="filter" data-filter="web">Web & 游戏<span>7</span></button><button class="filter" data-filter="writing">写作<span>1</span></button><button class="filter" data-filter="archive">归档<span>1</span></button></div>
+    <table class="index-table">
+      <thead>
+        <tr><th>NO</th><th>项目</th><th>一句话</th><th>栈</th><th>自有代码</th><th>状态</th><th>年</th></tr>
+      </thead>
+      <tbody><tr data-cat="research"><td class="t-no">01</td><td class="t-name"><a href="https://github.com/Qiongkura/BeamNG-autopilot" target="_blank" rel="noopener">beamng-autopilot ↗</a></td><td class="t-desc">BeamNG 自动驾驶研究</td><td class="t-stack">Python · BeamNGpy · PyTorch</td><td class="t-loc">165.9k</td><td class="t-status" class="t-status hot">研究中</td><td class="t-stack">2026</td></tr><tr data-cat="tools"><td class="t-no">02</td><td class="t-name"><a href="https://github.com/Qiongkura/audiotransfer" target="_blank" rel="noopener">audiotransfer ↗</a></td><td class="t-desc">歌曲 → 主旋律 → STM32 固件</td><td class="t-stack">Python · Demucs · RMVPE</td><td class="t-loc">8.3k</td><td class="t-status">v0.5.0</td><td class="t-stack">2026</td></tr><tr data-cat="tools"><td class="t-no">03</td><td class="t-name"><a href="https://github.com/Qiongkura/Focus-time-tracker" target="_blank" rel="noopener">focus-time-tracker ↗</a></td><td class="t-desc">屏幕使用时间统计</td><td class="t-stack">Python · Win32 · SQLite</td><td class="t-loc">7.4k</td><td class="t-status">成熟</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">04</td><td class="t-name"><a href="https://github.com/Qiongkura/my-profile" target="_blank" rel="noopener">my-profile ↗</a></td><td class="t-desc">个人主页 qiongkura.xyz</td><td class="t-stack">JavaScript · 静态站</td><td class="t-loc">13.0k</td><td class="t-status">已上线</td><td class="t-stack">2026</td></tr><tr data-cat="embedded"><td class="t-no">05</td><td class="t-name"><a href="https://github.com/Qiongkura/SmartCar-STM32" target="_blank" rel="noopener">SmartCar / SmartCar-STM32 ↗</a></td><td class="t-desc">智能小车 + 遥控器</td><td class="t-stack">C · STM32F103 · PlatformIO</td><td class="t-loc">12.4k</td><td class="t-status">已完成</td><td class="t-stack">2026</td></tr><tr data-cat="tools"><td class="t-no">06</td><td class="t-name"><a href="https://github.com/Qiongkura/audio-visualizer" target="_blank" rel="noopener">audio-visualizer ↗</a></td><td class="t-desc">系统声音实时可视化</td><td class="t-stack">Python · WASAPI</td><td class="t-loc">2.4k</td><td class="t-status">exe 已发布</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">07</td><td class="t-name">netease-music-parser</td><td class="t-desc">网易云分享链接 → 播放卡片</td><td class="t-stack">JavaScript · 零依赖</td><td class="t-loc">9.3k</td><td class="t-status">可发布</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">08</td><td class="t-name">marble-machine</td><td class="t-desc">弹珠机 Canvas 游戏</td><td class="t-stack">JavaScript · 三端</td><td class="t-loc">3.0k</td><td class="t-status">三端可玩</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">09</td><td class="t-name">pc-maintenance-sim</td><td class="t-desc">3D 电脑维护教学游戏</td><td class="t-stack">JavaScript · Three.js</td><td class="t-loc">3.5k</td><td class="t-status">P0 原型</td><td class="t-stack">2026</td></tr><tr data-cat="embedded"><td class="t-no">10</td><td class="t-name">flightfix v64–v69</td><td class="t-desc">ESP32 迷你无人机飞控修改</td><td class="t-stack">Arduino · C++ · GPL3</td><td class="t-loc">2.5k</td><td class="t-status" class="t-status hot">调试中</td><td class="t-stack">2026</td></tr><tr data-cat="tools"><td class="t-no">11</td><td class="t-name">codeyear</td><td class="t-desc">本地 git 年度报告</td><td class="t-stack">Python · Pillow</td><td class="t-loc">2.0k</td><td class="t-status">v0.1</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">12</td><td class="t-name">digital-life-chat / exact</td><td class="t-desc">流浪地球风格终端 UI</td><td class="t-stack">CSS · JS</td><td class="t-loc">5.9k</td><td class="t-status">UI 实验</td><td class="t-stack">2026</td></tr><tr data-cat="embedded"><td class="t-no">13</td><td class="t-name">pcb / ultrasonic-ui</td><td class="t-desc">超声相控阵 PCB + 数据分析</td><td class="t-stack">Altium · Python</td><td class="t-loc">0.5k</td><td class="t-status">硬件 + 脚本</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">14</td><td class="t-name"><a href="https://github.com/Qiongkura/DQN-Reinforcement-Learning-Snake" target="_blank" rel="noopener">DQNsnake / autosnake ↗</a></td><td class="t-desc">Double DQN + PER 贪吃蛇</td><td class="t-stack">Python · Java · PyTorch</td><td class="t-loc">1.7k</td><td class="t-status">实验</td><td class="t-stack">2026</td></tr><tr data-cat="writing"><td class="t-no">15</td><td class="t-name">urban-novel-writer</td><td class="t-desc">300 万字小说创作工作台</td><td class="t-stack">Markdown · LLM 工作流</td><td class="t-loc">2.0k 文档</td><td class="t-status" class="t-status hot">写作中</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">16</td><td class="t-name">biotech_ppt</td><td class="t-desc">结课汇报 PPT 生成</td><td class="t-stack">JavaScript · pptxgenjs</td><td class="t-loc">0.6k</td><td class="t-status">完成</td><td class="t-stack">2026</td></tr><tr data-cat="tools"><td class="t-no">17</td><td class="t-name">beamng-dlss5-setup</td><td class="t-desc">DLSS5 配置与模型验证</td><td class="t-stack">Python</td><td class="t-loc">1.3k</td><td class="t-status">工具</td><td class="t-stack">2026</td></tr><tr data-cat="archive"><td class="t-no">18</td><td class="t-name">CodexWork / 副本仓</td><td class="t-desc">固件修复工作区与备份</td><td class="t-stack">C · Python</td><td class="t-loc">96.9k 副本</td><td class="t-status">归档候选</td><td class="t-stack">2026</td></tr></tbody>
+    </table>
+    <p class="index-note"><span id="row-count">18 / 18 项</span>
+      · 自有代码 = 非空行，已剔除第三方库、生成工程与重复副本；仓库副本（CodexWork 等）不计入总量。</p>
+    
+    </section>
+
+    <section id="numbers">
+      <div class="sec-head rv">
+        <div><div class="sec-index">03 / BY THE NUMBERS</div><h2>数字</h2></div>
+        <span class="sec-sub">git 里能查到的，不靠形容词</span>
+      </div>
+      <div class="sec-line"></div>
+      
+    <div class="num-grid">
+      <div class="num-panel rv">
+        <h3>代码构成 <b>· 一个项目占了 69%</b></h3>
+        <div class="stack">
+          <i style="width:69.2%;background:var(--acc)"></i>
+          <i style="width:30.8%;background:var(--ink)"></i>
+        </div>
+        <div class="stack-labels"><span>BeamNG Autopilot · 165.9k</span><span>其余 17 个项目 · 74.0k</span></div>
+        <div class="bar-row"><span class="bar-name">My Profile</span><div class="bar-track"><i style="width:100.0%"></i></div><span class="bar-val">13.0k</span></div><div class="bar-row"><span class="bar-name">SmartCar / STM32</span><div class="bar-track"><i style="width:95.3%"></i></div><span class="bar-val">12.4k</span></div><div class="bar-row"><span class="bar-name">Netease Parser</span><div class="bar-track"><i style="width:72.0%"></i></div><span class="bar-val">9.3k</span></div><div class="bar-row"><span class="bar-name">AudioTransfer</span><div class="bar-track"><i style="width:64.4%"></i></div><span class="bar-val">8.3k</span></div><div class="bar-row"><span class="bar-name">Focus Tracker</span><div class="bar-track"><i style="width:57.3%"></i></div><span class="bar-val">7.4k</span></div><div class="bar-row"><span class="bar-name">Digital Life</span><div class="bar-track"><i style="width:45.3%"></i></div><span class="bar-val">5.9k</span></div><div class="bar-row"><span class="bar-name">PC Maintenance</span><div class="bar-track"><i style="width:27.3%"></i></div><span class="bar-val">3.5k</span></div><div class="bar-row"><span class="bar-name">Marble Machine</span><div class="bar-track"><i style="width:23.1%"></i></div><span class="bar-val">3.0k</span></div>
+      </div>
+      <div class="num-panel rv" style="--d:90ms">
+        <h3>语言构成 <b>· 按自有代码估算</b></h3>
+        <div class="lang-bar"><i style="width:80%;background:#171512"></i><i style="width:14%;background:#d4491f"></i><i style="width:5%;background:#8f8672"></i><i style="width:1%;background:#c8c1ac"></i></div>
+        <div class="lang-legend"><div><span class="sq" style="background:#171512"></span>Python<b>80%</b></div><div><span class="sq" style="background:#d4491f"></span>Web / JS<b>14%</b></div><div><span class="sq" style="background:#8f8672"></span>C / Arduino<b>5%</b></div><div><span class="sq" style="background:#c8c1ac"></span>其他<b>1%</b></div></div>
+        <div class="bar-row" style="margin-top:22px">
+          <span class="bar-name">2026 提交</span>
+          <div class="bar-track"><i style="width:77.1%;background:var(--acc)"></i></div>
+          <span class="bar-val">77%</span>
+        </div>
+        <div class="stack-labels"><span>BeamNG 961 次 · My Profile 149 次 · 其余 137 次</span><span>1247 commits</span></div>
+      </div>
+      <div class="num-panel rv">
+        <h3>一天里的我 <b>· 夜猫子实锤</b></h3>
+        <div class="hour-chart"><div class="hour-bar" style="height:40.6%" title="00:00 · 65 次提交"></div><div class="hour-bar" style="height:47.5%" title="01:00 · 76 次提交"></div><div class="hour-bar" style="height:33.1%" title="02:00 · 53 次提交"></div><div class="hour-bar" style="height:3.1%" title="03:00 · 5 次提交"></div><div class="hour-bar" style="height:2.0%" title="04:00 · 0 次提交"></div><div class="hour-bar" style="height:2.0%" title="05:00 · 1 次提交"></div><div class="hour-bar" style="height:2.0%" title="06:00 · 0 次提交"></div><div class="hour-bar" style="height:2.0%" title="07:00 · 2 次提交"></div><div class="hour-bar" style="height:7.5%" title="08:00 · 12 次提交"></div><div class="hour-bar" style="height:5.6%" title="09:00 · 9 次提交"></div><div class="hour-bar" style="height:9.4%" title="10:00 · 15 次提交"></div><div class="hour-bar" style="height:12.5%" title="11:00 · 20 次提交"></div><div class="hour-bar" style="height:55.6%" title="12:00 · 89 次提交"></div><div class="hour-bar" style="height:49.4%" title="13:00 · 79 次提交"></div><div class="hour-bar" style="height:41.2%" title="14:00 · 66 次提交"></div><div class="hour-bar" style="height:35.0%" title="15:00 · 56 次提交"></div><div class="hour-bar" style="height:39.4%" title="16:00 · 63 次提交"></div><div class="hour-bar" style="height:35.6%" title="17:00 · 57 次提交"></div><div class="hour-bar" style="height:47.5%" title="18:00 · 76 次提交"></div><div class="hour-bar" style="height:36.2%" title="19:00 · 58 次提交"></div><div class="hour-bar" style="height:40.0%" title="20:00 · 64 次提交"></div><div class="hour-bar" style="height:54.4%" title="21:00 · 87 次提交"></div><div class="hour-bar" style="height:83.8%" title="22:00 · 134 次提交"></div><div class="hour-bar peak" style="height:100.0%" title="23:00 · 160 次提交"></div></div>
+        <div class="hour-labels"><span>00</span><span></span><span></span><span></span><span></span><span></span><span>06</span><span></span><span></span><span></span><span></span><span></span><span>12</span><span></span><span></span><span></span><span></span><span></span><span>18</span><span></span><span></span><span></span><span></span><span>23</span></div>
+        <p class="num-note">峰值 23:00 · 160 次提交；40% 发生在 22:00–05:00。</p>
+      </div>
+      <div class="num-panel rv" style="--d:90ms">
+        <h3>写过的字 <b>· 不止代码</b></h3>
+        <div class="bar-row"><span class="bar-name">BeamNG 实验文档</span>
+          <div class="bar-track"><i style="width:100%"></i></div><span class="bar-val">224 篇</span></div>
+        <div class="bar-row"><span class="bar-name">小说章节存档</span>
+          <div class="bar-track"><i style="width:8%"></i></div><span class="bar-val">2.0k 行</span></div>
+        <div class="bar-row"><span class="bar-name">验证/说明文档</span>
+          <div class="bar-track"><i style="width:38%"></i></div><span class="bar-val">8 篇</span></div>
+        <p class="num-note">_beamng-autopilot 的 224 篇实验报告是按日归档的，索引脚本生成——论文素材已经在攒了。</p>
+      </div>
+    </div>
+    
+    <div class="num-panel heat-panel">
+      <h3>2026 活跃热力图 <b>· 58 个活跃日</b></h3>
+      <div class="heat-wrap">
+        <div class="months"><span>01</span><span>02</span><span>03</span><span>04</span><span>05</span><span>06</span><span>07</span><span>08</span><span>09</span><span>10</span><span>11</span><span>12</span></div>
+        <div class="heat"><span class="cell out" title=""></span><span class="cell out" title=""></span><span class="cell out" title=""></span><span class="cell l0" title="2026-01-01 · 0 次提交"></span><span class="cell l0" title="2026-01-02 · 0 次提交"></span><span class="cell l0" title="2026-01-03 · 0 次提交"></span><span class="cell l0" title="2026-01-04 · 0 次提交"></span><span class="cell l0" title="2026-01-05 · 0 次提交"></span><span class="cell l0" title="2026-01-06 · 0 次提交"></span><span class="cell l0" title="2026-01-07 · 0 次提交"></span><span class="cell l0" title="2026-01-08 · 0 次提交"></span><span class="cell l0" title="2026-01-09 · 0 次提交"></span><span class="cell l0" title="2026-01-10 · 0 次提交"></span><span class="cell l0" title="2026-01-11 · 0 次提交"></span><span class="cell l0" title="2026-01-12 · 0 次提交"></span><span class="cell l0" title="2026-01-13 · 0 次提交"></span><span class="cell l0" title="2026-01-14 · 0 次提交"></span><span class="cell l0" title="2026-01-15 · 0 次提交"></span><span class="cell l0" title="2026-01-16 · 0 次提交"></span><span class="cell l0" title="2026-01-17 · 0 次提交"></span><span class="cell l0" title="2026-01-18 · 0 次提交"></span><span class="cell l0" title="2026-01-19 · 0 次提交"></span><span class="cell l0" title="2026-01-20 · 0 次提交"></span><span class="cell l0" title="2026-01-21 · 0 次提交"></span><span class="cell l0" title="2026-01-22 · 0 次提交"></span><span class="cell l0" title="2026-01-23 · 0 次提交"></span><span class="cell l0" title="2026-01-24 · 0 次提交"></span><span class="cell l0" title="2026-01-25 · 0 次提交"></span><span class="cell l0" title="2026-01-26 · 0 次提交"></span><span class="cell l0" title="2026-01-27 · 0 次提交"></span><span class="cell l0" title="2026-01-28 · 0 次提交"></span><span class="cell l0" title="2026-01-29 · 0 次提交"></span><span class="cell l0" title="2026-01-30 · 0 次提交"></span><span class="cell l0" title="2026-01-31 · 0 次提交"></span><span class="cell l0" title="2026-02-01 · 0 次提交"></span><span class="cell l0" title="2026-02-02 · 0 次提交"></span><span class="cell l0" title="2026-02-03 · 0 次提交"></span><span class="cell l0" title="2026-02-04 · 0 次提交"></span><span class="cell l0" title="2026-02-05 · 0 次提交"></span><span class="cell l0" title="2026-02-06 · 0 次提交"></span><span class="cell l0" title="2026-02-07 · 0 次提交"></span><span class="cell l0" title="2026-02-08 · 0 次提交"></span><span class="cell l0" title="2026-02-09 · 0 次提交"></span><span class="cell l0" title="2026-02-10 · 0 次提交"></span><span class="cell l0" title="2026-02-11 · 0 次提交"></span><span class="cell l0" title="2026-02-12 · 0 次提交"></span><span class="cell l0" title="2026-02-13 · 0 次提交"></span><span class="cell l0" title="2026-02-14 · 0 次提交"></span><span class="cell l0" title="2026-02-15 · 0 次提交"></span><span class="cell l0" title="2026-02-16 · 0 次提交"></span><span class="cell l0" title="2026-02-17 · 0 次提交"></span><span class="cell l0" title="2026-02-18 · 0 次提交"></span><span class="cell l0" title="2026-02-19 · 0 次提交"></span><span class="cell l0" title="2026-02-20 · 0 次提交"></span><span class="cell l0" title="2026-02-21 · 0 次提交"></span><span class="cell l0" title="2026-02-22 · 0 次提交"></span><span class="cell l0" title="2026-02-23 · 0 次提交"></span><span class="cell l0" title="2026-02-24 · 0 次提交"></span><span class="cell l0" title="2026-02-25 · 0 次提交"></span><span class="cell l0" title="2026-02-26 · 0 次提交"></span><span class="cell l0" title="2026-02-27 · 0 次提交"></span><span class="cell l0" title="2026-02-28 · 0 次提交"></span><span class="cell l0" title="2026-03-01 · 0 次提交"></span><span class="cell l0" title="2026-03-02 · 0 次提交"></span><span class="cell l0" title="2026-03-03 · 0 次提交"></span><span class="cell l0" title="2026-03-04 · 0 次提交"></span><span class="cell l0" title="2026-03-05 · 0 次提交"></span><span class="cell l0" title="2026-03-06 · 0 次提交"></span><span class="cell l1" title="2026-03-07 · 1 次提交"></span><span class="cell l0" title="2026-03-08 · 0 次提交"></span><span class="cell l0" title="2026-03-09 · 0 次提交"></span><span class="cell l0" title="2026-03-10 · 0 次提交"></span><span class="cell l0" title="2026-03-11 · 0 次提交"></span><span class="cell l1" title="2026-03-12 · 1 次提交"></span><span class="cell l0" title="2026-03-13 · 0 次提交"></span><span class="cell l0" title="2026-03-14 · 0 次提交"></span><span class="cell l0" title="2026-03-15 · 0 次提交"></span><span class="cell l0" title="2026-03-16 · 0 次提交"></span><span class="cell l0" title="2026-03-17 · 0 次提交"></span><span class="cell l0" title="2026-03-18 · 0 次提交"></span><span class="cell l0" title="2026-03-19 · 0 次提交"></span><span class="cell l0" title="2026-03-20 · 0 次提交"></span><span class="cell l0" title="2026-03-21 · 0 次提交"></span><span class="cell l0" title="2026-03-22 · 0 次提交"></span><span class="cell l0" title="2026-03-23 · 0 次提交"></span><span class="cell l0" title="2026-03-24 · 0 次提交"></span><span class="cell l0" title="2026-03-25 · 0 次提交"></span><span class="cell l0" title="2026-03-26 · 0 次提交"></span><span class="cell l0" title="2026-03-27 · 0 次提交"></span><span class="cell l0" title="2026-03-28 · 0 次提交"></span><span class="cell l0" title="2026-03-29 · 0 次提交"></span><span class="cell l0" title="2026-03-30 · 0 次提交"></span><span class="cell l0" title="2026-03-31 · 0 次提交"></span><span class="cell l0" title="2026-04-01 · 0 次提交"></span><span class="cell l0" title="2026-04-02 · 0 次提交"></span><span class="cell l0" title="2026-04-03 · 0 次提交"></span><span class="cell l0" title="2026-04-04 · 0 次提交"></span><span class="cell l0" title="2026-04-05 · 0 次提交"></span><span class="cell l0" title="2026-04-06 · 0 次提交"></span><span class="cell l0" title="2026-04-07 · 0 次提交"></span><span class="cell l0" title="2026-04-08 · 0 次提交"></span><span class="cell l0" title="2026-04-09 · 0 次提交"></span><span class="cell l0" title="2026-04-10 · 0 次提交"></span><span class="cell l0" title="2026-04-11 · 0 次提交"></span><span class="cell l0" title="2026-04-12 · 0 次提交"></span><span class="cell l0" title="2026-04-13 · 0 次提交"></span><span class="cell l0" title="2026-04-14 · 0 次提交"></span><span class="cell l0" title="2026-04-15 · 0 次提交"></span><span class="cell l0" title="2026-04-16 · 0 次提交"></span><span class="cell l0" title="2026-04-17 · 0 次提交"></span><span class="cell l0" title="2026-04-18 · 0 次提交"></span><span class="cell l0" title="2026-04-19 · 0 次提交"></span><span class="cell l0" title="2026-04-20 · 0 次提交"></span><span class="cell l0" title="2026-04-21 · 0 次提交"></span><span class="cell l0" title="2026-04-22 · 0 次提交"></span><span class="cell l0" title="2026-04-23 · 0 次提交"></span><span class="cell l0" title="2026-04-24 · 0 次提交"></span><span class="cell l0" title="2026-04-25 · 0 次提交"></span><span class="cell l0" title="2026-04-26 · 0 次提交"></span><span class="cell l0" title="2026-04-27 · 0 次提交"></span><span class="cell l0" title="2026-04-28 · 0 次提交"></span><span class="cell l0" title="2026-04-29 · 0 次提交"></span><span class="cell l0" title="2026-04-30 · 0 次提交"></span><span class="cell l0" title="2026-05-01 · 0 次提交"></span><span class="cell l0" title="2026-05-02 · 0 次提交"></span><span class="cell l0" title="2026-05-03 · 0 次提交"></span><span class="cell l0" title="2026-05-04 · 0 次提交"></span><span class="cell l0" title="2026-05-05 · 0 次提交"></span><span class="cell l0" title="2026-05-06 · 0 次提交"></span><span class="cell l0" title="2026-05-07 · 0 次提交"></span><span class="cell l0" title="2026-05-08 · 0 次提交"></span><span class="cell l0" title="2026-05-09 · 0 次提交"></span><span class="cell l0" title="2026-05-10 · 0 次提交"></span><span class="cell l0" title="2026-05-11 · 0 次提交"></span><span class="cell l0" title="2026-05-12 · 0 次提交"></span><span class="cell l0" title="2026-05-13 · 0 次提交"></span><span class="cell l0" title="2026-05-14 · 0 次提交"></span><span class="cell l0" title="2026-05-15 · 0 次提交"></span><span class="cell l0" title="2026-05-16 · 0 次提交"></span><span class="cell l0" title="2026-05-17 · 0 次提交"></span><span class="cell l0" title="2026-05-18 · 0 次提交"></span><span class="cell l0" title="2026-05-19 · 0 次提交"></span><span class="cell l0" title="2026-05-20 · 0 次提交"></span><span class="cell l0" title="2026-05-21 · 0 次提交"></span><span class="cell l0" title="2026-05-22 · 0 次提交"></span><span class="cell l0" title="2026-05-23 · 0 次提交"></span><span class="cell l0" title="2026-05-24 · 0 次提交"></span><span class="cell l0" title="2026-05-25 · 0 次提交"></span><span class="cell l0" title="2026-05-26 · 0 次提交"></span><span class="cell l0" title="2026-05-27 · 0 次提交"></span><span class="cell l0" title="2026-05-28 · 0 次提交"></span><span class="cell l0" title="2026-05-29 · 0 次提交"></span><span class="cell l0" title="2026-05-30 · 0 次提交"></span><span class="cell l0" title="2026-05-31 · 0 次提交"></span><span class="cell l0" title="2026-06-01 · 0 次提交"></span><span class="cell l0" title="2026-06-02 · 0 次提交"></span><span class="cell l0" title="2026-06-03 · 0 次提交"></span><span class="cell l0" title="2026-06-04 · 0 次提交"></span><span class="cell l0" title="2026-06-05 · 0 次提交"></span><span class="cell l0" title="2026-06-06 · 0 次提交"></span><span class="cell l0" title="2026-06-07 · 0 次提交"></span><span class="cell l0" title="2026-06-08 · 0 次提交"></span><span class="cell l0" title="2026-06-09 · 0 次提交"></span><span class="cell l0" title="2026-06-10 · 0 次提交"></span><span class="cell l0" title="2026-06-11 · 0 次提交"></span><span class="cell l0" title="2026-06-12 · 0 次提交"></span><span class="cell l0" title="2026-06-13 · 0 次提交"></span><span class="cell l0" title="2026-06-14 · 0 次提交"></span><span class="cell l0" title="2026-06-15 · 0 次提交"></span><span class="cell l0" title="2026-06-16 · 0 次提交"></span><span class="cell l0" title="2026-06-17 · 0 次提交"></span><span class="cell l0" title="2026-06-18 · 0 次提交"></span><span class="cell l0" title="2026-06-19 · 0 次提交"></span><span class="cell l0" title="2026-06-20 · 0 次提交"></span><span class="cell l0" title="2026-06-21 · 0 次提交"></span><span class="cell l0" title="2026-06-22 · 0 次提交"></span><span class="cell l0" title="2026-06-23 · 0 次提交"></span><span class="cell l0" title="2026-06-24 · 0 次提交"></span><span class="cell l0" title="2026-06-25 · 0 次提交"></span><span class="cell l0" title="2026-06-26 · 0 次提交"></span><span class="cell l0" title="2026-06-27 · 0 次提交"></span><span class="cell l0" title="2026-06-28 · 0 次提交"></span><span class="cell l0" title="2026-06-29 · 0 次提交"></span><span class="cell l0" title="2026-06-30 · 0 次提交"></span><span class="cell l0" title="2026-07-01 · 0 次提交"></span><span class="cell l0" title="2026-07-02 · 0 次提交"></span><span class="cell l0" title="2026-07-03 · 0 次提交"></span><span class="cell l0" title="2026-07-04 · 0 次提交"></span><span class="cell l0" title="2026-07-05 · 0 次提交"></span><span class="cell l0" title="2026-07-06 · 0 次提交"></span><span class="cell l0" title="2026-07-07 · 0 次提交"></span><span class="cell l0" title="2026-07-08 · 0 次提交"></span><span class="cell l0" title="2026-07-09 · 0 次提交"></span><span class="cell l0" title="2026-07-10 · 0 次提交"></span><span class="cell l0" title="2026-07-11 · 0 次提交"></span><span class="cell l0" title="2026-07-12 · 0 次提交"></span><span class="cell l0" title="2026-07-13 · 0 次提交"></span><span class="cell l0" title="2026-07-14 · 0 次提交"></span><span class="cell l0" title="2026-07-15 · 0 次提交"></span><span class="cell l0" title="2026-07-16 · 0 次提交"></span><span class="cell l0" title="2026-07-17 · 0 次提交"></span><span class="cell l0" title="2026-07-18 · 0 次提交"></span><span class="cell l0" title="2026-07-19 · 0 次提交"></span><span class="cell l0" title="2026-07-20 · 0 次提交"></span><span class="cell l0" title="2026-07-21 · 0 次提交"></span><span class="cell l0" title="2026-07-22 · 0 次提交"></span><span class="cell l0" title="2026-07-23 · 0 次提交"></span><span class="cell l0" title="2026-07-24 · 0 次提交"></span><span class="cell l0" title="2026-07-25 · 0 次提交"></span><span class="cell l0" title="2026-07-26 · 0 次提交"></span><span class="cell l0" title="2026-07-27 · 0 次提交"></span><span class="cell l0" title="2026-07-28 · 0 次提交"></span><span class="cell l0" title="2026-07-29 · 0 次提交"></span><span class="cell l0" title="2026-07-30 · 0 次提交"></span><span class="cell l0" title="2026-07-31 · 0 次提交"></span><span class="cell l0" title="2026-08-01 · 0 次提交"></span><span class="cell l0" title="2026-08-02 · 0 次提交"></span><span class="cell l0" title="2026-08-03 · 0 次提交"></span><span class="cell l0" title="2026-08-04 · 0 次提交"></span><span class="cell l0" title="2026-08-05 · 0 次提交"></span><span class="cell l1" title="2026-08-06 · 1 次提交"></span><span class="cell l0" title="2026-08-07 · 0 次提交"></span><span class="cell l0" title="2026-08-08 · 0 次提交"></span><span class="cell l1" title="2026-08-09 · 1 次提交"></span><span class="cell l4" title="2026-08-10 · 9 次提交"></span><span class="cell l3" title="2026-08-11 · 5 次提交"></span><span class="cell l0" title="2026-08-12 · 0 次提交"></span><span class="cell l0" title="2026-08-13 · 0 次提交"></span><span class="cell l1" title="2026-08-14 · 1 次提交"></span><span class="cell l4" title="2026-08-15 · 37 次提交"></span><span class="cell l2" title="2026-08-16 · 2 次提交"></span><span class="cell l2" title="2026-08-17 · 3 次提交"></span><span class="cell l4" title="2026-08-18 · 23 次提交"></span><span class="cell l0" title="2026-08-19 · 0 次提交"></span><span class="cell l0" title="2026-08-20 · 0 次提交"></span><span class="cell l4" title="2026-08-21 · 17 次提交"></span><span class="cell l2" title="2026-08-22 · 2 次提交"></span><span class="cell l0" title="2026-08-23 · 0 次提交"></span><span class="cell l0" title="2026-08-24 · 0 次提交"></span><span class="cell l0" title="2026-08-25 · 0 次提交"></span><span class="cell l0" title="2026-08-26 · 0 次提交"></span><span class="cell l4" title="2026-08-27 · 20 次提交"></span><span class="cell l4" title="2026-08-28 · 35 次提交"></span><span class="cell l4" title="2026-08-29 · 13 次提交"></span><span class="cell l4" title="2026-08-30 · 29 次提交"></span><span class="cell l4" title="2026-08-31 · 10 次提交"></span><span class="cell l3" title="2026-09-01 · 5 次提交"></span><span class="cell l3" title="2026-09-02 · 6 次提交"></span><span class="cell l4" title="2026-09-03 · 17 次提交"></span><span class="cell l4" title="2026-09-04 · 22 次提交"></span><span class="cell l4" title="2026-09-05 · 36 次提交"></span><span class="cell l4" title="2026-09-06 · 21 次提交"></span><span class="cell l3" title="2026-09-07 · 4 次提交"></span><span class="cell l3" title="2026-09-08 · 4 次提交"></span><span class="cell l0" title="2026-09-09 · 0 次提交"></span><span class="cell l4" title="2026-09-10 · 20 次提交"></span><span class="cell l0" title="2026-09-11 · 0 次提交"></span><span class="cell l4" title="2026-09-12 · 7 次提交"></span><span class="cell l4" title="2026-09-13 · 13 次提交"></span><span class="cell l4" title="2026-09-14 · 38 次提交"></span><span class="cell l4" title="2026-09-15 · 39 次提交"></span><span class="cell l4" title="2026-09-16 · 31 次提交"></span><span class="cell l3" title="2026-09-17 · 6 次提交"></span><span class="cell l0" title="2026-09-18 · 0 次提交"></span><span class="cell l3" title="2026-09-19 · 4 次提交"></span><span class="cell l4" title="2026-09-20 · 75 次提交"></span><span class="cell l0" title="2026-09-21 · 0 次提交"></span><span class="cell l4" title="2026-09-22 · 36 次提交"></span><span class="cell l3" title="2026-09-23 · 5 次提交"></span><span class="cell l4" title="2026-09-24 · 9 次提交"></span><span class="cell l3" title="2026-09-25 · 6 次提交"></span><span class="cell l4" title="2026-09-26 · 41 次提交"></span><span class="cell l4" title="2026-09-27 · 65 次提交"></span><span class="cell l4" title="2026-09-28 · 13 次提交"></span><span class="cell l4" title="2026-09-29 · 24 次提交"></span><span class="cell l0" title="2026-09-30 · 0 次提交"></span><span class="cell l0" title="2026-10-01 · 0 次提交"></span><span class="cell l0" title="2026-10-02 · 0 次提交"></span><span class="cell l0" title="2026-10-03 · 0 次提交"></span><span class="cell l0" title="2026-10-04 · 0 次提交"></span><span class="cell l0" title="2026-10-05 · 0 次提交"></span><span class="cell l4" title="2026-10-06 · 56 次提交"></span><span class="cell l4" title="2026-10-07 · 38 次提交"></span><span class="cell l0" title="2026-10-08 · 0 次提交"></span><span class="cell l0" title="2026-10-09 · 0 次提交"></span><span class="cell l3" title="2026-10-10 · 4 次提交"></span><span class="cell l4" title="2026-10-11 · 62 次提交"></span><span class="cell l4" title="2026-10-12 · 8 次提交"></span><span class="cell l4" title="2026-10-13 · 57 次提交"></span><span class="cell l4" title="2026-10-14 · 10 次提交"></span><span class="cell l3" title="2026-10-15 · 5 次提交"></span><span class="cell l4" title="2026-10-16 · 9 次提交"></span><span class="cell l0" title="2026-10-17 · 0 次提交"></span><span class="cell l4" title="2026-10-18 · 32 次提交"></span><span class="cell l0" title="2026-10-19 · 0 次提交"></span><span class="cell l4" title="2026-10-20 · 58 次提交"></span><span class="cell l0" title="2026-10-21 · 0 次提交"></span><span class="cell l0" title="2026-10-22 · 0 次提交"></span><span class="cell l0" title="2026-10-23 · 0 次提交"></span><span class="cell l0" title="2026-10-24 · 0 次提交"></span><span class="cell l0" title="2026-10-25 · 0 次提交"></span><span class="cell l0" title="2026-10-26 · 0 次提交"></span><span class="cell l0" title="2026-10-27 · 0 次提交"></span><span class="cell l0" title="2026-10-28 · 0 次提交"></span><span class="cell l3" title="2026-10-29 · 6 次提交"></span><span class="cell l0" title="2026-10-30 · 0 次提交"></span><span class="cell l4" title="2026-10-31 · 46 次提交"></span><span class="cell l4" title="2026-11-01 · 38 次提交"></span><span class="cell l4 today" title="2026-11-02 · 61 次提交"></span><span class="cell l0" title="2026-11-03 · 0 次提交"></span><span class="cell l0" title="2026-11-04 · 0 次提交"></span><span class="cell l0" title="2026-11-05 · 0 次提交"></span><span class="cell l0" title="2026-11-06 · 0 次提交"></span><span class="cell l0" title="2026-11-07 · 0 次提交"></span><span class="cell l0" title="2026-11-08 · 0 次提交"></span><span class="cell l0" title="2026-11-09 · 0 次提交"></span><span class="cell l0" title="2026-11-10 · 0 次提交"></span><span class="cell l0" title="2026-11-11 · 0 次提交"></span><span class="cell l0" title="2026-11-12 · 0 次提交"></span><span class="cell l0" title="2026-11-13 · 0 次提交"></span><span class="cell l0" title="2026-11-14 · 0 次提交"></span><span class="cell l0" title="2026-11-15 · 0 次提交"></span><span class="cell l0" title="2026-11-16 · 0 次提交"></span><span class="cell l0" title="2026-11-17 · 0 次提交"></span><span class="cell l0" title="2026-11-18 · 0 次提交"></span><span class="cell l0" title="2026-11-19 · 0 次提交"></span><span class="cell l0" title="2026-11-20 · 0 次提交"></span><span class="cell l0" title="2026-11-21 · 0 次提交"></span><span class="cell l0" title="2026-11-22 · 0 次提交"></span><span class="cell l0" title="2026-11-23 · 0 次提交"></span><span class="cell l0" title="2026-11-24 · 0 次提交"></span><span class="cell l0" title="2026-11-25 · 0 次提交"></span><span class="cell l0" title="2026-11-26 · 0 次提交"></span><span class="cell l0" title="2026-11-27 · 0 次提交"></span><span class="cell l0" title="2026-11-28 · 0 次提交"></span><span class="cell l0" title="2026-11-29 · 0 次提交"></span><span class="cell l0" title="2026-11-30 · 0 次提交"></span><span class="cell l0" title="2026-12-01 · 0 次提交"></span><span class="cell l0" title="2026-12-02 · 0 次提交"></span><span class="cell l0" title="2026-12-03 · 0 次提交"></span><span class="cell l0" title="2026-12-04 · 0 次提交"></span><span class="cell l0" title="2026-12-05 · 0 次提交"></span><span class="cell l0" title="2026-12-06 · 0 次提交"></span><span class="cell l0" title="2026-12-07 · 0 次提交"></span><span class="cell l0" title="2026-12-08 · 0 次提交"></span><span class="cell l0" title="2026-12-09 · 0 次提交"></span><span class="cell l0" title="2026-12-10 · 0 次提交"></span><span class="cell l0" title="2026-12-11 · 0 次提交"></span><span class="cell l0" title="2026-12-12 · 0 次提交"></span><span class="cell l0" title="2026-12-13 · 0 次提交"></span><span class="cell l0" title="2026-12-14 · 0 次提交"></span><span class="cell l0" title="2026-12-15 · 0 次提交"></span><span class="cell l0" title="2026-12-16 · 0 次提交"></span><span class="cell l0" title="2026-12-17 · 0 次提交"></span><span class="cell l0" title="2026-12-18 · 0 次提交"></span><span class="cell l0" title="2026-12-19 · 0 次提交"></span><span class="cell l0" title="2026-12-20 · 0 次提交"></span><span class="cell l0" title="2026-12-21 · 0 次提交"></span><span class="cell l0" title="2026-12-22 · 0 次提交"></span><span class="cell l0" title="2026-12-23 · 0 次提交"></span><span class="cell l0" title="2026-12-24 · 0 次提交"></span><span class="cell l0" title="2026-12-25 · 0 次提交"></span><span class="cell l0" title="2026-12-26 · 0 次提交"></span><span class="cell l0" title="2026-12-27 · 0 次提交"></span><span class="cell l0" title="2026-12-28 · 0 次提交"></span><span class="cell l0" title="2026-12-29 · 0 次提交"></span><span class="cell l0" title="2026-12-30 · 0 次提交"></span><span class="cell l0" title="2026-12-31 · 0 次提交"></span><span class="cell out" title=""></span><span class="cell out" title=""></span><span class="cell out" title=""></span></div>
+      </div>
+      <div class="heat-legend"><span class="cell l0"></span><span class="cell l1"></span><span class="cell l2"></span><span class="cell l3"></span><span class="cell l4"></span><span style="margin-left:6px">少 → 多 · 框出今天</span></div>
+    </div>
+    
+    
+    </section>
+
+    <section id="next">
+      <div class="sec-head rv">
+        <div><div class="sec-index">04 / NOW &amp; NEXT</div><h2>现在与接下来</h2></div>
+        <span class="sec-sub">写了日期的才算计划</span>
+      </div>
+      <div class="sec-line"></div>
+      
+    <div class="next-list"><div class="next-row rv" style="--d:0ms"><span class="next-when">2026.11</span><span class="next-what">CodeYear v0.2</span><span class="next-how">打包 exe、英文 README、30 秒 demo。年底总结季是它唯一的窗口期。</span></div><div class="next-row rv" style="--d:80ms"><span class="next-when">2026.11–12</span><span class="next-what">软著第一批</span><span class="next-how">AudioTransfer + Focus Time Tracker：60 页源码 + 用户手册，走正规代理。</span></div><div class="next-row rv" style="--d:160ms"><span class="next-when">2026.12</span><span class="next-what">BeamNG 收口</span><span class="next-how">给 strict gate 一个明确结论：要么过，要么把结论如实写进论文。副本仓归档。</span></div></div>
+    <div class="quote rv">「发布比完美重要。代码已经够多了，
+      <em style="font-style:normal;color:var(--acc)">接下来拼的是发出去。</em>」
+      <small>—— 2026 年底给自己的备忘</small>
+    </div>
+    
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div class="foot-in">
+    <span>QIONGKURA · 代码手账 2026</span>
+    <span>数据来自本机 git 历史 · 生成于 2026-11-02 · 未上传任何代码</span>
+    <span><a href="https://qiongkura.xyz" target="_blank" rel="noopener">qiongkura.xyz</a> · <a href="https://github.com/Qiongkura" target="_blank" rel="noopener">GitHub ↗</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $  = (s,c)=> (c||document).querySelector(s);
+  const $$ = (s,c)=> [...(c||document).querySelectorAll(s)];
+
+  /* scroll progress */
+  const bar = $('#progress');
+  const onScroll = ()=>{
+    const h = document.documentElement;
+    const p = h.scrollTop / (h.scrollHeight - h.clientHeight || 1);
+    if(bar) bar.style.width = (p*100).toFixed(2)+'%';
+  };
+  addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+  /* live clock */
+  const clock = $('#clock');
+  const pad = n=> String(n).padStart(2,'0');
+  const tick = ()=>{
+    const d = new Date();
+    clock.textContent = pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+  };
+  if(clock){ tick(); setInterval(tick, 1000); }
+
+  /* reveal on scroll */
+  const targets = $$('.rv, .rv-line, .sec-line');
+  if(RM || !('IntersectionObserver' in window)){
+    targets.forEach(el=>el.classList.add('in'));
+  }else{
+    const io = new IntersectionObserver(es=>{
+      es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+    },{threshold:.12, rootMargin:'0px 0px -40px 0px'});
+    targets.forEach(el=>io.observe(el));
+  }
+
+  /* count up */
+  const counters = $$('[data-count]');
+  const run = el=>{
+    const target = parseFloat(el.dataset.count);
+    const dec = parseInt(el.dataset.dec||'0',10);
+    const suffix = el.dataset.suffix||'';
+    const sep = 'sep' in el.dataset;
+    const dur = 1300, t0 = performance.now();
+    const fmt = v=>{
+      let s = v.toFixed(dec);
+      if(sep) s = Number(s).toLocaleString('en-US');
+      return s + suffix;
+    };
+    const step = now=>{
+      const p = Math.min((now-t0)/dur, 1);
+      const e = 1-Math.pow(1-p,3);
+      el.textContent = fmt(target*e);
+      if(p<1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
+  if(RM || !('IntersectionObserver' in window)){
+    counters.forEach(el=>{
+      const t = parseFloat(el.dataset.count), dec=parseInt(el.dataset.dec||'0',10);
+      let s=t.toFixed(dec); if('sep' in el.dataset) s=Number(s).toLocaleString('en-US');
+      el.textContent = s + (el.dataset.suffix||'');
+    });
+  }else{
+    const cio = new IntersectionObserver(es=>{
+      es.forEach(e=>{ if(e.isIntersecting){ run(e.target); cio.unobserve(e.target);} });
+    },{threshold:.5});
+    counters.forEach(el=>cio.observe(el));
+  }
+
+  /* table filter */
+  const filters = $$('.filter');
+  const rows = $$('.index-table tbody tr');
+  const countEl = $('#row-count');
+  filters.forEach(btn=>btn.addEventListener('click',()=>{
+    filters.forEach(b=>b.classList.toggle('on', b===btn));
+    const f = btn.dataset.filter;
+    let n=0;
+    rows.forEach(r=>{
+      const show = f==='all' || r.dataset.cat===f;
+      r.style.display = show ? '' : 'none';
+      if(show) n++;
+    });
+    if(countEl) countEl.textContent = n+' / '+rows.length+' 项';
+  }));
+
+  /* subtle tilt on case shots */
+  if(!RM && matchMedia('(pointer:fine)').matches){
+    $$('.case-shot').forEach(box=>{
+      box.addEventListener('mousemove', ev=>{
+        const r = box.getBoundingClientRect();
+        const x = (ev.clientX-r.left)/r.width - .5;
+        const y = (ev.clientY-r.top)/r.height - .5;
+        box.style.transform = 'perspective(900px) rotateY('+(x*2.4)+'deg) rotateX('+(-y*2.4)+'deg)';
+      });
+      box.addEventListener('mouseleave', ()=>{ box.style.transform=''; });
+    });
+    /* magnetic buttons */
+    $$('.btn').forEach(btn=>{
+      btn.addEventListener('mousemove', ev=>{
+        const r = btn.getBoundingClientRect();
+        const x = ev.clientX-r.left-r.width/2, y = ev.clientY-r.top-r.height/2;
+        btn.style.transform = 'translate('+(x*.12)+'px,'+(y*.18)+'px)';
+      });
+      btn.addEventListener('mouseleave', ()=>{ btn.style.transform=''; });
+    });
+  }
+
+  /* hero parallax removed: conflicts with reveal transform on h1 */
+})();
+</script>
+</body>
+</html>
