@@ -124,7 +124,7 @@ ffmpeg -y -ss 46 -t 30 -i "茶汤.flac"   -af "afade=t=in:st=0:d=1.5,afade=t=out
 
 歌词 `assets/audio/cha-tang.lrc` 只保留与该片段对应的 7 句，并且**时间轴整体前移 46 秒**（片段从 0 秒开始播放，不重排时间轴就会全部错位）。改片段起点时这两件事要一起改。
 
-播放器行为不变（播放键 / 音量条 / 进度条 / 点击歌词跳转 / 暂停收起歌词），只是总长变成 0:30。音频目录另外做了降暴露处理：`robots.txt` 里 `Disallow: /assets/audio/`，`_headers` 里给 `/assets/audio/*` 加了 `X-Robots-Tag: noindex`，并在 Cloudflare 面板建议开启 Hotlink Protection。这些只是降低被自动扫描到的概率，不改变版权性质。
+播放器行为不变（播放键 / 音量条 / 进度条 / 点击歌词跳转 / 暂停收起歌词），只是总长变成 0:30。音频目录另外做了降暴露处理：`robots.txt` 里 `Disallow: /assets/audio/`，Nginx 给 `/assets/audio/` 加了 `X-Robots-Tag: noindex`。这些只是降低被自动扫描到的概率，不改变版权性质。
 
 ## 窗口尺寸适配
 
@@ -217,22 +217,21 @@ python tools/serve.py          # 默认 8000，也可 python tools/serve.py 8080
 
 然后访问 <http://localhost:8000>。
 
-用 `tools/serve.py` 而不是 `python -m http.server`：**音频进度条拖动要求服务器支持 HTTP Range**。标准库的 `http.server` 不返回 `Accept-Ranges`，浏览器拿到的 `audio.seekable` 是 `[0, 0]`，于是本地拖进度条会「跳一下又回到 0」，很容易误以为播放器写坏了；线上 Cloudflare / GitHub Pages 都支持 Range，不受影响。`tools/serve.py` 就是在 `SimpleHTTPRequestHandler` 上补了 Range，顺便关掉缓存，改完文件刷新即可看到。
+用 `tools/serve.py` 而不是 `python -m http.server`：**音频进度条拖动要求服务器支持 HTTP Range**。标准库的 `http.server` 不返回 `Accept-Ranges`，浏览器拿到的 `audio.seekable` 是 `[0, 0]`，于是本地拖进度条会「跳一下又回到 0」，很容易误以为播放器写坏了；线上 Nginx 支持 Range，不受影响。`tools/serve.py` 就是在 `SimpleHTTPRequestHandler` 上补了 Range，顺便关掉缓存，改完文件刷新即可看到。
 
 ## 部署
 
-仓库 `main` 分支连接 Cloudflare Pages，构建方式为 `None`、输出目录 `/`，每次 `git push` 会自动重新部署。
+站点托管在阿里云 ECS（Nginx），通过根目录 `.env`（已被 `.gitignore` 忽略，存放 `DEPLOY_HOST` 等参数）配合 `publish.cmd` 一键完成「静态版本号递增 → GitHub 推送 → ECS 增量同步」：
 
 ```bash
-git add .
-git commit -m "Update site"
-git push
+# 一键全流程（Windows）
+publish.cmd
+
+# 仅增量同步静态文件到阿里云 ECS
+node tools/deploy-ecs.mjs
 ```
 
-线上地址：
-
-- 自定义域名：<https://qiongkura.xyz>
-- Cloudflare 域名：<https://my-profile-1qe.pages.dev>
+线上地址：<https://qiongkura.xyz>
 
 ## 添加图片时的两个注意点
 
