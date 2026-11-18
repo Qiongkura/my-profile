@@ -1,11 +1,8 @@
 /* 自托管字体(按站点用字子集化;改文案后运行 tools/make-fonts.py 重新生成) */
-@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/inter-400.woff2') format('woff2'); }
-@font-face { font-family: 'Inter'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/inter-500.woff2') format('woff2'); }
-@font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/inter-600.woff2') format('woff2'); }
-@font-face { font-family: 'Inter'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/inter-700.woff2') format('woff2'); }
-@font-face { font-family: 'Noto Sans SC'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/noto-400.woff2') format('woff2'); }
-@font-face { font-family: 'Noto Sans SC'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/noto-500.woff2') format('woff2'); }
-@font-face { font-family: 'Noto Sans SC'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/noto-700.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/inter-400.woff2?v=2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/inter-600.woff2?v=2') format('woff2'); }
+@font-face { font-family: 'Noto Sans SC'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/noto-400.woff2?v=2') format('woff2'); }
+@font-face { font-family: 'Noto Sans SC'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/noto-600.woff2?v=2') format('woff2'); }
 /* ==========================================================================
    Qiongkura · personal space
    白色编辑杂志风 / 五个全屏章节 / Build · Drive · Listen
@@ -69,7 +66,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   top: 7px;
   left: 7px;
   z-index: 90;
-  calc(0.68 * var(--u)) 0: 9px 12px;
+  padding: 9px 12px;
   background: var(--ink);
   color: var(--white);
   font-size: 11px;
@@ -124,7 +121,7 @@ html[data-lang='en'] .zh { display: none !important; }
 
 .nav-link {
   position: relative;
-  calc(1.2 * var(--u)) 0: 6px 0;
+  padding: 6px 0;
   font-size: clamp(11px, calc(0.64 * var(--u)), 44px);
   letter-spacing: .08em;
   color: var(--ink-2);
@@ -267,7 +264,19 @@ html[data-lang='en'] .zh { display: none !important; }
 }
 .meta-note { white-space: nowrap; }
 a.meta-link { color: inherit; text-decoration: none; border-bottom: 1px solid var(--line-2); }
-a.meta-link:hover { color: var(--acc); border-color: var(--acc); }
+a.meta-link:hover { color: var(--red); border-color: var(--red); }
+.panel-foot-legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 18px;
+  padding: calc(0.4 * var(--u)) 0 calc(0.7 * var(--u));
+  border-top: 1px solid var(--line-2);
+  margin-top: 2px;
+  font-size: clamp(10px, calc(0.48 * var(--u)), 28px);
+  letter-spacing: .08em;
+  color: var(--ink-3);
+}
 
 /* ------------------------------------------------------- shared type bits */
 
@@ -474,8 +483,8 @@ a.meta-link:hover { color: var(--acc); border-color: var(--acc); }
 .slide-caption { display: inline-flex; align-items: baseline; gap: 6px; }
 .slide-nav { display: inline-flex; align-items: center; gap: 7px; }
 .slide-btn {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   display: grid;
   place-items: center;
   border: 1px solid var(--line);
@@ -1103,8 +1112,8 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
 /* 音量：小喇叭按钮 + 细条，静音时图标打叉；默认 80%，改动记在本地 */
 .pick-vol { display: inline-flex; align-items: center; gap: 6px; }
 .pick-vol-btn {
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -1143,7 +1152,7 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
   position: absolute;
   left: 0;
   top: 50%;
-  width: 80%;
+  width: 50%;
   height: 1px;
   margin-top: -.5px;
   background: var(--ink-3);
@@ -1152,7 +1161,7 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
 .pick-vol-knob {
   position: absolute;
   top: 50%;
-  left: 80%;
+  left: 50%;
   width: 5px;
   height: 5px;
   margin: -2.5px 0 0 -2.5px;
@@ -1525,6 +1534,12 @@ html:not(.js) .work-brief-item { display: block; width: auto; margin-top: calc(1
     gap: 3px;
     min-height: 0;
     padding: 11px 0;
+  }
+  .panel-foot-legal {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    padding: 9px 0 12px;
   }
   .meta-note { white-space: normal; }
 }

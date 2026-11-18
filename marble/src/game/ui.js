@@ -1,6 +1,5 @@
 /* 弹弹弹珠吧 - UI 绘制与界面 (命名空间: MG.ui)
- * 界面层走 ins 极简风:白卡片 + 墨色胶囊按钮 + 细线 + 柔和投影。
- * 机台本体(黄机台/LED/钉阵)保持街机质感;按钮为立即模式,由游戏层在按下时检测。
+ * 界面层支持极简风与复古街机双主题;弹珠与发光光晕采用离屏精灵缓存,消除每帧渐变与高斯模糊开销。
  */
 (function (root) {
   'use strict';
@@ -10,22 +9,27 @@
   var C = CFG.colors;
 
   /* 极简 UI 配色 */
-  var INK = '#3a3a3a';        /* 主文字 / 主按钮 */
-  var SUB = '#9a9a9a';        /* 次要文字 */
-  var BODY = '#6a6a6a';       /* 正文 */
-  var ACCENT = '#e8553f';     /* 强调(数字/关键行) */
-  var HAIR = 'rgba(0,0,0,0.07)';  /* 发丝描边 */
+  var INK = '#3a3a3a';
+  var SUB = '#9a9a9a';
+  var BODY = '#6a6a6a';
+  var ACCENT = '#e8553f';
+  var HAIR = 'rgba(0,0,0,0.07)';
 
-  /* 白卡片:柔和投影 */
+  var _marbleCache = {};
+  var _marbleCacheCount = 0;
+  var _glowCache = {};
+
+  /* 白卡片:柔和分层投影(免实时大半径 shadowBlur) */
   function card(ctx, x, y, w, h, r) {
-    ctx.save();
-    ctx.shadowColor = 'rgba(40,35,25,0.18)';
-    ctx.shadowBlur = 34;
-    ctx.shadowOffsetY = 10;
+    ctx.fillStyle = 'rgba(40,35,25,0.06)';
+    rr(ctx, x - 3, y + 6, w + 6, h + 8, r + 3);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(40,35,25,0.09)';
+    rr(ctx, x - 1, y + 3, w + 2, h + 3, r + 1);
+    ctx.fill();
     rr(ctx, x, y, w, h, r);
     ctx.fillStyle = 'rgba(255,255,255,0.97)';
     ctx.fill();
-    ctx.restore();
     rr(ctx, x, y, w, h, r);
     ctx.strokeStyle = HAIR;
     ctx.lineWidth = 1;
@@ -53,28 +57,50 @@
     ctx.font = 'bold ' + Math.round(size) + 'px "Courier New", monospace';
   }
 
-  function shade(hex, f) {
-    var n = parseInt(hex.slice(1), 16);
-    var r = Math.round(((n >> 16) & 255) * f);
-    var g = Math.round(((n >> 8) & 255) * f);
-    var b = Math.round((n & 255) * f);
-    return 'rgb(' + r + ',' + g + ',' + b + ')';
-  }
-
   function rgba(hex, a) {
     var n = parseInt(hex.slice(1), 16);
     return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
   }
 
-  /* 玻璃弹珠(透明玻璃球 + 色芯 + 高光,暖黄场地上保持高对比) */
-  function drawMarble(ctx, x, y, r, color) {
+  /* 预渲染径向辉光贴图(替代移动端极慢的逐帧 ctx.shadowBlur) */
+  function drawGlow(ctx, x, y, rx, ry, hexColor, alpha, platform) {
+    if (alpha <= 0.01) return;
+    var sp = _glowCache[hexColor];
+    if (!sp && platform && platform.createOffscreen) {
+      try {
+        var sz = 64;
+        var cvs = platform.createOffscreen(sz, sz);
+        var gctx = cvs.getContext('2d');
+        var g = gctx.createRadialGradient(sz / 2, sz / 2, 2, sz / 2, sz / 2, sz / 2);
+        g.addColorStop(0, rgba(hexColor, 0.9));
+        g.addColorStop(0.45, rgba(hexColor, 0.38));
+        g.addColorStop(1, rgba(hexColor, 0));
+        gctx.fillStyle = g;
+        gctx.fillRect(0, 0, sz, sz);
+        sp = cvs;
+        _glowCache[hexColor] = sp;
+      } catch (e) { sp = null; }
+    }
     ctx.save();
-    /* 投影 */
+    ctx.globalAlpha = alpha;
+    if (sp) {
+      ctx.drawImage(sp, x - rx, y - ry, rx * 2, ry * 2);
+    } else {
+      ctx.fillStyle = hexColor;
+      ctx.beginPath();
+      ctx.ellipse(x, y, rx * 0.7, ry * 0.7, 0, 0, U.TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /* 原始矢量弹珠绘制 */
+  function drawMarbleRaw(ctx, x, y, r, color) {
+    ctx.save();
     ctx.beginPath();
     ctx.ellipse(x + 2, y + 3.5, r * 0.98, r * 0.82, 0, 0, U.TAU);
     ctx.fillStyle = 'rgba(96,58,14,0.25)';
     ctx.fill();
-    /* 玻璃体 */
     var g = ctx.createRadialGradient(x - r * 0.32, y - r * 0.38, r * 0.08, x, y, r);
     g.addColorStop(0, '#ffffff');
     g.addColorStop(0.42, rgba(color, 0.96));
@@ -84,18 +110,15 @@
     ctx.arc(x, y, r, 0, U.TAU);
     ctx.fillStyle = g;
     ctx.fill();
-    /* 内部色芯 */
     ctx.beginPath();
     ctx.arc(x + r * 0.12, y + r * 0.14, r * 0.4, 0, U.TAU);
     ctx.fillStyle = rgba(color, 0.72);
     ctx.fill();
-    /* 深色轮廓 */
     ctx.strokeStyle = 'rgba(112,74,26,0.6)';
     ctx.lineWidth = 1.6;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, U.TAU);
     ctx.stroke();
-    /* 高光 + 底部反光 */
     ctx.beginPath();
     ctx.arc(x - r * 0.36, y - r * 0.42, r * 0.24, 0, U.TAU);
     ctx.fillStyle = 'rgba(255,255,255,0.95)';
@@ -105,6 +128,37 @@
     ctx.fillStyle = 'rgba(255,255,255,0.6)';
     ctx.fill();
     ctx.restore();
+  }
+
+  /* 玻璃弹珠(优先走离屏精灵缓存,免每帧 createRadialGradient) */
+  function drawMarble(ctx, x, y, r, color, game) {
+    if (game && game.platform && game.platform.createOffscreen) {
+      var s = game.view.scale * game.platform.dpr;
+      var key = color + '|' + Math.round(r * 10) + '|' + Math.round(s * 100);
+      var sp = _marbleCache[key];
+      if (!sp) {
+        try {
+          if (_marbleCacheCount > 48) { _marbleCache = {}; _marbleCacheCount = 0; }
+          var pad = 6;
+          var lw = r * 2 + pad * 2;
+          var lh = r * 2 + pad * 2;
+          var pw = Math.max(8, Math.ceil(lw * s));
+          var ph = Math.max(8, Math.ceil(lh * s));
+          var cvs = game.platform.createOffscreen(pw, ph);
+          var sctx = cvs.getContext('2d');
+          sctx.setTransform(s, 0, 0, s, 0, 0);
+          drawMarbleRaw(sctx, r + pad, r + pad, r, color);
+          sp = { cvs: cvs, ox: r + pad, oy: r + pad, w: pw / s, h: ph / s };
+          _marbleCache[key] = sp;
+          _marbleCacheCount++;
+        } catch (e) { sp = null; }
+      }
+      if (sp) {
+        ctx.drawImage(sp.cvs, x - sp.ox, y - sp.oy, sp.w, sp.h);
+        return;
+      }
+    }
+    drawMarbleRaw(ctx, x, y, r, color);
   }
 
   /* 五角星贴纸 */
@@ -128,7 +182,6 @@
   /* 小狗头(致敬吉童机) */
   function drawPuppy(ctx, x, y, r) {
     ctx.save();
-    /* 垂耳 */
     ctx.fillStyle = '#a4622a';
     ctx.beginPath();
     ctx.ellipse(x - r * 0.78, y - r * 0.1, r * 0.34, r * 0.55, -0.35, 0, U.TAU);
@@ -136,17 +189,14 @@
     ctx.beginPath();
     ctx.ellipse(x + r * 0.78, y - r * 0.1, r * 0.34, r * 0.55, 0.35, 0, U.TAU);
     ctx.fill();
-    /* 头(白) */
     ctx.beginPath();
     ctx.arc(x, y, r, 0, U.TAU);
     ctx.fillStyle = '#fdf9f2';
     ctx.fill();
-    /* 棕斑(一只眼) */
     ctx.beginPath();
     ctx.ellipse(x + r * 0.34, y - r * 0.18, r * 0.4, r * 0.42, 0.2, 0, U.TAU);
     ctx.fillStyle = '#b9743a';
     ctx.fill();
-    /* 眼睛 */
     ctx.fillStyle = '#2b1c10';
     ctx.beginPath();
     ctx.arc(x - r * 0.3, y - r * 0.08, r * 0.1, 0, U.TAU);
@@ -161,7 +211,6 @@
     ctx.beginPath();
     ctx.arc(x + r * 0.33, y - r * 0.12, r * 0.035, 0, U.TAU);
     ctx.fill();
-    /* 鼻子 + 嘴 */
     ctx.fillStyle = '#3a2414';
     ctx.beginPath();
     ctx.ellipse(x, y + r * 0.2, r * 0.13, r * 0.09, 0, 0, U.TAU);
@@ -174,7 +223,6 @@
     ctx.beginPath();
     ctx.arc(x + r * 0.12, y + r * 0.3, r * 0.12, 0.4, Math.PI - 0.2);
     ctx.stroke();
-    /* 腮红 */
     ctx.fillStyle = 'rgba(255,130,140,0.5)';
     ctx.beginPath();
     ctx.ellipse(x - r * 0.5, y + r * 0.26, r * 0.13, r * 0.08, 0, 0, U.TAU);
@@ -182,7 +230,6 @@
     ctx.beginPath();
     ctx.ellipse(x + r * 0.5, y + r * 0.26, r * 0.13, r * 0.08, 0, 0, U.TAU);
     ctx.fill();
-    /* 蝴蝶结 */
     ctx.fillStyle = '#e8352e';
     ctx.beginPath();
     ctx.moveTo(x - r * 0.15, y - r * 0.92);
@@ -211,30 +258,26 @@
     var arcade = CFG.themeName === 'arcade';
     if (primary) {
       if (arcade) {
+        ctx.fillStyle = 'rgba(120,60,10,0.28)';
+        rr(ctx, x, y + 4, w, h, h / 2);
+        ctx.fill();
         var grad = ctx.createLinearGradient(x, y, x, y + h);
         grad.addColorStop(0, '#ff7a5c');
         grad.addColorStop(1, '#e8352e');
-        ctx.save();
-        ctx.shadowColor = 'rgba(120,60,10,0.4)';
-        ctx.shadowBlur = 10;
-        ctx.shadowOffsetY = 4;
         rr(ctx, x, y, w, h, h / 2);
         ctx.fillStyle = grad;
         ctx.fill();
-        ctx.restore();
         rr(ctx, x, y, w, h, h / 2);
         ctx.strokeStyle = '#ffd0b3';
         ctx.lineWidth = 2;
         ctx.stroke();
       } else {
-        ctx.save();
-        ctx.shadowColor = 'rgba(40,35,25,0.22)';
-        ctx.shadowBlur = 16;
-        ctx.shadowOffsetY = 6;
+        ctx.fillStyle = 'rgba(40,35,25,0.16)';
+        rr(ctx, x, y + 5, w, h, h / 2);
+        ctx.fill();
         rr(ctx, x, y, w, h, h / 2);
         ctx.fillStyle = INK;
         ctx.fill();
-        ctx.restore();
       }
       ctx.fillStyle = '#ffffff';
     } else if (arcade) {
@@ -298,7 +341,6 @@
       ctx.quadraticCurveTo(cx + r * 0.44, cy - r * 0.34, cx + r * 0.42, cy - r * 0.06);
       ctx.stroke();
     } else if (kind === 'sidebar') {
-      /* 侧边栏图标:书签形 */
       ctx.strokeStyle = ic;
       ctx.lineWidth = 2.5;
       ctx.lineJoin = 'round';
@@ -374,7 +416,7 @@
       var my = bottom - 160 - Math.abs(Math.sin(t * 1.8 + i * 1.3)) * 110;
       ctx.save();
       ctx.globalAlpha = 0.95;
-      drawMarble(ctx, mx, my, 13 + (i % 3) * 4, tints[i % tints.length]);
+      drawMarble(ctx, mx, my, 13 + (i % 3) * 4, tints[i % tints.length], game);
       ctx.restore();
     }
 
@@ -384,15 +426,12 @@
     if (decoOnly) return;
 
     var bw = 400, bh = 88, bx = W / 2 - bw / 2;
-    /* 四颗按钮整块高约 366:上移起点并保证统计行与其留出间距(各屏高比例下不重叠) */
     var by0 = Math.min(top + (bottom - top) * 0.20, bottom - 556);
     by0 = Math.max(by0, top + 24);
-    button(game, bx, by0, bw, bh, '开始游戏', function () { game.startGame(); }, { primary: true, size: 38 });
-    button(game, bx, by0 + 116, bw, bh, '玩法说明', function () { game.state = 'help'; game.stateT = 0; }, { size: 32 });
-    button(game, bx, by0 + 232, bw, bh * 0.72, game.muted ? '声音:关' : '声音:开', function () { game.toggleMute(); }, { size: 26 });
-    button(game, bx, by0 + 232 + bh * 0.72 + 16, bw, bh * 0.62, '机台风格 · ' + game.themeLabel(), function () {
-      game.setTheme(game.theme === 'arcade' ? 'min' : 'arcade');
-    }, { size: 24, bold: false });
+    button(game, bx, by0, bw, bh, '开始游戏', game._onStartGame, { primary: true, size: 38 });
+    button(game, bx, by0 + 116, bw, bh, '玩法说明', game._onOpenHelp, { size: 32 });
+    button(game, bx, by0 + 232, bw, bh * 0.72, game.muted ? '声音:关' : '声音:开', game._onToggleMute, { size: 26 });
+    button(game, bx, by0 + 232 + bh * 0.72 + 16, bw, bh * 0.62, '机台风格 · ' + game.themeLabel(), game._onToggleTheme, { size: 24, bold: false });
 
     ctx.textAlign = 'center';
     font(ctx, 21, false);
@@ -400,7 +439,7 @@
     var ft = '玩具球 ' + game.prizeBallsTotal + '    礼品卡 ' + game.giftCardsTotal + '    最大单次 +' + U.fmt(game.bestWin);
     ctx.fillText(ft, W / 2, bottom - 166);
 
-    /* ---- 审核要求:健康游戏忠告(官方原文) + 适龄提示(官方 CADPA 标识) ---- */
+    /* ---- 审核要求:健康游戏忠告 + 适龄提示(官方 CADPA 标识) ---- */
     font(ctx, 13);
     ctx.fillStyle = 'rgba(255,255,255,0.92)';
     ctx.fillText('《健康游戏忠告》', W / 2, bottom - 146);
@@ -410,21 +449,26 @@
     ctx.fillText('适度游戏益脑，沉迷游戏伤身。合理安排时间，享受健康生活。', W / 2, bottom - 100);
 
     var badgeY = bottom - 52;
-    /* 三级加载:文件路径 → 内嵌 data URI → 手绘兜底 */
-    if (!game.ageBadge && MG.ageBadgeData && !game.ageBadgeFailed) {
+    /* 三级加载(带加载锁防止每帧重复发起请求):文件路径 → 内嵌 data URI → 手绘兜底 */
+    if (!game.ageBadge && !game.ageBadgeLoading && !game.ageBadgeFailed) {
+      game.ageBadgeLoading = true;
       try {
         var bi = game.platform.createImage();
         var failToData = function () {
-          bi.onload = function () { game.ageBadge = bi; };
-          bi.onerror = function () { game.ageBadgeFailed = true; };
+          if (!MG.ageBadgeData) { game.ageBadgeLoading = false; game.ageBadgeFailed = true; return; }
+          bi.onload = function () { game.ageBadgeLoading = false; game.ageBadge = bi; };
+          bi.onerror = function () { game.ageBadgeLoading = false; game.ageBadgeFailed = true; };
           bi.src = MG.ageBadgeData;
         };
-        bi.onload = function () { game.ageBadge = bi; };
+        bi.onload = function () { game.ageBadgeLoading = false; game.ageBadge = bi; };
         bi.onerror = failToData;
         bi.src = 'assets/logo/cadpa-8.png';
-      } catch (e) { game.ageBadgeFailed = true; }
+      } catch (e) {
+        game.ageBadgeLoading = false;
+        game.ageBadgeFailed = true;
+      }
     }
-    if (game.ageBadge) {
+    if (game.ageBadge && game.ageBadge.width > 0 && game.ageBadge.height > 0) {
       var bh2 = 64, bw2 = bh2 * (game.ageBadge.width / game.ageBadge.height);
       ctx.drawImage(game.ageBadge, W / 2 - 250, badgeY - bh2 / 2, bw2, bh2);
     } else {
@@ -476,9 +520,7 @@
     }
 
     var bw = 300, bh = 74;
-    button(game, W / 2 - bw / 2, cy + ch - bh - 30, bw, bh, '返回', function () {
-      game.state = 'menu'; game.stateT = 0;
-    }, { primary: true, size: 30 });
+    button(game, W / 2 - bw / 2, cy + ch - bh - 30, bw, bh, '返回', game._onCloseHelp, { primary: true, size: 30 });
   }
 
   /* ---------- 暂停 ---------- */
@@ -510,11 +552,9 @@
     ctx.fillText('已暂停', W / 2, cy + 56);
 
     var bw = 400, bh = 66, bx = W / 2 - bw / 2;
-    button(game, bx, cy + 96, bw, bh, '继续游戏', function () { game.state = 'play'; game.stateT = 0; MG.music.play(); }, { primary: true, size: 30 });
-    button(game, bx, cy + 172, bw, bh, '重新开始', function () { game.restartRound(); }, { size: 28 });
-    button(game, bx, cy + 242, bw, 48, '机台风格 · ' + game.themeLabel(), function () {
-      game.setTheme(game.theme === 'arcade' ? 'min' : 'arcade');
-    }, { size: 24, bold: false });
+    button(game, bx, cy + 96, bw, bh, '继续游戏', game._onResume, { primary: true, size: 30 });
+    button(game, bx, cy + 172, bw, bh, '重新开始', game._onRestart, { size: 28 });
+    button(game, bx, cy + 242, bw, 48, '机台风格 · ' + game.themeLabel(), game._onToggleTheme, { size: 24, bold: false });
 
     /* 双声道音量滑条:音效 / 音乐 各自独立 */
     var tx = cx + 60, tw = cw - 120;
@@ -532,7 +572,7 @@
       rr(ctx, tx, trackY - 6, tw, 12, 6);
       ctx.fillStyle = arcade ? 'rgba(90,55,15,0.25)' : 'rgba(0,0,0,0.08)';
       ctx.fill();
-      var fv = Math.max(0, Math.min(1, row.v || 0));
+      var fv = Math.max(0, Math.min(1, row.v != null ? row.v : 0));
       var fillW = Math.round(tw * fv);
       if (fillW > 6) {
         rr(ctx, tx, trackY - 6, fillW, 12, 6);
@@ -548,17 +588,14 @@
         ctx.lineWidth = 3;
         ctx.stroke();
       } else {
-        ctx.save();
-        ctx.shadowColor = 'rgba(40,35,25,0.25)';
-        ctx.shadowBlur = 8;
-        ctx.shadowOffsetY = 2;
+        ctx.beginPath();
+        ctx.arc(tx + fillW, trackY + 2, 14.5, 0, U.TAU);
+        ctx.fillStyle = 'rgba(40,35,25,0.16)';
+        ctx.fill();
         ctx.beginPath();
         ctx.arc(tx + fillW, trackY, 14, 0, U.TAU);
         ctx.fillStyle = '#ffffff';
         ctx.fill();
-        ctx.restore();
-        ctx.beginPath();
-        ctx.arc(tx + fillW, trackY, 14, 0, U.TAU);
         ctx.strokeStyle = HAIR;
         ctx.lineWidth = 1;
         ctx.stroke();
@@ -617,20 +654,18 @@
     var bw = 420, bh = 82, bx = W / 2 - bw / 2;
     var by = cy + (compact ? 400 : 430);
     if (game.platform.isMinigame) {
-      button(game, bx, by, bw, bh * 0.72, '分享给好友', function () {
-        game.platform.share('我在「弹弹弹珠吧」中了 ' + game.wins + ' 次,最大单次赢 ' + U.fmt(game.maxWin) + ' 颗弹珠!');
-      }, { size: 26 });
+      button(game, bx, by, bw, bh * 0.72, '分享给好友', game._onShare, { size: 26 });
       by += bh * 0.72 + 24;
     }
-    button(game, bx, by, bw, bh, '再来一局(补20颗)', function () { game.restartRound(); }, { primary: true, size: 32 });
+    button(game, bx, by, bw, bh, '再来一局(补20颗)', game._onRestart, { primary: true, size: 32 });
   }
 
   MG.ui = {
     rr: rr,
     font: font,
     segFont: segFont,
-    shade: shade,
     rgba: rgba,
+    drawGlow: drawGlow,
     drawMarble: drawMarble,
     drawStarSticker: drawStarSticker,
     drawPuppy: drawPuppy,

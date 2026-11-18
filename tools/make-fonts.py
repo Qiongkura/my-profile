@@ -20,23 +20,42 @@ os.makedirs(FONT_DIR, exist_ok=True)
 os.makedirs(CACHE, exist_ok=True)
 
 SOURCES = {
-    'inter': 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/inter/Inter%5Bopsz,wght%5D.ttf',
-    'noto': 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/notosanssc/NotoSansSC%5Bwght%5D.ttf',
+    'inter': [
+        'https://fastly.jsdelivr.net/gh/google/fonts@main/ofl/inter/Inter%5Bopsz,wght%5D.ttf',
+        'https://gcore.jsdelivr.net/gh/google/fonts@main/ofl/inter/Inter%5Bopsz,wght%5D.ttf',
+        'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/inter/Inter%5Bopsz,wght%5D.ttf',
+    ],
+    'noto': [
+        'https://fastly.jsdelivr.net/gh/google/fonts@main/ofl/notosanssc/NotoSansSC%5Bwght%5D.ttf',
+        'https://gcore.jsdelivr.net/gh/google/fonts@main/ofl/notosanssc/NotoSansSC%5Bwght%5D.ttf',
+        'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/notosanssc/NotoSansSC%5Bwght%5D.ttf',
+    ],
 }
 AXES_PIN = {
     'inter': {'opsz': 14},
     'noto': {},
 }
+# 站点 CSS 仅使用 400 与 600 字重(移除未使用的 500/700,直接实例化 600)
 WEIGHTS = {
-    'inter': [400, 500, 600, 700],
-    'noto': [400, 500, 700],
+    'inter': [400, 600],
+    'noto': [400, 600],
 }
-EXTRA_CHARS = set('，。、；：？！""''（）《》〈〉【】〔〕·—…％￥℃×÷±°↑↓←→↗★☆✓→')
+EXTRA_CHARS = set('，。、；：？！“”‘’""\'\'（）《》〈〉【】〔〕·—…％￥℃×÷±°↑↓←→↗★☆✓♪−∞')
+
+SCAN_FILES = (
+    'index.html',
+    'script.js',
+    'hidden.html',
+    '404.html',
+    os.path.join('assets', 'audio', 'cha-tang.lrc'),
+    os.path.join('portfolio', 'index.html'),
+    os.path.join('netease', 'index.html'),
+)
 
 
 def collect_chars():
     chars = set(string.printable) | EXTRA_CHARS
-    for name in ('index.html', 'script.js'):
+    for name in SCAN_FILES:
         p = os.path.join(ROOT, name)
         if os.path.exists(p):
             with io.open(p, encoding='utf-8') as fh:
@@ -45,12 +64,26 @@ def collect_chars():
     return ''.join(sorted(chars))
 
 
-def get_vf(key, url):
+def get_vf(key, urls):
     raw = os.path.join(CACHE, key + '-vf.ttf')
-    if not os.path.exists(raw) or os.path.getsize(raw) < 1000:
-        print('下载', key, '变量字体 ...')
-        urllib.request.urlretrieve(url, raw)
-    return raw
+    if os.path.exists(raw) and os.path.getsize(raw) > 10000:
+        return raw
+    url_list = [urls] if isinstance(urls, str) else list(urls)
+    last_err = None
+    for u in url_list:
+        for attempt in range(2):
+            try:
+                print('下载', key, '变量字体 ←', u.split('/')[2], '...')
+                req = urllib.request.Request(u, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=45) as resp:
+                    data = resp.read()
+                if len(data) > 10000:
+                    with open(raw, 'wb') as out:
+                        out.write(data)
+                    return raw
+            except Exception as err:
+                last_err = err
+    raise RuntimeError('无法下载字体 %s: %s' % (key, last_err))
 
 
 def build(key, url, weights):
@@ -62,7 +95,7 @@ def build(key, url, weights):
         instancer.instantiateVariableFont(f, pins, inplace=True)
         opts = subset.Options()
         opts.flavor = 'woff2'
-        opts.layout_features = ['*']   # 保留 kern 等排版特性
+        opts.layout_features = ['*']
         opts.name_IDs = [1, 2]
         ss = subset.Subsetter(options=opts)
         ss.populate(text=CHARS)

@@ -1,6 +1,6 @@
-/* 弹弹珠机 - 平台适配层 (命名空间: MG.platform)
+/* 弹弹弹珠吧 - 平台适配层 (命名空间: MG.platform)
  * 一套代码适配三端:
- *   browser : 任意现代浏览器(开发/调试用)
+ *   browser : 任意现代浏览器(开发/调试/网页版)
  *   wechat  : 微信小游戏 (wx)
  *   douyin  : 抖音小游戏 (tt)
  * 对上层暴露统一 API:canvas / 尺寸 / 触摸 / 存储 / 震动 / 音效播放 / 离屏画布。
@@ -35,7 +35,6 @@
   function create() {
     var name = detect();
     var isMinigame = name !== 'browser';
-    var g = isMinigame ? root : (typeof window !== 'undefined' ? window : root);
     var sys = name === 'wechat' ? wx : (name === 'douyin' ? tt : null);
     var api = {
       name: name,
@@ -55,6 +54,7 @@
 
     function applySize() {
       var m = metrics();
+      if (api.canvas.width === Math.round(m.w * m.dpr) && api.canvas.height === Math.round(m.h * m.dpr)) return;
       api.cssW = m.w; api.cssH = m.h; api.dpr = m.dpr;
       api.canvas.width = Math.round(m.w * m.dpr);
       api.canvas.height = Math.round(m.h * m.dpr);
@@ -67,8 +67,7 @@
     api.applySize = applySize;
     api.onResize = function (cb) { api._resizeCbs.push(cb); };
 
-    /* 画布已不含状态栏(windowHeight 已扣除),不需要额外安全区;
-       胶囊坐标是屏幕坐标,换算进画布需减状态栏高度 */
+    /* 画布全屏:胶囊坐标直接对齐画布坐标系 */
     var statusBarH = 0;
     var capsuleY = 0;
     if (isMinigame) {
@@ -80,7 +79,7 @@
         if (sys.getMenuButtonBoundingClientRect) {
           var mb = sys.getMenuButtonBoundingClientRect();
           if (mb && mb.height) {
-            capsuleY = (mb.top + mb.bottom) / 2;   /* 画布全屏,胶囊即画布坐标 */
+            capsuleY = (mb.top + mb.bottom) / 2;
             api._mbRaw = 'mb=' + Math.round(mb.top) + '-' + Math.round(mb.bottom);
           }
         }
@@ -89,9 +88,8 @@
     }
     api.statusBarH = statusBarH;
     api.safeTop = 0;
-    api.capsuleY = capsuleY;   /* 画布坐标系中的胶囊中心 */
+    api.capsuleY = capsuleY;
 
-    /* 图片加载(小程序用 wx.createImage,浏览器用 Image) */
     /* 抖音侧边栏复访(审核必接能力):引导用户将小游戏加入侧边栏 */
     api.addToSidebar = function (cb) {
       if (name === 'douyin' && typeof tt !== 'undefined' && tt.navigateToScene) {
@@ -120,15 +118,15 @@
     }
 
     /* ---------- 分包加载(BGM 分包,build-minigames.js 构建时生成) ---------- */
-    api.loadSubpackage = function (name, cb) {
-      if (!isMinigame || !sys.loadSubpackage) { if (cb) cb(); return; }
+    api.loadSubpackage = function (subName, cb) {
+      if (!isMinigame || !sys.loadSubpackage) { if (cb) cb(true); return; }
       try {
         sys.loadSubpackage({
-          name: name,
-          success: function () { if (cb) cb(); },
-          fail: function () { if (cb) cb(); }
+          name: subName,
+          success: function () { if (cb) cb(true); },
+          fail: function () { if (cb) cb(false); }
         });
-      } catch (e) { if (cb) cb(); }
+      } catch (e) { if (cb) cb(false); }
     };
 
     if (isMinigame) {
@@ -154,7 +152,7 @@
       document.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });
     }
 
-    api.volume = 0.8;   // 主音量(小游戏端音效缩放)
+    api.volume = 0.8;   // 主音量(小游戏端音效缩放,由 MG.audio.setVolume 同步)
 
     api._handlers = { down: [], move: [], up: [] };
     api.onTouch = function (type, cb) { api._handlers[type].push(cb); };
@@ -192,21 +190,35 @@
       } catch (e) { /* ignore */ }
     };
 
-    /* ---------- 小游戏端音效播放(浏览器端用 WebAudio 合成,不走这里) ---------- */
-    api.playSound = function (name, vol) {
-      vol = (vol || 1) * (api.volume || 0.8);
+    /* ---------- 小游戏端音效播放(环形实例池,防高频连撞截断;浏览器端走 WebAudio) ---------- */
+    api.playSound = function (sndName, vol) {
       if (!isMinigame) return false;
+      var master = api.volume != null ? api.volume : 0.8;
+      var base = vol != null ? vol : 1;
+      var finalVol = Math.max(0, Math.min(1, base * master));
+      if (finalVol <= 0.001) return true;
       try {
         var pool = api._audioPool;
-        var au = pool[name];
-        if (!au) {
-          au = sys.createInnerAudioContext();
-          au.src = 'assets/sounds/' + name + '.wav';
-          au.obeyMuteSwitch = true;
-          pool[name] = au;
+        var slot = pool[sndName];
+        var cap = sndName === 'peg' ? 4 : 2;
+        if (!slot) {
+          slot = { idx: 0, list: [] };
+          pool[sndName] = slot;
         }
+        var au = slot.list[slot.idx];
+        if (!au) {
+          try {
+            au = sys.createInnerAudioContext({ useWebAudioImplement: true });
+          } catch (e0) {
+            au = sys.createInnerAudioContext();
+          }
+          au.src = 'assets/sounds/' + sndName + '.wav';
+          au.obeyMuteSwitch = true;
+          slot.list[slot.idx] = au;
+        }
+        slot.idx = (slot.idx + 1) % cap;
         try { au.stop(); } catch (e) { }
-        au.volume = vol != null ? vol : 1;
+        au.volume = finalVol;
         au.play();
         return true;
       } catch (e) { return false; }
@@ -217,7 +229,7 @@
       try { return sys.createInnerAudioContext(); } catch (e) { return null; }
     };
 
-    /* ---------- 离屏画布(背景缓存用) ---------- */
+    /* ---------- 离屏画布(背景与精灵缓存用) ---------- */
     api.createOffscreen = function (w, h) {
       var c;
       if (isMinigame) c = sys.createCanvas();
@@ -253,7 +265,11 @@
 
     applySize();
     if (!isMinigame && typeof window !== 'undefined') {
-      window.addEventListener('resize', applySize);
+      var resizeTimer = 0;
+      window.addEventListener('resize', function () {
+        if (resizeTimer) clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(applySize, 120);
+      });
     }
     return api;
   }

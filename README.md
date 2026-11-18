@@ -40,15 +40,21 @@ my-profile/
 │   ├── home-02.webp           # 首页主视觉轮播 2
 │   ├── home-03.webp           # 首页主视觉轮播 3
 │   ├── racing-frame.webp      # BeamNG 车载视角（作品预览）
-│   ├── racing-perception.webp # BeamNG 前视感知画面（RACING）
+│   ├── racing-01~07.webp      # 模拟赛车实拍（RACING 轮播）
+│   ├── racing-lane-01~02.webp # 视觉标线检测叠加（RACING 轮播）
 │   ├── hifi-visualizer.webp   # 音频可视化界面（作品预览）
 │   ├── hifi-gear-01.webp      # 我的设备照片 1（HI-FI 主视觉）
 │   ├── hifi-gear-02.webp      # 我的设备照片 2（HI-FI 主视觉）
 │   ├── focus-home.webp        # Focus-time-tracker 主界面
 │   └── focus-stats.webp       # Focus-time-tracker 统计报告
 ├── assets/audio/
-│   └── cha-tang.mp3         # 最近在听「茶汤」，由你提供的 FLAC 转出的 320 kbps MP3（13.1 MiB）
+│   ├── cha-tang-30s.flac      # 最近在听「茶汤」30 秒无损试听片段（3.34 MiB）
+│   └── cha-tang.lrc           # 同步歌词（7 句）
+├── marble/                    # 弹弹弹珠吧网页端精简静态目录（由 ../marble-machine/tools/sync-web.js 同步）
+├── portfolio/                 # 代码手账 / 全部项目索引页
 ├── tools/
+│   ├── make-fonts.py          # 按站点用字生成子集化 woff2 自托管字体
+│   ├── bump_asset_version.py  # 自动递增静态资源 ?v= 版本号
 │   └── serve.py               # 支持 HTTP Range 的本地预览服务器（音频拖进度条要用它）
 └── README.md
 ```
@@ -59,7 +65,7 @@ my-profile/
 | --- | --- |
 | 01 HOME | 名字、身份、兴趣方向、BUILD / DRIVE / LISTEN、主视觉轮播（3 张） |
 | 02 RACING | BeamNG Autopilot 与真实模块（M1–M6） |
-| 03 PROJECTS | 五个项目的文字目录 + 悬停预览 |
+| 03 PROJECTS | 六个项目的文字目录 + 悬停预览 |
 | 04 HI-FI | Audio Visualizer、常听类型（各带一首代表曲目）、最近在听「茶汤」（可点播） |
 | 05 ABOUT | 学校年级、三个关键词、技术栈、联系方式 |
 
@@ -149,7 +155,7 @@ ffmpeg -y -ss 46 -t 30 -i "茶汤.flac"   -af "afade=t=in:st=0:d=1.5,afade=t=out
 
 ## 项目页的悬停简介
 
-PROJECTS 一页上，把鼠标停在某个项目名字上**满 2 秒**会触发一次展开：
+PROJECTS 一页上，把鼠标停在某个项目名字上**满 0.5 秒**会触发一次展开：
 
 - 左栏收窄到「项目名文字的实际宽度」，预览模块因此左移贴住文字，同时略微变窄；
 - 模块原本占据的右侧位置淡入该项目的简介（分类、标题、两三句说明、技术标签）。

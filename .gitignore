@@ -1,3 +1,36 @@
 .vscode/
 .tmp/
+.env
+.env.*
+.dev.vars
+node_modules/
+__pycache__/
+*.pyc
+
+# 关闭在线音乐解析页与内置代理接口对外发布（本地文件保留，需要恢复时移除以下 5 行）
+netease/
+assets/netease-music.js
+assets/netease-theme.css
+functions/
+_routes.json
+
+# 弹珠游戏敏感脚本、软著资料、原曲母带与小游戏工程（由 marble-machine 独立维护，仅同步网页精简产物）
 marble/dist/
+marble/tools/
+marble/docs/
+marble/assets/bgm/*.wav
+marble/assets/bgm/README.txt
+marble/assets/sounds/
+marble/game.js
+marble/game.json
+marble/project.config.json
+
+# 作品集未引用原图与已转 WebP 的旧 PNG（本地保留，不进线上仓库）
+portfolio/assets/*.png
+portfolio/assets/my-profile.webp
+
+# 已废弃的旧字重文件
+fonts/inter-500.woff2
+fonts/inter-700.woff2
+fonts/noto-500.woff2
+fonts/noto-700.woff2

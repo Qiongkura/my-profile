@@ -10,10 +10,11 @@
     />
     <meta name="theme-color" content="#fafaf8" />
     <!-- 字体自托管(子集化 woff2,同域加载无墙):tools/make-fonts.py 生成 -->
-    <link rel="preload" as="font" type="font/woff2" href="fonts/noto-400.woff2" crossorigin />
-    <link rel="preload" as="font" type="font/woff2" href="fonts/inter-400.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="fonts/noto-400.woff2?v=2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="fonts/inter-400.woff2?v=2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="fonts/inter-600.woff2?v=2" crossorigin />
     <link rel="preload" as="image" href="assets/home-01.webp" />
-    <link rel="stylesheet" href="styles.css?v=51" />
+    <link rel="stylesheet" href="styles.css?v=55" />
     <script>
       /* 在样式生效前确定语言，避免切换时闪烁 */
       (function () {
@@ -28,7 +29,7 @@
     </script>
   </head>
   <body>
-    <a class="skip-link" href="#home"><span class="zh">跳到主要内容</span><span class="en" lang="en">Skip to main content</span></a>
+    <a class="skip-link" href="#main-content"><span class="zh">跳到主要内容</span><span class="en" lang="en">Skip to main content</span></a>
 
     <header class="topbar">
       <div class="topbar-inner">
@@ -141,7 +142,7 @@
             <div class="racing-main reveal">
               <figure class="frame frame--wide frame--slides" data-slideshow>
                 <div class="slides">
-                  <img class="slide is-active" src="assets/racing-01.webp" alt="模拟赛车实拍" data-alt-zh="模拟赛车实拍" data-alt-en="Sim racing capture" data-cap-zh="模拟赛车实拍" data-cap-en="Sim racing capture" width="1600" height="900" fetchpriority="high" decoding="async"  style="object-position: center 55%" />
+                  <img class="slide is-active" src="assets/racing-01.webp" alt="模拟赛车实拍" data-alt-zh="模拟赛车实拍" data-alt-en="Sim racing capture" data-cap-zh="模拟赛车实拍" data-cap-en="Sim racing capture" width="1600" height="900" loading="lazy" decoding="async" style="object-position: center 55%" />
                   <img class="slide" src="assets/racing-lane-01.webp" alt="视觉标线检测结果叠加在车载画面上" data-alt-zh="视觉标线检测结果叠加在车载画面上" data-alt-en="Vision lane-marking detection overlaid on the front camera view" data-cap-zh="视觉标线检测" data-cap-en="Vision lane marking detection" width="1076" height="806" loading="lazy" decoding="async" style="object-position: center 100%" />
                   <img class="slide" src="assets/racing-02.webp" alt="模拟赛车实拍" data-alt-zh="模拟赛车实拍" data-alt-en="Sim racing capture" data-cap-zh="模拟赛车实拍" data-cap-en="Sim racing capture" width="1600" height="860" loading="lazy" decoding="async"  style="object-position: center 55%" />
                   <img class="slide" src="assets/racing-03.webp" alt="模拟赛车实拍" data-alt-zh="模拟赛车实拍" data-alt-en="Sim racing capture" data-cap-zh="模拟赛车实拍" data-cap-en="Sim racing capture" width="1600" height="860" loading="lazy" decoding="async"  style="object-position: center 55%" />
@@ -411,7 +412,7 @@
               </figure>
             </div>
 
-            <aside class="work-brief" id="work-brief" aria-label="项目简介">
+            <aside class="work-brief" id="work-brief" aria-label="项目简介" data-aria-zh="项目简介" data-aria-en="Project brief" aria-hidden="true">
               <article class="work-brief-item is-active" data-brief="0">
                 <p class="brief-kicker">01 / <span class="zh">强化学习</span><span class="en" lang="en">Reinforcement Learning</span></p>
                 <h3 class="brief-title"><span class="zh">DQN 贪吃蛇</span><span class="en" lang="en">DQN Snake</span></h3>
@@ -630,7 +631,7 @@
                         <svg class="pick-icon pick-icon--vol" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.2 9.4h3.1L12 5.5v13l-4.7-3.9H4.2z" /><path d="M15.3 9.5a3.9 3.9 0 0 1 0 5M17.7 7.1a7.1 7.1 0 0 1 0 9.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
                         <svg class="pick-icon pick-icon--muted" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.2 9.4h3.1L12 5.5v13l-4.7-3.9H4.2z" /><path d="M15.4 9.7l4.3 4.6M19.7 9.7l-4.3 4.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
                       </button>
-                      <span class="pick-vol-bar" data-pick-vol-bar role="slider" tabindex="0" data-aria-zh="音量" data-aria-en="Volume" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80">
+                      <span class="pick-vol-bar" data-pick-vol-bar role="slider" tabindex="0" data-aria-zh="音量" data-aria-en="Volume" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
                         <span class="pick-vol-fill" data-pick-vol-fill></span>
                         <span class="pick-vol-knob" data-pick-vol-knob aria-hidden="true"></span>
                       </span>
@@ -645,14 +646,6 @@
                   <a class="ghost-link" href="https://music.163.com/song?id=316157" target="_blank" rel="noreferrer">↗</a>
                 </p>
               </div>
-
-              <!-- 网易云解析是独立页面，主页这里只放一个入口链接 -->
-              <p class="hifi-jump">
-                <span class="zh">想听点别的？</span><span class="en" lang="en">Want something else?</span>
-                <a class="ghost-link" href="/netease/">
-                  <span class="zh">网易云解析 ↗</span><span class="en" lang="en">NetEase parser ↗</span>
-                </a>
-              </p>
 
               <!-- lyrics:start —— 与 data-lrc 指向的 LRC 文件对应；没有该文件时整块 hidden，暂停时收起 -->
               <div class="lyrics" id="lyrics" hidden>
@@ -772,11 +765,28 @@
               <span class="zh">用技术、赛车和声音搭起来的个人空间</span>
               <span class="en" lang="en">A personal space built from technology, racing and sound</span>
             </span>
+            <a
+              class="meta-note meta-link"
+              href="https://beian.miit.gov.cn/"
+              target="_blank"
+              rel="noreferrer"
+              >粤ICP备2026176680号-1</a
+            >
+          </div>
+          <div class="wrap panel-foot-legal">
+            <span class="meta-note"
+              ><span class="zh">主办人：袁哲宇（个人） · 联系邮箱：2447402326@qq.com</span
+              ><span class="en" lang="en">Hosted by Yuan Zheyu (individual) · Contact: 2447402326@qq.com</span></span
+            >
+            <span class="meta-note"
+              ><span class="zh">本站为个人非经营性网站，仅用于作品展示与技术分享，不提供任何在线服务，不涉及人工智能生成或深度合成业务</span
+              ><span class="en" lang="en">A non-commercial personal site for showcasing work and sharing knowledge — no online services, no AI generation or deep synthesis business</span></span
+            >
           </div>
         </div>
       </section>
     </main>
 
-    <script src="script.js?v=48"></script>
+    <script src="script.js?v=55"></script>
   </body>
 </html>

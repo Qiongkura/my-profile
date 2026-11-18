@@ -1,9 +1,9 @@
 /* 弹弹弹珠吧 - 游戏主逻辑 (命名空间: MG.Game)
  * 复刻玻璃珠游艺机:
- *   - 右下角先选投入弹珠数(1~5 颗)= 选倍率 ×2~×10,投入越多亮灯的洞越少
+ *   - 右下角先选投入弹珠数(1~5 颗)= 选倍率 ×2~×6,投入越多亮灯的洞越少
  *   - 按住蓄力,松手把弹珠从右下角往上弹,冲过顶部导弧拐入斜面场地
  *   - 力度太小弹珠滚回来,退还投入;从亮灯的洞滑落 = 中奖,赢回 投入×倍率 颗
- *   - ×6 及以上中奖送礼品卡,每次中奖送玩具球;弹珠库见底本局结束
+ *   - ×6 中奖送礼品卡,每次中奖送玩具球;弹珠库见底本局结束
  * 状态机: menu / help / play / pause / result
  */
 (function (root) {
@@ -31,7 +31,7 @@
     this.volSfx = Math.max(0, Math.min(1, platform.storage.get('mm_vol_sfx', legacyVol)));
     this.volMusic = Math.max(0, Math.min(1, platform.storage.get('mm_vol_music', legacyVol)));
     MG.music.init(platform);
-    MG.music.setMuted(this.muted);   /* 同步存档静音态:静音时解锁手势后不得自启 BGM */
+    MG.music.setMuted(this.muted);
     MG.music.setVolume(this.volMusic);
     MG.audio.setVolume(this.volSfx);
     MG.music.setSong(this.songIdx);
@@ -44,16 +44,17 @@
     this.state = 'menu';
     this.stateT = 0;
     this.time = 0;
-    this.bank = 0;              // 弹珠库
-    this.selIdx = 0;            // 选中的投入档位
-    this.launched = 0;          // 本局发射次数
+    this.bank = 0;
+    this.selIdx = 0;
+    this.launched = 0;
     this.wins = 0;
     this.maxWin = 0;
     this.prizeBalls = 0;
     this.giftCards = 0;
     this.tierPopT = 0;
     this.newRecord = false;
-    this.lastEarned = 0;        // 结算页:最大单次赢取
+    this.roundEnded = false;
+    this.lastEarned = 0;
     this.skinIdx = 0;
     this.endTimer = -1;
     this.launcherCool = 0;
@@ -65,6 +66,29 @@
     this.frameButtons = [];
     this.fx = MG.fx.create();
     this.bg = null;
+    this._segSprites = {};
+
+    /* 预先绑定高频 UI 回调,避免每帧重复产生函数闭包 */
+    this._onToggleMute = function () { self.toggleMute(); };
+    this._onCycleMusic = function () { self.cycleMusic(); };
+    this._onBackHome = function () { self.backToMenu(); };
+    this._onPause = function () { self.state = 'pause'; self.stateT = 0; self.charging = false; MG.music.pause(); };
+    this._onResume = function () { self.state = 'play'; self.stateT = 0; MG.music.play(); };
+    this._onStartGame = function () { self.startGame(); };
+    this._onRestart = function () { self.restartRound(); };
+    this._onOpenHelp = function () { self.state = 'help'; self.stateT = 0; };
+    this._onCloseHelp = function () { self.state = 'menu'; self.stateT = 0; };
+    this._onToggleTheme = function () { self.setTheme(self.theme === 'arcade' ? 'min' : 'arcade'); };
+    this._onSidebar = function () { self.platform.addToSidebar(); };
+    this._onShare = function () {
+      self.platform.share('我在「弹弹弹珠吧」中了 ' + self.wins + ' 次,最大单次赢 ' + U.fmt(self.maxWin) + ' 颗弹珠!');
+    };
+    this._tierCbs = [];
+    for (var ti = 0; ti < CFG.tiers.length; ti++) {
+      (function (idx) {
+        self._tierCbs.push(function () { self.selectTier(idx); });
+      })(ti);
+    }
 
     /* 主题:极简(默认)/ 复古街机 */
     this.theme = platform.storage.get('mm_theme', 'min') === 'arcade' ? 'arcade' : 'min';
@@ -82,8 +106,19 @@
     });
     platform.onTouch('up', function (pt) { self.handleUp(pt); });
     platform.onResize(function () {
+      /* 窗口尺寸变化时先退还在飞弹珠的投入,重建棋盘后恢复亮灯状态 */
+      if (self.world && self.world.balls.length > 0) {
+        for (var bi = 0; bi < self.world.balls.length; bi++) {
+          var mb = self.world.balls[bi];
+          if (!mb.dead) self.bank += (mb.bet || 1);
+        }
+      }
       self.computeView();
+      self._segSprites = {};
       self.buildBoard(self.round || 0);
+      if (self.state === 'play' || self.state === 'pause' || self.state === 'result') {
+        self.applyLit();
+      }
     });
   }
 
@@ -91,7 +126,7 @@
 
   Game.prototype.computeView = function () {
     var p = this.platform;
-    var safe = p.safeTop || 0;                 /* 状态栏+胶囊占用的顶部安全区 */
+    var safe = p.safeTop || 0;
     var availH = Math.max(400, p.cssH - safe);
     var H = U.clamp(CFG.DESIGN_W * availH / p.cssW, CFG.H_MIN, CFG.H_MAX);
     var scale = Math.min(p.cssW / CFG.DESIGN_W, availH / H);
@@ -100,7 +135,6 @@
     this.view.scale = scale;
     this.view.offX = (p.cssW - CFG.DESIGN_W * scale) / 2;
     this.view.offY = safe + (availH - H * scale) / 2;
-    /* 顶部图标簇的高度:小游戏端对齐胶囊按钮中心,浏览器端固定 42 */
     this.iconRowY = 42;
     if (p.capsuleY) {
       this.iconRowY = U.clamp((p.capsuleY + (p.iconRowAdjCss || 0) - this.view.offY) / scale, 8, 96);
@@ -128,12 +162,12 @@
     var i;
     for (i = 0; i < this.board.pegs.length; i++) {
       var peg = this.board.pegs[i];
-      peg.kind = 'peg'; peg.e = 0.12;   /* 钉子要"拨"不要"弹":撞后仅回弹 12% */
+      peg.kind = 'peg'; peg.e = 0.12;
       this.world.addCircle(peg);
     }
     for (i = 0; i < this.board.bumpers.length; i++) {
       var bumper = this.board.bumpers[i];
-      bumper.e = 0.25;   /* 大弹柱调低:不再当炮台,只拨球 */
+      bumper.e = 0.25;
       this.world.addCircle(bumper);
     }
     for (i = 0; i < this.board.dividers.length; i++) this.world.addSeg(this.board.dividers[i]);
@@ -151,6 +185,7 @@
   /* ================= 流程 ================= */
 
   Game.prototype.startGame = function () {
+    MG.music.play();   /* 确保从暂停回菜单再开局时背景音乐正常恢复 */
     this.bank = CFG.startBank;
     this.selIdx = 0;
     this.launched = 0;
@@ -158,6 +193,7 @@
     this.maxWin = 0;
     this.prizeBalls = 0;
     this.giftCards = 0;
+    this.roundEnded = false;
     this.buildBoard(1);
     this.applyLit();
     this.state = 'play';
@@ -166,7 +202,7 @@
   };
 
   Game.prototype.restartRound = function () {
-    MG.music.play();   /* 从暂停恢复时音乐接着放 */
+    MG.music.play();
     this.bank = CFG.startBank;
     this.selIdx = 0;
     this.launched = 0;
@@ -174,7 +210,8 @@
     this.maxWin = 0;
     this.prizeBalls = 0;
     this.giftCards = 0;
-    this.buildBoard(this.round);
+    this.roundEnded = false;
+    this.buildBoard((this.round || 0) + 1);
     this.applyLit();
     this.state = 'play';
     this.stateT = 0;
@@ -182,6 +219,8 @@
   };
 
   Game.prototype.backToMenu = function () {
+    this.charging = false;
+    this.sliderArmed = false;
     this.state = 'menu';
     this.stateT = 0;
     this.buildBoard(0);
@@ -191,7 +230,13 @@
   Game.prototype.cycleMusic = function () {
     var name = MG.music.next();
     this.platform.storage.set('mm_song', MG.music.current());
-    MG.fx.text(this.fx, 106, 96, '♪ ' + name, { size: 24, color: '#fff8ea', life: 1.5 });
+    var isArc = this.theme === 'arcade';
+    this.fxLabel(150, (this.iconRowY || 42) + 54, '♪ ' + name, {
+      size: 22,
+      color: isArc ? '#fff8ea' : '#2f2d29',
+      stroke: isArc ? 'rgba(60,34,6,0.7)' : 'rgba(255,255,255,0.9)',
+      life: 1.5
+    });
     MG.audio.play('click');
   };
 
@@ -203,6 +248,8 @@
   };
 
   Game.prototype.endRound = function () {
+    if (this.roundEnded) return;
+    this.roundEnded = true;
     this.platform.storage.set('mm_prizes', this.prizeBallsTotal + this.prizeBalls);
     this.platform.storage.set('mm_cards', this.giftCardsTotal + this.giftCards);
     this.newRecord = this.maxWin > this.bestWin && this.maxWin > 0;
@@ -224,7 +271,13 @@
     return CFG.tiers[U.clamp(this.selIdx, 0, CFG.tiers.length - 1)];
   };
 
-  /* 右下角选投入弹珠数 */
+  /* 余额不足当前档位时自动退到最高可投档位 */
+  Game.prototype.clampTier = function () {
+    while (this.selIdx > 0 && CFG.tiers[this.selIdx].cost > this.bank) {
+      this.selIdx--;
+    }
+  };
+
   Game.prototype.selectTier = function (idx) {
     var t = CFG.tiers[idx];
     if (!t || t.cost > this.bank || idx === this.selIdx) return;
@@ -234,7 +287,6 @@
     MG.audio.play('click');
   };
 
-  /* 按当前档位随机点亮洞口 */
   Game.prototype.applyLit = function () {
     var holes = this.board.holes;
     var i;
@@ -273,12 +325,19 @@
       }
     }
     if (this.state !== 'play') return;
+    if (this.world.balls.length > 0) {
+      this.fxLabel(this.board.lane.cx - 10, this.board.lane.floorY - 130, '等上一颗落定', { size: 22, color: '#fff8ea', life: 0.8 });
+      return;
+    }
+    if (this.bank < this.tier().cost) {
+      this.fxLabel(this.board.lane.cx - 10, this.board.lane.floorY - 80, '弹珠不够', { size: 22, color: '#e8352e' });
+      return;
+    }
     this.charging = true;
     this.chargeT = 0;
     this._downT = this.time;
   };
 
-  /* 分声道音量:sl = renderPause 注册的滑条描述 */
   Game.prototype.setChannelVolume = function (sl, x) {
     var v = U.clamp((x - sl.x) / sl.w, 0, 1);
     v = Math.round(v * 100) / 100;
@@ -299,18 +358,16 @@
     this.charging = false;
     if (this.state !== 'play') return;
     var quick = (this.time - this._downT) < CFG.launcher.tapJudge;
-    /* 点按绕过非线性曲线,直接用原始力度(5% 轻弹) */
     var power = quick ? CFG.launcher.tapPower : this.chargePower();
     this.launch(power);
   };
 
-  /* 力度三角波:0 → 1 → 0 来回摆动 */
   Game.prototype.chargePower = function () {
     var c = (this.chargeT * CFG.launcher.chargeSpeed) % 1;
+    if (c < 0) c += 1;
     return c < 0.5 ? c * 2 : 2 - c * 2;
   };
 
-  /* 发射:右下角向上弹(场上同时只能有一颗弹珠) */
   Game.prototype.launch = function (power) {
     if (this.state !== 'play' || this.launcherCool > 0) return;
     if (this.world.balls.length > 0) {
@@ -324,24 +381,20 @@
     }
     this.bank -= tier.cost;
     this.launched++;
-    /* 亮灯洞只在换档位时重排,发射前后保持不变 */
 
     var lane = this.board.lane;
-    /* 两段式力度:前 40% 曲线(到临界),后 60% 线性到最大 */
     var cp = CFG.launcher.crestPower;
-    var crest = this.board.crestSpeed || CFG.launcher.crestSpeed;   /* 随屏高自适应 */
+    var crest = this.board.crestSpeed || CFG.launcher.crestSpeed;
     var frac = (crest - CFG.launcher.minSpeed) / (CFG.launcher.maxSpeed - CFG.launcher.minSpeed);
     var lp;
     if (power <= cp) {
       var t = power / cp;
-      t = t * t * (3 - 2 * t);   /* smoothstep 曲线 */
+      t = t * t * (3 - 2 * t);
       lp = t * frac;
     } else {
       lp = frac + (1 - frac) * ((power - cp) / (1 - cp));
     }
     var speed = U.lerp(CFG.launcher.minSpeed, CFG.launcher.maxSpeed, lp);
-    /* 垂直上升:无水平抖动 */
-    /* 出膛随机抖动:真机弹珠在弹道内颤动,混沌放大让每次落点不同 */
     var jx = U.rand(-16, 16);
     var m = new MG.entities.Marble(lane.spawn.x + jx * 0.4, lane.spawn.y, jx * 3, -speed * U.rand(0.975, 1.025), this.skinIdx++ % C.marbleTints.length);
     m.bet = tier.cost;
@@ -367,7 +420,7 @@
         e.circle.pulse = 1;
         MG.fx.ring(this.fx, e.x, e.y, '#ffffff', 54, 0.3, 3);
         if (!(e.circle.sndCd > 0)) {
-          e.circle.sndCd = 0.15;   /* 同柱 0.15s 内不重复发声 */
+          e.circle.sndCd = 0.15;
           MG.audio.play('bumper', { vol: Math.min(1, 0.4 + e.speed / 2000) });
         }
         break;
@@ -382,7 +435,6 @@
     }
   };
 
-  /* 居中特效文字并夹在机台内(中文按约 0.92em 估算宽度,防两端被裁) */
   Game.prototype.fxLabel = function (x, y, str, opts) {
     opts = opts || {};
     var size = opts.size || 24;
@@ -391,7 +443,6 @@
     MG.fx.text(this.fx, cx, y, str, opts);
   };
 
-  /* 弹道内滚回:退还投入 */
   Game.prototype.refund = function (m) {
     this.bank += (m.bet || 1);
     MG.fx.drop(this.fx, m.x, m.y, m.r, C.marbleTints[m.skin % C.marbleTints.length]);
@@ -401,7 +452,6 @@
     MG.audio.play('click');
   };
 
-  /* 卡住解救失败:退回投入收球(不按下方洞口结算,卡在高处也不白给) */
   Game.prototype.rescueRefund = function (m) {
     this.bank += (m.bet || 1);
     MG.fx.drop(this.fx, m.x, m.y, m.r, C.marbleTints[m.skin % C.marbleTints.length]);
@@ -410,12 +460,11 @@
     MG.audio.play('click');
   };
 
-  /* 切换机台主题(极简 / 复古街机):只重绘外观缓存,
-     不动棋盘/物理世界——在飞的弹珠与亮灯洞口原样保留 */
   Game.prototype.setTheme = function (t) {
     this.theme = (t === 'arcade') ? 'arcade' : 'min';
     this.platform.storage.set('mm_theme', this.theme);
     MG.config.setTheme(this.theme);
+    this._segSprites = {};
     this.buildBg();
   };
 
@@ -423,7 +472,6 @@
     return this.theme === 'arcade' ? '复古街机' : '极简';
   };
 
-  /* 落入洞口:亮灯 = 中奖 */
   Game.prototype.captureHole = function (m) {
     var b = this.board;
     var idx = U.clamp(Math.floor((m.x - b.innerX0) / b.pw), 0, b.holeN - 1);
@@ -454,7 +502,7 @@
       MG.fx.burst(this.fx, m.x, b.floorY - 26, '#d9b26a', 8, 180);
       MG.audio.play('slot', { pitch: 0.85, vol: 0.6 });
     }
-    /* 每颗弹珠落定后重置亮灯洞口位置(发射前后不变) */
+    this.clampTier();
     this.applyLit();
   };
 
@@ -469,9 +517,8 @@
     if (this.state !== 'play') return;
 
     var b = this.board;
-    var i, k;
+    var i;
 
-    /* 蓄力:场上还有球或冷却中时,力度条冻结(松手即所见力度) */
     if (this.charging && this.world.balls.length === 0 && this.launcherCool <= 0) {
       this.chargeT += dt;
     }
@@ -480,7 +527,6 @@
 
     this.world.step(dt, 12);
 
-    /* 弹珠簿记 */
     var balls = this.world.balls;
     var alive = 0;
     for (i = 0; i < balls.length; i++) {
@@ -491,12 +537,17 @@
       m.age += dt;
       m.wallSndT -= dt;
 
-      /* 拖尾 */
+      /* 拖尾(复用槽位对象避免高频分配) */
       m.trailT -= dt;
       if (m.trailT <= 0) {
         m.trailT = 0.035;
-        m.trail.push({ x: m.x, y: m.y });
-        if (m.trail.length > 7) m.trail.shift();
+        if (m.trail.length < 7) {
+          m.trail.push({ x: m.x, y: m.y });
+        } else {
+          var oldest = m.trail.shift();
+          oldest.x = m.x; oldest.y = m.y;
+          m.trail.push(oldest);
+        }
       }
 
       var speed = Math.sqrt(m.vx * m.vx + m.vy * m.vy);
@@ -509,15 +560,11 @@
       } else {
         m.refundT = 0;
 
-        /* 落入洞口:球必须完全落进洞口内(帽线以下、两针之间)才计算,
-           在隔针顶/侧面弹跳一律不算 */
         if (m.y > b.capY - 6 && m.y < b.floorY + 30 && m.x < b.lane.x0 - 10) {
           this.captureHole(m);
           continue;
         }
 
-        /* 卡住解救(通用,不指定落洞):持续低速 → 往下抖落;
-           反复解救无效 → 退还投入收球。卡在高处也不会按下方洞口白给 */
         if (speed < 40) m.stuckTotal = (m.stuckTotal || 0) + dt;
         else m.stuckTotal = Math.max(0, (m.stuckTotal || 0) - dt * 2);
         if (m.rescueCd > 0) m.rescueCd -= dt;
@@ -525,7 +572,7 @@
           m.rescueCd = 0.6;
           m.rescues = (m.rescues || 0) + 1;
           m.vx += U.rand(-240, 240);
-          m.vy += U.rand(60, 150);   /* 只往下抖,不往高处跳 */
+          m.vy += U.rand(60, 150);
           MG.fx.text(this.fx, m.x, m.y - 26, '解救', { size: 18, color: '#9a9a9a', life: 0.7 });
         }
         if (m.rescues > 4 || m.age > 25) {
@@ -535,7 +582,6 @@
       }
     }
 
-    /* 闪光衰减 */
     for (i = 0; i < b.pegs.length; i++) b.pegs[i].flash = Math.max(0, b.pegs[i].flash - dt * 3.5);
     for (i = 0; i < b.bumpers.length; i++) {
       b.bumpers[i].pulse = Math.max(0, b.bumpers[i].pulse - dt * 3);
@@ -543,32 +589,42 @@
     }
     for (i = 0; i < b.holes.length; i++) b.holes[i].flash = Math.max(0, b.holes[i].flash - dt * 2);
 
-    /* 弹珠库见底 → 本局结束 */
-    if (this.bank < 1 && alive === 0) {
+    if (!this.roundEnded && this.bank < 1 && alive === 0) {
       if (this.endTimer < 0) this.endTimer = 1.0;
       this.endTimer -= dt;
       if (this.endTimer <= 0) { this.endTimer = -1; this.endRound(); }
     }
   };
 
-  /* ================= 背景缓存(整个机台) ================= */
+  /* ================= 背景缓存(整个静态机台 + 静态圆钉) ================= */
 
   Game.prototype.buildBg = function () {
     var p = this.platform;
     var W = this.view.W, H = this.view.H;
     var b = this.board;
-    var off = p.createOffscreen(p.canvas.width, p.canvas.height);
+    var cw = p.canvas.width, ch = p.canvas.height;
+    /* 复用同一张离屏画布,避免每次重建/换主题泄漏 ~5MB 纹理 */
+    var off = this.bg;
+    if (!off) {
+      off = p.createOffscreen(cw, ch);
+    } else if (off.width !== cw || off.height !== ch) {
+      off.width = cw;
+      off.height = ch;
+    }
     var ctx = off.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cw, ch);
+
     var ui = MG.ui;
-    if (p.isMinigame) {                       /* 安全区/留边铺机身底色 */
+    if (p.isMinigame) {
       ctx.fillStyle = C.cabYellowHi;
-      ctx.fillRect(0, 0, off.width, off.height);
+      ctx.fillRect(0, 0, cw, ch);
     }
 
     var s = this.view.scale * p.dpr;
     ctx.setTransform(s, 0, 0, s, this.view.offX * p.dpr, this.view.offY * p.dpr);
 
-    /* ---- 机身(金黄) ---- */
+    /* ---- 机身 ---- */
     ui.rr(ctx, -3, -3, W + 6, H + 6, 34);
     var body = ctx.createLinearGradient(0, 0, 0, H);
     body.addColorStop(0, C.cabYellowHi);
@@ -585,7 +641,7 @@
 
     var ARC = CFG.themeName === 'arcade';
 
-    /* ---- 顶部标题面板(直接印在机身,上接白框、下接顶轨,四边齐平不浮空) ---- */
+    /* ---- 顶部标题面板 ---- */
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     if (ARC) {
@@ -611,7 +667,7 @@
       ui.drawStarSticker(ctx, 146, 0, 9, 0, 0.95);
       ctx.restore();
     } else {
-      var titleY = Math.max(196, (this.iconRowY || 42) + 64);   /* 跟随图标行,永不被按键遮挡 */
+      var titleY = Math.max(196, (this.iconRowY || 42) + 64);
       ui.font(ctx, 46);
       ctx.fillStyle = C.panelText;
       ctx.fillText('弹弹弹珠吧', 160, titleY);
@@ -620,8 +676,8 @@
       ctx.fillText('MARBLE MACHINE', 160, titleY + 40);
     }
 
-    /* 深色 LED 显示屏:弹珠库 / 倍率 */
-    this._ledBank = { x: 300, y: 200, w: 200, h: 84 };   /* 胶囊下方,躲开右上角 */
+    /* 深色 LED 显示屏底座 */
+    this._ledBank = { x: 300, y: 200, w: 200, h: 84 };
     this._ledTier = { x: 512, y: 200, w: 140, h: 84 };
     var leds = [this._ledBank, this._ledTier];
     var labels = ['弹珠库', '倍率'];
@@ -635,8 +691,7 @@
       ctx.fillText(labels[li], lr.x + lr.w / 2, lr.y + 20);
     }
 
-
-    /* ---- 场地(浅暖灰斜面,铺满全宽;左右上角对称圆角与导轨重合) ---- */
+    /* ---- 场地 ---- */
     var R2 = b.cornerL.r;
     function fieldPath(c) {
       c.beginPath();
@@ -656,7 +711,6 @@
     ctx.fillStyle = field;
     ctx.fill();
 
-    /* 场地印花与玻璃反光(复古主题) */
     if (ARC) {
       ctx.save();
       fieldPath(ctx);
@@ -685,12 +739,28 @@
       ctx.restore();
     }
 
-    /* ---- 发射道槽(场内右侧,自内墙顶以下;槽宽 = 内墙 face 到右墙 face) ---- */
+    /* ---- 静态圆钉烘焙进离屏层(极简主题全部圆钉 + 复古主题非 LED 钉) ---- */
+    for (var pi = 0; pi < b.pegs.length; pi++) {
+      var spg = b.pegs[pi];
+      if (ARC && spg.led) continue;
+      ctx.beginPath();
+      ctx.arc(spg.x + 1, spg.y + 2, spg.r, 0, U.TAU);
+      ctx.fillStyle = 'rgba(0,0,0,0.07)';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(spg.x, spg.y, spg.r, 0, U.TAU);
+      ctx.fillStyle = C.pegBody;
+      ctx.fill();
+      ctx.strokeStyle = C.pegRim;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    /* ---- 发射道槽 ---- */
     ctx.fillStyle = C.laneSlot;
     ctx.fillRect(b.lane.x0 + 8, b.lane.top, (W - 28) - (b.lane.x0 + 8), b.lane.floorY - b.lane.top);
     ctx.fillStyle = C.laneEdge;
     ctx.fillRect(b.lane.x0 - 7, b.lane.top, 14, b.lane.floorY - b.lane.top);
-    /* 边界与导流一体轨:左墙 → 左弧角 → 顶轨 → 右弧角 → 右墙(竖直段与弧端同 x,严丝合缝) */
     ctx.save();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -709,7 +779,7 @@
     ctx.stroke();
     ctx.restore();
 
-    /* 墙边斜挡板(轨道同款材质,可见) */
+    /* 墙边斜挡板 */
     ctx.save();
     ctx.lineCap = 'round';
     ctx.strokeStyle = C.trackMain;
@@ -792,7 +862,7 @@
       ctx.stroke();
     }
 
-    /* ---- 操作台:极简 = 浅色 + 发丝线;复古 = 黄渐变 + 白描边 ---- */
+    /* ---- 操作台 ---- */
     var panelY = H - b.panelH;
     ui.rr(ctx, 8, panelY, W - 12, H - panelY - 4, 24);
     if (ARC) {
@@ -812,7 +882,6 @@
       ctx.stroke();
     }
 
-    /* 弹珠库托盘 */
     ctx.textAlign = 'left';
     ui.font(ctx, 22);
     ctx.fillStyle = C.panelText;
@@ -860,7 +929,6 @@
     ctx.fillStyle = C.dim;
     ctx.fillText('力度', this._bar.x + this._bar.w / 2, this._bar.y - 16);
 
-    /* 投入档位标签 */
     ctx.textAlign = 'center';
     ui.font(ctx, 20);
     ctx.fillStyle = C.panelText;
@@ -869,13 +937,11 @@
     ctx.fillStyle = C.dim;
     ctx.fillText('投入越多 · 倍率越高 · 亮灯越少', 536, panelY + 148);
 
-    /* 安全提示(操作台底栏小字) */
     ctx.textAlign = 'center';
     ui.font(ctx, 11, false);
     ctx.fillStyle = C.finePrint;
     ctx.fillText('本游戏适合8周岁以上用户使用 · 弹珠只供游戏，严禁吞食', W / 2, panelY + 202);
 
-    /* 提示 */
     ui.font(ctx, 20, false);
     ctx.fillStyle = ARC ? C.panelText : C.dim;
     ctx.fillText('按住蓄力 · 松手弹珠', this._go.x, panelY + b.panelH - 20);
@@ -904,17 +970,17 @@
 
     this.frameButtons.length = 0;
 
-    var st = this.state;   /* 先取状态再画图标(此前 var 提升导致判断时 st 为 undefined) */
+    var st = this.state;
+    var allowTopHud = (st !== 'help');
 
-    /* 顶部图标簇:音效 / 音乐 / 主页(主页非菜单态显示) */
-    MG.ui.iconButton(this, 56, this.iconRowY, 24, 'sound', function () { this.toggleMute(); }.bind(this));
-    MG.ui.iconButton(this, 106, this.iconRowY, 24, 'music', function () { this.cycleMusic(); }.bind(this));
-    /* 抖音:侧边栏复访入口(审核必接能力):菜单态在主页后,游戏态在暂停后 */
+    /* 顶部图标簇(help 全屏遮罩时不注册底层按钮,防穿透) */
+    MG.ui.iconButton(this, 56, this.iconRowY, 24, 'sound', allowTopHud ? this._onToggleMute : null);
+    MG.ui.iconButton(this, 106, this.iconRowY, 24, 'music', allowTopHud ? this._onCycleMusic : null);
     if (p.name === 'douyin' && st === 'menu') {
-      MG.ui.iconButton(this, 206, this.iconRowY, 24, 'sidebar', function () { this.platform.addToSidebar(); }.bind(this));
+      MG.ui.iconButton(this, 206, this.iconRowY, 24, 'sidebar', this._onSidebar);
     }
     if (st !== 'menu') {
-      MG.ui.iconButton(this, 156, this.iconRowY, 24, 'home', function () { this.backToMenu(); }.bind(this));
+      MG.ui.iconButton(this, 156, this.iconRowY, 24, 'home', allowTopHud ? this._onBackHome : null);
     }
 
     if (st === 'menu') {
@@ -927,30 +993,36 @@
       if (st === 'pause') MG.ui.renderPause(this);
       else if (st === 'result') MG.ui.renderResult(this);
     }
+
+    /* 菜单/说明页切歌提示飘字统一在最上层绘制(此前仅 play 绘制导致菜单切歌无提示) */
+    if ((st === 'menu' || st === 'help') && MG.fx.hasActive(this.fx)) {
+      MG.fx.render(ctx, this.fx);
+    }
   };
 
   Game.prototype.renderPlay = function () {
     var ctx = this.ctx;
-    var p = this.platform;   /* 侧边栏图标判断用(此前未声明,进入游戏即抛 TypeError 冻死画面) */
+    var p = this.platform;
     var b = this.board;
     var W = this.view.W, H = this.view.H;
     var t = this.time;
     var ui = MG.ui;
+    var ARC = CFG.themeName === 'arcade';
+    var isPlay = (this.state === 'play');
     var i;
 
-    /* ---- 背板:LED 数值 + 小按钮 ---- */
-    this.drawSeg(this._ledBank, String(this.bank));
-    this.drawSeg(this._ledTier, '×' + this.tier().mult);
-    ui.iconButton(this, 206, this.iconRowY, 24, 'pause', function () { this.state = 'pause'; this.stateT = 0; MG.music.pause(); }.bind(this));
+    /* ---- 背板:LED 数值 + 暂停按钮(仅 play 态注册可点区域,防弹窗点击穿透) ---- */
+    this.drawSeg('bank', this._ledBank, String(this.bank));
+    this.drawSeg('tier', this._ledTier, '×' + this.tier().mult);
+    ui.iconButton(this, 206, this.iconRowY, 24, 'pause', isPlay ? this._onPause : null);
     if (p.name === 'douyin') {
-      ui.iconButton(this, 256, this.iconRowY, 24, 'sidebar', function () { this.platform.addToSidebar(); }.bind(this));
+      ui.iconButton(this, 256, this.iconRowY, 24, 'sidebar', isPlay ? this._onSidebar : null);
     }
 
     /* ---- 弹道箭头 ---- */
     var gap = 90;
     var anim = (t * 170) % gap;
-    ctx.save();
-      ctx.fillStyle = C.laneArrow;
+    ctx.fillStyle = C.laneArrow;
     for (i = 0; i < 5; i++) {
       var ay = b.lane.floorY - 60 - i * gap + anim;
       if (ay < b.lane.top + 30 || ay > b.lane.floorY - 20) continue;
@@ -961,23 +1033,22 @@
       ctx.closePath();
       ctx.fill();
     }
-    ctx.restore();
 
-    /* ---- 边框 LED 追逐灯(复古主题) ---- */
-    if (CFG.themeName === 'arcade') {
+    /* ---- 边框 LED 追逐灯(复古主题:用预渲染辉光替代逐帧 shadowBlur) ---- */
+    if (ARC) {
       var bl = b.borderLeds;
       var head = Math.floor(t * 7) % bl.length;
       for (var k = 0; k < 3; k++) {
         var idx = (head + k) % bl.length;
         var bd = bl[idx];
         var col = bd.color === 'red' ? C.ledRed : C.ledGreen;
+        var a0 = 0.9 - k * 0.25;
+        ui.drawGlow(ctx, bd.x, bd.y, 14, 14, col, a0 * 0.85, p);
         ctx.save();
-        ctx.shadowColor = col;
-        ctx.shadowBlur = 12;
+        ctx.globalAlpha = a0;
         ctx.beginPath();
         ctx.arc(bd.x, bd.y, 5.5, 0, U.TAU);
         ctx.fillStyle = '#ffffff';
-        ctx.globalAlpha = 0.9 - k * 0.25;
         ctx.fill();
         ctx.restore();
       }
@@ -987,61 +1058,44 @@
     if (this.launcherPulse > 0) {
       ctx.save();
       ctx.globalAlpha = this.launcherPulse * 0.55;
-      ctx.shadowColor = C.pulseColor;
-      ctx.shadowBlur = 16;
       ctx.beginPath();
-      ctx.arc(b.lane.cx, b.lane.floorY - 30, 17, 0, U.TAU);
+      ctx.arc(b.lane.cx, b.lane.floorY - 30, 19, 0, U.TAU);
       ctx.fillStyle = C.pulseColor;
       ctx.fill();
       ctx.restore();
     }
 
-    /* ---- 钉子:复古 = 部分红绿 LED 钉;极简 = 白圆 + 发丝圈 ---- */
+    /* ---- 钉子动态层(静态钉已在 buildBg 烘焙;此处仅画复古 LED 钉与受击闪光) ---- */
     for (i = 0; i < b.pegs.length; i++) {
-      var p = b.pegs[i];
-      if (CFG.themeName === 'arcade' && p.led) {
-        var lc = p.led === 'red' ? C.ledRed : C.ledGreen;
+      var pg = b.pegs[i];
+      if (ARC && pg.led) {
+        var lc = pg.led === 'red' ? C.ledRed : C.ledGreen;
         var pulse = 0.5 + 0.5 * Math.sin(t * 2.2 + i * 1.7);
-        ctx.save();
-        ctx.shadowColor = lc;
-        ctx.shadowBlur = 8 + pulse * 6;
+        ui.drawGlow(ctx, pg.x, pg.y, pg.r + 8 + pulse * 4, pg.r + 8 + pulse * 4, lc, 0.55 + pulse * 0.35, p);
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, U.TAU);
+        ctx.arc(pg.x, pg.y, pg.r, 0, U.TAU);
         ctx.fillStyle = lc;
         ctx.fill();
-        ctx.restore();
         ctx.beginPath();
-        ctx.arc(p.x - p.r * 0.3, p.y - p.r * 0.3, p.r * 0.3, 0, U.TAU);
+        ctx.arc(pg.x - pg.r * 0.3, pg.y - pg.r * 0.3, pg.r * 0.3, 0, U.TAU);
         ctx.fillStyle = 'rgba(255,255,255,0.85)';
         ctx.fill();
-      } else {
-        ctx.beginPath();
-        ctx.arc(p.x + 1, p.y + 2, p.r, 0, U.TAU);
-        ctx.fillStyle = 'rgba(0,0,0,0.07)';
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, U.TAU);
-        ctx.fillStyle = C.pegBody;
-        ctx.fill();
-        ctx.strokeStyle = C.pegRim;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
       }
-      if (p.flash > 0) {
-        ctx.globalAlpha = p.flash * 0.9;
+      if (pg.flash > 0) {
+        ctx.globalAlpha = pg.flash * 0.9;
         ctx.fillStyle = C.pegFlash;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r + 3, 0, U.TAU);
+        ctx.arc(pg.x, pg.y, pg.r + 3, 0, U.TAU);
         ctx.fill();
         ctx.globalAlpha = 1;
       }
     }
 
-    /* ---- 大弹柱:复古 = 玻璃渐变球;极简 = 白圆环 ---- */
+    /* ---- 大弹柱 ---- */
     for (i = 0; i < b.bumpers.length; i++) {
       var bp = b.bumpers[i];
       var r = bp.r + bp.pulse * 5;
-      if (CFG.themeName === 'arcade') {
+      if (ARC) {
         var bg2 = ctx.createRadialGradient(bp.x - r * 0.3, bp.y - r * 0.3, 2, bp.x, bp.y, r);
         bg2.addColorStop(0, 'rgba(255,255,255,0.95)');
         bg2.addColorStop(0.6, 'rgba(235,225,200,0.9)');
@@ -1073,21 +1127,19 @@
       }
     }
 
-    /* ---- 亮灯洞(动态辉光) ---- */
+    /* ---- 亮灯洞(动态辉光精灵) ---- */
+    var holeRx = b.pw * 0.5 - 6;
     for (i = 0; i < b.holes.length; i++) {
       var hk = b.holes[i];
       if (hk.lit) {
         var pulse2 = 0.5 + 0.5 * Math.sin(t * 3.4 + i);
-        ctx.save();
-        ctx.shadowColor = C.holeLit;
-        ctx.shadowBlur = 16 + pulse2 * 10;
+        ui.drawGlow(ctx, hk.cx, b.floorY - 26, holeRx + 14 + pulse2 * 6, 26 + pulse2 * 5, C.holeLit, 0.7 + pulse2 * 0.25, p);
         ctx.beginPath();
-        ctx.ellipse(hk.cx, b.floorY - 26, b.pw * 0.5 - 6, 14, 0, 0, U.TAU);
+        ctx.ellipse(hk.cx, b.floorY - 26, holeRx, 14, 0, 0, U.TAU);
         ctx.fillStyle = C.holeLit;
         ctx.fill();
-        ctx.restore();
         ctx.beginPath();
-        ctx.ellipse(hk.cx, b.floorY - 26, (b.pw * 0.5 - 6) * 0.45, 5.5, 0, 0, U.TAU);
+        ctx.ellipse(hk.cx, b.floorY - 26, holeRx * 0.45, 5.5, 0, 0, U.TAU);
         ctx.fillStyle = '#ffd9c9';
         ctx.fill();
       }
@@ -1095,7 +1147,7 @@
         ctx.globalAlpha = hk.flash * 0.85;
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.ellipse(hk.cx, b.floorY - 26, b.pw * 0.5 - 6, 14, 0, 0, U.TAU);
+        ctx.ellipse(hk.cx, b.floorY - 26, holeRx, 14, 0, 0, U.TAU);
         ctx.fill();
         ctx.globalAlpha = 1;
       }
@@ -1118,27 +1170,27 @@
         ctx.fill();
       }
       ctx.globalAlpha = 1;
-      ui.drawMarble(ctx, m.x, m.y, m.r, tintC);
+      ui.drawMarble(ctx, m.x, m.y, m.r, tintC, this);
     }
 
-    /* ---- 特效(裁剪进机台:粒子不许飞到机台外的留黑区) ---- */
-    ctx.save();
-    ui.rr(ctx, 2, 2, W - 4, H - 4, 34);
-    ctx.clip();
-    MG.fx.render(ctx, this.fx);
-    ctx.restore();
+    /* ---- 特效(仅在有活跃粒子/飘字时执行圆角裁剪绘制) ---- */
+    if (MG.fx.hasActive(this.fx)) {
+      ctx.save();
+      ui.rr(ctx, 2, 2, W - 4, H - 4, 34);
+      ctx.clip();
+      MG.fx.render(ctx, this.fx);
+      ctx.restore();
+    }
 
     /* ---- 操作台动态:档位按钮 / GO / 力度条 / 托盘 ---- */
-
-    /* 投入档位按钮(极简:白卡 / 墨色选中) */
     var cw = 70, ch = 64, gap2 = 5;
     var cx0 = 536 - (CFG.tiers.length * (cw + gap2) - gap2) / 2;
     for (i = 0; i < CFG.tiers.length; i++) {
       var tp = CFG.tiers[i];
       var cx = cx0 + i * (cw + gap2);
       var cy = H - b.panelH + 62;
-      var selected = i === this.selIdx;
       var disabled = tp.cost > this.bank;
+      var selected = !disabled && (i === this.selIdx);
       ui.rr(ctx, cx, cy, cw, ch, 14);
       if (selected) {
         ctx.fillStyle = C.selBg;
@@ -1161,17 +1213,14 @@
       ui.font(ctx, 26);
       ctx.fillStyle = selected ? '#ffffff' : (disabled ? C.pillDisText : C.pillText);
       ctx.fillText('×' + tp.mult, cx + cw / 2, cy + 44);
-      if (!disabled) {
-        (function (idx) {
-          this.frameButtons.push({ x: cx, y: cy, w: cw, h: ch, cb: function () { this.selectTier(idx); }.bind(this) });
-        }).call(this, i);
+      if (isPlay && !disabled) {
+        this.frameButtons.push({ x: cx, y: cy, w: cw, h: ch, cb: this._tierCbs[i] });
       }
     }
 
     var power = this.charging ? this.chargePower() : 0;
     var pc = power < 0.4 ? C.pow1 : (power < 0.8 ? C.pow2 : C.pow3);
 
-    /* 力度条填充 */
     if (power > 0.01) {
       var bar = this._bar;
       var fh = (bar.h - 8) * power;
@@ -1180,12 +1229,11 @@
       ctx.fill();
     }
 
-    /* GO 按钮:复古 = 红渐变 + 白圈;极简 = 墨色圆 */
     var go = this._go;
     var pressed = this.charging;
     ctx.beginPath();
     ctx.arc(go.x, go.y, pressed ? go.r - 3 : go.r, 0, U.TAU);
-    if (CFG.themeName === 'arcade') {
+    if (ARC) {
       var gg = ctx.createRadialGradient(go.x - 12, go.y - 14, 6, go.x, go.y, go.r);
       gg.addColorStop(0, pressed ? '#ff8f7a' : '#ff6a52');
       gg.addColorStop(1, pressed ? C.goPress : C.goBg);
@@ -1221,12 +1269,12 @@
       ctx.stroke();
     }
 
-    /* 弹珠库托盘点位 */
+    /* 弹珠库托盘点位(走离屏弹珠精灵缓存) */
     var n2 = Math.min(this.bank, 6);
     for (i = 0; i < n2; i++) {
       var tx = 50 + (i % 3) * 34;
       var ty = H - b.panelH + 86 + Math.floor(i / 3) * 36;
-      ui.drawMarble(ctx, tx, ty, 12, tints[i % tints.length]);
+      ui.drawMarble(ctx, tx, ty, 12, tints[i % tints.length], this);
     }
     if (this.bank > 6) {
       ui.font(ctx, 22);
@@ -1236,16 +1284,43 @@
     }
   };
 
-  /* 红色 LED 数码管 */
-  Game.prototype.drawSeg = function (rect, text) {
+  /* 红色 LED 数码管(按内容脏标记缓存到小离屏条,保留发光质感且零逐帧重算) */
+  Game.prototype.drawSeg = function (slotKey, rect, text) {
     var ctx = this.ctx;
+    var p = this.platform;
+    var s = this.view.scale * p.dpr;
+    var entry = this._segSprites[slotKey];
+    var sig = text + '|' + this.theme + '|' + Math.round(s * 100);
+    if ((!entry || entry.sig !== sig) && p.createOffscreen) {
+      try {
+        var pw = Math.max(8, Math.ceil(rect.w * s));
+        var ph = Math.max(8, Math.ceil(rect.h * s));
+        var cvs = entry ? entry.cvs : p.createOffscreen(pw, ph);
+        if (cvs.width !== pw || cvs.height !== ph) { cvs.width = pw; cvs.height = ph; }
+        var sctx = cvs.getContext('2d');
+        sctx.setTransform(1, 0, 0, 1, 0, 0);
+        sctx.clearRect(0, 0, pw, ph);
+        sctx.setTransform(s, 0, 0, s, 0, 0);
+        sctx.textAlign = 'center';
+        sctx.textBaseline = 'middle';
+        MG.ui.segFont(sctx, rect.w > 180 ? 52 : 46);
+        sctx.shadowColor = C.segRed;
+        sctx.shadowBlur = 16;
+        sctx.fillStyle = C.segRed;
+        sctx.fillText(text, rect.w / 2, rect.h * 0.62);
+        entry = { cvs: cvs, sig: sig, w: pw / s, h: ph / s };
+        this._segSprites[slotKey] = entry;
+      } catch (e) { entry = null; }
+    }
+    if (entry) {
+      ctx.drawImage(entry.cvs, rect.x, rect.y, entry.w, entry.h);
+      return;
+    }
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.translate(rect.x + rect.w / 2, rect.y + rect.h * 0.62);
     MG.ui.segFont(ctx, rect.w > 180 ? 52 : 46);
-    ctx.shadowColor = C.segRed;
-    ctx.shadowBlur = 16;
     ctx.fillStyle = C.segRed;
     ctx.fillText(text, 0, 0);
     ctx.restore();
@@ -1261,20 +1336,20 @@
   Game.prototype.start = function () {
     var self = this;
     this._last = 0;
-    /* RAF 三级兜底:全局 → canvas.requestAnimationFrame → 定时器 */
     var g = typeof GameGlobal !== 'undefined' ? GameGlobal : (typeof window !== 'undefined' ? window : null);
     var cvs = this.platform.canvas;
     var raf = null;
     if (typeof requestAnimationFrame === 'function') raf = requestAnimationFrame;
     else if (cvs && typeof cvs.requestAnimationFrame === 'function') raf = function (cb) { cvs.requestAnimationFrame(cb); };
     else if (g && typeof g.requestAnimationFrame === 'function') raf = function (cb) { g.requestAnimationFrame(cb); };
-    function loop(ts) {
-      /* 先排下一帧再画本帧:任何一帧 update/render 抛异常,
-         都只跳过该帧并记录,绝不永久冻死主循环 */
+    var nowSec = (typeof performance !== 'undefined' && typeof performance.now === 'function')
+      ? function () { return performance.now() / 1000; }
+      : function () { return Date.now() / 1000; };
+    function loop() {
       if (raf) raf(loop);
-      var t = (ts || Date.now()) / 1000;
+      var t = nowSec();
       if (!self._last) self._last = t;
-      var dt = Math.min(0.05, t - self._last);
+      var dt = Math.max(0, Math.min(0.05, t - self._last));
       self._last = t;
       try {
         self.frame(dt);
@@ -1286,7 +1361,7 @@
       }
     }
     if (raf) raf(loop);
-    else setInterval(function () { loop(Date.now()); }, 16);
+    else setInterval(loop, 16);
   };
 
   MG.Game = Game;

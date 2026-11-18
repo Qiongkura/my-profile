@@ -1,8 +1,8 @@
-/* 弹弹珠机 - 机器布局生成 (命名空间: MG.board)
+/* 弹弹弹珠吧 - 机器布局生成 (命名空间: MG.board)
  * 复刻玻璃珠游艺机布局:
  *   - 右下角弹道:拉杆把弹珠竖直向上弹,冲过顶部导弧拐入场内
- *   - 斜面场地:暖黄玻璃,四角圆弧(右上为弹道导弧,左上为拐弯弧)
- *   - 钉阵(部分带红/绿 LED)+ 3 个透明大弹柱
+ *   - 斜面场地:四角圆弧(右上为弹道导弧,左上为拐弯弧)
+ *   - 钉阵(部分带红/绿 LED)+ 3 个大弹柱
  *   - 底部 13 个洞口:没有分数,只负责亮灯(亮灯由游戏层按投入档位控制)
  */
 (function (root) {
@@ -20,16 +20,16 @@
     /* ---- 右侧弹道(右下角向上,单珠宽) ---- */
     var laneX0 = W - L.laneW;
     var laneX1 = W - 15;
-    var laneCx = (laneX0 + 8 + (W - 28)) / 2; /* 弹道内 face(laneX0+8) 与右墙内 face(W-28) 的正中 */
+    var laneCx = (laneX0 + 8 + (W - 28)) / 2;
     /* ---- 场地几何 ---- */
     var floorY = H - panelH - 14;
     var fieldRight = laneX0 - 10;
 
-    /* ---- 右侧弹道(右下角向上,单珠宽;底部与场地底线齐平) ---- */
+    /* ---- 右侧弹道底部与场地底线齐平 ---- */
     var laneFloorY = floorY;
     var spawn = { x: laneCx, y: laneFloorY - 42 };
 
-    /* ---- 底部洞口(13 个,无分数):整体右移避开左侧导轨边框 ---- */
+    /* ---- 底部洞口(13 个,无分数) ---- */
     var n = CFG.pockets.count;
     var innerX0 = fieldX0 + 7;
     var pw = (fieldRight - innerX0) / n;
@@ -43,7 +43,7 @@
     }
     var capY = floorY - CFG.pockets.capOff;
 
-    /* 洞间隔针:低弹性 + 近零摩擦(摩擦按子步结算,0.92 会把球瞬间粘死) */
+    /* 洞间隔针:低弹性 + 近零摩擦 */
     var dividers = [];
     for (var d = 1; d < n; d++) {
       var dx = innerX0 + d * pw;
@@ -53,7 +53,7 @@
     /* ---- 钉阵 ---- */
     var pegTop = L.pegTop;
     var pegBottom = floorY - L.pegBottomPad;
-    var rows = U.clamp(Math.floor((pegBottom - pegTop) / 92), 4, 7);   /* 上限 7 排:长屏不再堆满钉子 */
+    var rows = U.clamp(Math.floor((pegBottom - pegTop) / 92), 4, 7);
     var rowGap = (pegBottom - pegTop) / (rows - 1);
     var fieldW = fieldRight - fieldX0;
     var spacing = fieldW / 8;
@@ -64,13 +64,11 @@
       var y = pegTop + r * rowGap + (rng() - 0.5) * 10;
       for (var c = 0; c < count; c++) {
         var x = fieldX0 + off + c * spacing + (rng() - 0.5) * 10;
-        /* 两墙各留 36px 通球通道(缝 < 球径必然卡死);趣味由墙边斜挡板提供 */
         x = U.clamp(x, fieldX0 + 52, fieldRight - 43);
         var led = rng();
         pegs.push({
           x: x, y: y, r: CFG.pegR, flash: 0,
           led: led < 0.28 ? 'red' : (led < 0.52 ? 'green' : null),
-          /* 卡珠解救的滑落方向:靠近弹道的钉往左滑入场内,靠左墙的往右,其余随机 */
           slideDir: (x > fieldRight - 150) ? -1 : ((x < fieldX0 + 150) ? 1 : (rng() < 0.5 ? -1 : 1))
         });
       }
@@ -93,7 +91,6 @@
       var peg = pegs[pi];
       var bad = false;
       for (var q = 0; q < bumpers.length; q++) {
-        /* 大弹柱与小钉之间必须留出 > 一个球直径的缝:球(直径 30)既能通过,也不会被夹死 */
         if (U.dist(peg.x, peg.y, bumpers[q].x, bumpers[q].y) < bumpers[q].r + peg.r + CFG.ballR * 2 + 6) { bad = true; break; }
       }
       if (!bad) cleared.push(peg);
@@ -109,7 +106,7 @@
         out.push({
           x1: cx + Math.cos(b0) * radius, y1: cy + Math.sin(b0) * radius,
           x2: cx + Math.cos(b1) * radius, y2: cy + Math.sin(b1) * radius,
-          half: 8, e: 0.05, kind: 'rail'   /* 近无弹跳:滑行且不与侧墙形成弹射泵 */
+          half: 8, e: 0.05, kind: 'rail'
         });
       }
       return out;
@@ -118,40 +115,41 @@
     /* ---- 墙体 ---- */
     var R = L.cornerR;
     var ceilingY = L.ceilingY;
-    /* 两只对称的导流圆弧角:左上(横扫到边顺弧滚下)/ 右上(弹道冲顶顺弧拐入,
-       右弧延长到 100°:出口略上仰,高速球靠惯性压弧贴行、出弧后贴顶滑翔,全真实碰撞) */
-    var cornerL = { cx: fieldX0 + R, cy: ceilingY + R, r: R };   // 弧与左墙轨(x=fieldX0)相切
-    var cornerR2 = { cx: W - 21 - R, cy: ceilingY + R, r: R };   // 弧与右墙轨(x=W-21)相切
-    /* 碰撞面与绘制轨对齐:half=7 → 胶囊面 = 画线中心±7 = 14px 轨的内缘,球缘贴轨走。
-       两轨中心距机缘 21px(轨带与白框相接,沿边界走) */
-    var rightWallCx = W - 21;   /* 右墙轨中心 = 右上导弧端点,竖直向下 */
+    var cornerL = { cx: fieldX0 + R, cy: ceilingY + R, r: R };
+    var cornerR2 = { cx: W - 21 - R, cy: ceilingY + R, r: R };
+    var rightWallCx = W - 21;
     var walls = [
-      { x1: fieldX0, y1: ceilingY, x2: fieldX0, y2: floorY, half: 7, e: 0.45, kind: 'wall' },    // 左墙
-      { x1: rightWallCx, y1: ceilingY, x2: rightWallCx, y2: laneFloorY, half: 7, e: 0.4, kind: 'wall' }, // 右墙(机身)
-      { x1: cornerL.cx, y1: ceilingY, x2: cornerR2.cx, y2: ceilingY, half: 7, e: 0.05, kind: 'wall' }, // 顶部导轨(贴轨滑行)
-      { x1: laneX0, y1: L.laneTop, x2: laneX0, y2: laneFloorY, half: 8, e: 0.05, kind: 'wall' },  // 弹道内墙(近无弹跳)
-      { x1: fieldX0, y1: floorY, x2: W - 15, y2: floorY, half: 8, e: 0.2, kind: 'wall' }         // 场地地面(含弹道底)
+      { x1: fieldX0, y1: ceilingY, x2: fieldX0, y2: floorY, half: 7, e: 0.45, kind: 'wall' },
+      { x1: rightWallCx, y1: ceilingY, x2: rightWallCx, y2: laneFloorY, half: 7, e: 0.4, kind: 'wall' },
+      { x1: cornerL.cx, y1: ceilingY, x2: cornerR2.cx, y2: ceilingY, half: 7, e: 0.05, kind: 'wall' },
+      { x1: laneX0, y1: L.laneTop, x2: laneX0, y2: laneFloorY, half: 8, e: 0.05, kind: 'wall' },
+      { x1: fieldX0, y1: floorY, x2: W - 15, y2: floorY, half: 8, e: 0.2, kind: 'wall' }
     ];
-    var arcTL = arcSegs(cornerL.cx, cornerL.cy, R, -Math.PI / 2, -Math.PI, 6); // 左弧角:顶轨端→左墙端
-    arcTL.forEach(function (sg) { sg.e = 0.45; sg.kind = 'wall'; }); /* 左上角:普通弹性反射,把横扫的球挡回场内 */
-    var arcTR = arcSegs(cornerR2.cx, cornerR2.cy, R, 0, -Math.PI / 2, 6); // 右弧角:右墙端→顶轨端(小圆角,无上仰唇)
+    var arcTL = arcSegs(cornerL.cx, cornerL.cy, R, -Math.PI / 2, -Math.PI, 6);
+    arcTL.forEach(function (sg) { sg.e = 0.45; sg.kind = 'wall'; });
+    var arcTR = arcSegs(cornerR2.cx, cornerR2.cy, R, 0, -Math.PI / 2, 6);
     for (var a1 = 0; a1 < arcTL.length; a1++) walls.push(arcTL[a1]);
     for (var a2 = 0; a2 < arcTR.length; a2++) walls.push(arcTR[a2]);
 
-    /* 墙边斜挡板:贴墙直落的球被斜坡拨回场内(球能从下方通道继续走,不卡) ---- */
+    /* 墙边斜挡板 */
     var deflectors = [];
     var deflectYs = [pegTop + 40, pegTop + 220, pegTop + 400];
     for (var dy = 0; dy < deflectYs.length; dy++) {
       var yy = deflectYs[dy];
       if (yy > pegBottom - 60) break;
-      /* 左墙:从墙面向右下 34px,坡度让球向内滑 */
       deflectors.push({ x1: fieldX0 + 20, y1: yy, x2: fieldX0 + 54, y2: yy + 26, half: 5, e: 0.15, friction: 0.995, kind: 'deflector' });
-      /* 右墙(弹道内墙)镜像 */
       deflectors.push({ x1: laneX0 - 9, y1: yy, x2: laneX0 - 43, y2: yy + 26, half: 5, e: 0.15, friction: 0.995, kind: 'deflector' });
     }
     for (var dc = 0; dc < deflectors.length; dc++) walls.push(deflectors[dc]);
 
-    /* 挡板与钉子之间不许有夹缝:距离 < 球径+6 的钉子移除(球进不去就不存在楔死) */
+    /* 贴墙壁钉:选在两档斜挡板正中间(距上下挡板均 >= 75px),并参与钉距过滤防夹球 */
+    var bumpY = (pegBottom - 36 >= pegTop + 325) ? (pegTop + 325) : (pegTop + 145);
+    var wallBumps = [
+      { x: fieldX0 + 10, y: bumpY, r: 11, flash: 0, led: null, slideDir: 1 },
+      { x: laneX0 - 10, y: bumpY, r: 11, flash: 0, led: null, slideDir: -1 }
+    ];
+
+    /* 挡板与壁钉周围不许有小于(球直径+6)的夹缝 */
     var kept2 = [];
     for (var pq = 0; pq < pegs.length; pq++) {
       var pg = pegs[pq], near = false;
@@ -163,17 +161,15 @@
         var qx = dg.x1 + vx2 * tt2, qy = dg.y1 + vy2 * tt2;
         if (U.dist(pg.x, pg.y, qx, qy) < pg.r + dg.half + CFG.ballR * 2 + 6) { near = true; break; }
       }
+      if (!near) {
+        for (var wb = 0; wb < wallBumps.length; wb++) {
+          if (U.dist(pg.x, pg.y, wallBumps[wb].x, wallBumps[wb].y) < pg.r + wallBumps[wb].r + CFG.ballR * 2 + 6) { near = true; break; }
+        }
+      }
       if (!near) kept2.push(pg);
     }
     pegs = kept2;
-
-    /* 贴墙壁钉:半嵌在墙里,贴墙球只会被它拨向场内(不会形成夹缝)。
-       左墙 face=fieldX0+7,壁钉中心在 face-? 处使球始终位于其场内一侧 */
-    var bumpY = pegTop + (rows - 2) * rowGap;   /* 从下往上第二排的高度 */
-    pegs.push({ x: fieldX0 + 10, y: bumpY, r: 11, flash: 0, led: null, slideDir: 1 });
-    pegs.push({ x: laneX0 - 10, y: bumpY, r: 11, flash: 0, led: null, slideDir: -1 });
-
-
+    for (var wbi = 0; wbi < wallBumps.length; wbi++) pegs.push(wallBumps[wbi]);
 
     /* ---- 边框 LED 灯带点位(复古主题绘制;极简主题忽略) ---- */
     var leds = [];
@@ -186,7 +182,7 @@
     for (var la2 = -Math.PI + 0.4; la2 < -Math.PI / 2 - 0.1; la2 += Math.PI / 9) leds.push({ x: cornerL.cx + Math.cos(la2) * (R - 10), y: cornerL.cy + Math.sin(la2) * (R - 10) });
     for (var li = 0; li < leds.length; li++) leds[li].color = (li % 2 === 0) ? 'red' : 'green';
 
-    /* 40% 临界速度:按"出生点到顶轨"的爬升高度计算(拉动曲线随屏高自适应) */
+    /* 40% 临界速度:按"出生点到顶轨"的爬升高度计算 */
     var climb = spawn.y - ceilingY;
     var crestSpeed = Math.sqrt(2 * CFG.gravity * climb + 550 * 550);
 

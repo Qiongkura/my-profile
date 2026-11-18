@@ -168,8 +168,9 @@
     return false;
   };
 
+  const nonSnapLayout = window.matchMedia('(max-width: 900px), (max-width: 1180px) and (orientation: portrait)');
   const wheelEnabled = () =>
-    !reduced.matches && window.matchMedia('(min-width: 981px)').matches;
+    !reduced.matches && !nonSnapLayout.matches;
 
   /* 章节高于视口时，先让用户在章节内部读完，再在边界处翻到下一章 */
   const sectionFitsViewport = () => {
@@ -217,7 +218,8 @@
     const el = node instanceof Element ? node : null;
     if (!el) return false;
     const tag = el.tagName;
-    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable) return true;
+    return Boolean(el.closest('[role="slider"], #lyrics-lines'));
   };
 
   window.addEventListener('keydown', (event) => {
@@ -306,7 +308,7 @@
 
   const drawParallax = () => {
     parallaxFrame = null;
-    const disabled = reduced.matches || window.innerWidth < 981;
+    const disabled = reduced.matches || nonSnapLayout.matches;
     parallaxItems.forEach((item) => {
       if (disabled) {
         item.style.transform = '';
@@ -426,6 +428,7 @@
         if (stacked.matches) return;
         opened = index;
         works.classList.add('is-open');
+        workBrief.setAttribute('aria-hidden', 'false');
       };
 
       const close = () => {
@@ -433,6 +436,7 @@
         timer = null;
         opened = -1;
         works.classList.remove('is-open');
+        workBrief.setAttribute('aria-hidden', 'true');
       };
 
       workRows.forEach((row, index) => {
@@ -457,14 +461,20 @@
         if (event.key === 'Escape') close();
       });
 
+      let relayoutRaf = null;
       const relayout = () => {
+        relayoutRaf = null;
         if (stacked.matches) {
           close();
         } else {
           measure();
         }
       };
-      window.addEventListener('resize', relayout);
+      const scheduleRelayout = () => {
+        if (relayoutRaf !== null) return;
+        relayoutRaf = requestAnimationFrame(relayout);
+      };
+      window.addEventListener('resize', scheduleRelayout);
       if (stacked.addEventListener) stacked.addEventListener('change', relayout);
 
       measure();
@@ -689,10 +699,15 @@
     });
 
     const hifi = doc.getElementById('hifi');
+    let hifiInView = !hifi || !('IntersectionObserver' in window);
     if (hifi && 'IntersectionObserver' in window) {
       new IntersectionObserver(
         (entries) => {
-          entries.forEach((entry) => (entry.isIntersecting ? start() : stop()));
+          entries.forEach((entry) => {
+            hifiInView = entry.isIntersecting;
+            if (hifiInView) start();
+            else stop();
+          });
         },
         { threshold: 0.1 }
       ).observe(hifi);
@@ -702,7 +717,7 @@
 
     doc.addEventListener('visibilitychange', () => {
       if (doc.hidden) stop();
-      else start();
+      else if (hifiInView) start();
     });
 
     if (typeof reduced.addEventListener === 'function') {
@@ -710,7 +725,7 @@
         if (reduced.matches) {
           stop();
           draw(0);
-        } else {
+        } else if (hifiInView) {
           start();
         }
       });
@@ -1215,29 +1230,51 @@
         paintLyric(found);
       };
 
-      fetch(lrcUrl, { cache: 'no-cache' })
-        .then((response) => (response.ok ? response.text() : ''))
-        .then((text) => {
-          const parsed = parseLrc(text || '');
-          if (!parsed.length) return;
-          parsed.forEach((line, index) => {
-            const item = doc.createElement('li');
-            item.textContent = line.text;
-            item.addEventListener('click', () => {
-              if (!lrcTrack) return;
-              hifiAudio.currentTime = line.time;
-              if (hifiAudio.paused) start(lrcTrack);
-              paintLyric(index);
+      let lrcLoaded = false;
+      const loadLyricsOnce = () => {
+        if (lrcLoaded) return;
+        lrcLoaded = true;
+        fetch(lrcUrl)
+          .then((response) => (response.ok ? response.text() : ''))
+          .then((text) => {
+            const parsed = parseLrc(text || '');
+            if (!parsed.length) return;
+            parsed.forEach((line, index) => {
+              const item = doc.createElement('li');
+              item.textContent = line.text;
+              item.addEventListener('click', () => {
+                if (!lrcTrack) return;
+                hifiAudio.currentTime = line.time;
+                if (hifiAudio.paused) start(lrcTrack);
+                paintLyric(index);
+              });
+              lyricsList.appendChild(item);
+              lyricLines.push({ time: line.time, el: item });
             });
-            lyricsList.appendChild(item);
-            lyricLines.push({ time: line.time, el: item });
+            lyricsBox.hidden = false;
+            syncLyric();
+          })
+          .catch(() => {
+            /* 没有歌词文件就什么都不做，整块保持隐藏 */
           });
-          lyricsBox.hidden = false;
-          syncLyric();
-        })
-        .catch(() => {
-          /* 没有歌词文件就什么都不做，整块保持隐藏 */
-        });
+      };
+
+      const hifiSec = doc.getElementById('hifi');
+      if (hifiSec && 'IntersectionObserver' in window) {
+        const lrcIo = new IntersectionObserver(
+          (entries) => {
+            if (entries.some((e) => e.isIntersecting)) {
+              loadLyricsOnce();
+              lrcIo.disconnect();
+            }
+          },
+          { rootMargin: '200px 0px' }
+        );
+        lrcIo.observe(hifiSec);
+      } else {
+        loadLyricsOnce();
+      }
+      hifiAudio.addEventListener('play', loadLyricsOnce);
 
       /* 没在播放就把歌词收起来（平滑收起，见 styles.css 的 .lyrics） */
       const setLyricsOpen = (on) => {

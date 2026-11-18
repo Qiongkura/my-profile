@@ -1,37 +1,38 @@
-/* 弹弹珠机 - 背景音乐:原曲播放器 (命名空间: MG.music)
- * 播放 assets/bgm/ 下的原曲音频文件(用户自行放置,见 assets/bgm/README.txt)。
- * 网页端:每首歌一个 <audio> 且首次解锁时全部预加载 → 切歌即时出声。
- * 小游戏端:InnerAudioContext 复用单个实例,换 src 即切。
- * 缺文件自动跳到同曲下一个格式,再不行切下一首;点击音符图标切歌。
+/* 弹弹弹珠吧 - 背景音乐:原曲播放器 (命名空间: MG.music)
+ * 网页端:首次用户手势解锁后只加载当前曲目,其余切歌时按需加载(省流量)。
+ * 小游戏端:优先加载当前曲目所在 BGM 分包并即刻出声,另一分包后台静默预载。
  */
 (function (root) {
   'use strict';
   var MG = root.MG || (root.MG = {});
 
-  /* 播放文件链:依次尝试(想换曲目/放原曲,编辑对应数组即可) */
+  /* 播放文件链:依次尝试(线上仅分发压缩后的 m4a/ogg,不含冗余 wav) */
   var SONGS = [
-    { name: '甩葱歌(MMD)', files: ['assets/bgm/01-ievan.m4a', 'assets/bgm/01-ievan.ogg', 'assets/bgm/01-ievan.wav'] },
+    { name: '甩葱歌(MMD)', files: ['assets/bgm/01-ievan.m4a', 'assets/bgm/01-ievan.ogg'] },
     { name: '最炫民族风', files: ['assets/bgm/06-zuixuan.m4a'] },
     { name: '小苹果', files: ['assets/bgm/07-pingguo.m4a'] },
-    { name: '卡农', files: ['assets/bgm/02-canon.m4a', 'assets/bgm/02-canon.wav'] },
-    { name: '欢乐颂', files: ['assets/bgm/03-ode.m4a', 'assets/bgm/03-ode.wav'] },
-    { name: '康康舞曲', files: ['assets/bgm/04-cancan.m4a', 'assets/bgm/04-cancan.wav'] },
-    { name: '小星星', files: ['assets/bgm/05-twinkle.m4a', 'assets/bgm/05-twinkle.wav'] }
+    { name: '卡农', files: ['assets/bgm/02-canon.m4a'] },
+    { name: '欢乐颂', files: ['assets/bgm/03-ode.m4a'] },
+    { name: '康康舞曲', files: ['assets/bgm/04-cancan.m4a'] },
+    { name: '小星星', files: ['assets/bgm/05-twinkle.m4a'] }
   ];
 
   var platform = null;
   var idx = 0;
-  var cache = [];       /* 网页端:每首歌一个 <audio>,预加载 */
+  var cache = [];       /* 网页端:每首歌一个 <audio>,按需缓存 */
   var innerEl = null;   /* 小游戏端 InnerAudio */
+  var pkgState = {};    /* 小游戏端分包状态: undefined=未加载, 1=加载中, 2=就绪 */
+  var pkgWaiters = {};
   var wantPlay = false;
   var started = false;
   var muted = false;
   var vol = 0.8;
   var OUT_VOL = 0.32;
+  var failSkipCount = 0;
 
   function init(pl) {
     platform = pl;
-    idx = (pl.storage.get('mm_song', 0) | 0) % SONGS.length;
+    idx = ((pl.storage.get('mm_song', 0) | 0) % SONGS.length + SONGS.length) % SONGS.length;
     wantPlay = true;   /* 默认开启背景音乐(静音/切歌可控) */
   }
 
@@ -41,6 +42,7 @@
 
   function setSong(i) {
     idx = ((i % SONGS.length) + SONGS.length) % SONGS.length;
+    failSkipCount = 0;
     if (wantPlay && started && !muted) play();
     return SONGS[idx].name;
   }
@@ -64,6 +66,11 @@
         if (st.fi < SONGS[i].files.length) {
           a.src = SONGS[i].files[st.fi];
           a.load();
+        } else if (i === idx && wantPlay && started && !muted && failSkipCount < SONGS.length - 1) {
+          /* 当前曲目全部格式不可用时自动跳下一首,最多尝试一轮防死循环 */
+          failSkipCount++;
+          idx = (idx + 1) % SONGS.length;
+          play();
         }
       };
       a.src = SONGS[i].files[0];
@@ -73,12 +80,11 @@
     return a;
   }
 
-  /* 播第 i 首:文件链在预加载时已解析好,直接出声 */
   function webPlay(i) {
     var a = webEl(i);
     if (!a) return;
     var st = a._st;
-    if (!st || st.fi >= SONGS[i].files.length) return; /* 该曲没有可用文件 */
+    if (!st || st.fi >= SONGS[i].files.length) return;
     var p = a.play();
     if (p && p.catch) p.catch(function () { /* 自动播放被拦:等首次手势 */ });
   }
@@ -89,25 +95,55 @@
     }
   }
 
-  /* ---- 小游戏端 ---- */
+  /* ---- 小游戏端:按需分包加载 ---- */
+
+  function songSubpkg(i) {
+    var src = SONGS[i] && SONGS[i].files[0];
+    if (!src) return null;
+    var slash = src.indexOf('/');
+    if (slash > 0 && src.indexOf('bgm') === 0) return src.slice(0, slash);
+    return null;
+  }
+
+  function ensurePkg(pkg, cb) {
+    if (!pkg || !platform || !platform.loadSubpackage || pkgState[pkg] === 2) {
+      if (cb) cb(true);
+      return;
+    }
+    if (!pkgWaiters[pkg]) pkgWaiters[pkg] = [];
+    if (cb) pkgWaiters[pkg].push(cb);
+    if (pkgState[pkg] === 1) return;
+    pkgState[pkg] = 1;
+    platform.loadSubpackage(pkg, function (ok) {
+      pkgState[pkg] = ok === false ? 0 : 2;
+      var list = pkgWaiters[pkg] || [];
+      pkgWaiters[pkg] = [];
+      for (var k = 0; k < list.length; k++) list[k](ok !== false);
+    });
+  }
 
   function innerStop() {
     try { if (innerEl) { innerEl.stop(); } } catch (e) { }
   }
 
   function innerPlay() {
-    if (!innerEl && platform.createInnerAudio) innerEl = platform.createInnerAudio();
-    if (!innerEl) return;
-    innerEl.loop = true;
-    innerEl.volume = vol * OUT_VOL;
-    innerStop();
-    innerEl.src = SONGS[idx].files[0];
-    try { innerEl.play(); } catch (e) { }
+    var targetIdx = idx;
+    var pkg = songSubpkg(targetIdx);
+    ensurePkg(pkg, function (ok) {
+      if (!ok || targetIdx !== idx || !wantPlay || muted) return;
+      if (!innerEl && platform.createInnerAudio) innerEl = platform.createInnerAudio();
+      if (!innerEl) return;
+      innerEl.loop = true;
+      innerEl.volume = vol * OUT_VOL;
+      innerStop();
+      innerEl.src = SONGS[targetIdx].files[0];
+      try { innerEl.play(); } catch (e) { }
+    });
   }
 
   function play() {
     wantPlay = true;
-    if (muted) return;
+    if (!started || muted) return;
     if (platform.isMinigame) innerPlay();
     else { webPauseAll(); webPlay(idx); }
   }
@@ -118,32 +154,26 @@
     innerStop();
   }
 
-  /* 首次用户手势后调用:浏览器允许出声了;顺带预加载全部曲目。
-     小游戏端:先把 BGM 分包(bgm1/bgm2,构建时生成)加载完再播 */
+  /* 首次用户手势后调用:先加载当前曲目所在分包即刻出声,再静默预载另一分包 */
   function unlock() {
     if (started) return;
     started = true;
     if (platform.isMinigame) {
-      if (platform.loadSubpackage) {
-        var pkgs = ['bgm1', 'bgm2'], doneN = 0;
-        var onOne = function () {
-          doneN++;
-          if (doneN >= pkgs.length && wantPlay && !muted) play();
-        };
-        for (var j = 0; j < pkgs.length; j++) platform.loadSubpackage(pkgs[j], onOne);
-        return;
-      }
-      if (wantPlay && !muted) play();
+      var curPkg = songSubpkg(idx);
+      ensurePkg(curPkg, function () {
+        if (wantPlay && !muted) innerPlay();
+        var other = curPkg === 'bgm1' ? 'bgm2' : (curPkg === 'bgm2' ? 'bgm1' : null);
+        if (other) ensurePkg(other);
+      });
       return;
     }
-    webEl(idx);   /* 只预加载当前曲目,其余切歌时按需加载(省流量) */
+    webEl(idx);
     if (wantPlay && !muted) play();
   }
 
   function setMuted(m) {
     muted = !!m;
     if (muted) {
-      /* 停声但保留 wantPlay:取消静音后音乐能接续回来 */
       webPauseAll();
       innerStop();
     } else if (wantPlay && started) {

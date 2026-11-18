@@ -4,14 +4,45 @@
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
   Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()
-  Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.126.net https://*.music.126.net; media-src 'self' blob: https://*.126.net https://*.music.126.net; connect-src 'self' https://*.workers.dev; worker-src 'self' blob:
+  Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.126.net https://*.music.126.net; media-src 'self' blob: https://*.126.net https://*.music.126.net; connect-src 'self'; worker-src 'self' blob:
 
-/_headers
-  Cache-Control: public, max-age=0, must-revalidate
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/styles.css
+  Cache-Control: public, max-age=604800
+
+/script.js
+  Cache-Control: public, max-age=604800
+
+/assets/*.webp
+  Cache-Control: public, max-age=604800
+
+/assets/*.jpg
+  Cache-Control: public, max-age=604800
+
+/portfolio/assets/*.webp
+  Cache-Control: public, max-age=604800
 
 /assets/audio/*
   X-Robots-Tag: noindex
+  Cache-Control: public, max-age=604800
 
-# 弹珠机:游戏代码始终拉最新(更新即刻生效)
-/marble/*
+/hidden.html
+  X-Robots-Tag: noindex, nofollow
+
+/404.html
+  X-Robots-Tag: noindex, nofollow
+
+# 弹珠机:音频与徽章允许缓存,HTML 与脚本走协商缓存即时生效
+/marble/assets/*
+  Cache-Control: public, max-age=604800
+
+/marble/
+  Cache-Control: no-cache
+
+/marble/index.html
+  Cache-Control: no-cache
+
+/marble/src/*
   Cache-Control: no-cache

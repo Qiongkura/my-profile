@@ -1,4 +1,10 @@
 User-agent: *
 Disallow: /assets/audio/
 Disallow: /tools/
+Disallow: /docs/
+Disallow: /netease/
+Disallow: /api/
+Disallow: /marble/tools/
+Disallow: /marble/docs/
 Disallow: /hidden.html
+Disallow: /404.html

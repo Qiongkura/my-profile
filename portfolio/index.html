@@ -8,7 +8,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23d4491f'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='19' fill='%23f4f1e8' text-anchor='middle'%3EQ%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@600&display=swap" rel="stylesheet"></noscript>
 <style>
 :root{
   --paper:#f4f1e8; --paper2:#eceadf; --ink:#171512; --ink2:#403c33;
@@ -349,7 +350,7 @@ footer{border-top:2px solid var(--ink);margin-top:90px;padding:24px 0 44px}
     <article class="case">
       <div class="case-media">
         <figure>
-          <div class="case-shot"><img src="assets/beamng.png" alt="BeamNG Autopilot" loading="lazy"></div>
+          <div class="case-shot"><img src="assets/beamng.webp" alt="BeamNG Autopilot" width="1280" height="720" loading="lazy" decoding="async"></div>
           <figcaption>fig.01 — 训练监控：车道线分割模型 accuracy 99.7%</figcaption>
         </figure>
       </div>
@@ -371,7 +372,7 @@ footer{border-top:2px solid var(--ink);margin-top:90px;padding:24px 0 44px}
     <article class="case flip">
       <div class="case-media">
         <figure>
-          <div class="case-shot"><img src="assets/audiotransfer.png" alt="AudioTransfer Studio" loading="lazy"></div>
+          <div class="case-shot"><img src="assets/audiotransfer.webp" alt="AudioTransfer Studio" width="1772" height="1278" loading="lazy" decoding="async"></div>
           <figcaption>fig.02 — 桌面工作台：拖入歌曲，一键转换、试听、烧录</figcaption>
         </figure>
       </div>
@@ -393,7 +394,7 @@ footer{border-top:2px solid var(--ink);margin-top:90px;padding:24px 0 44px}
     <article class="case">
       <div class="case-media">
         <figure>
-          <div class="case-shot"><img src="assets/focus.png" alt="Focus Time Tracker" loading="lazy"></div>
+          <div class="case-shot"><img src="assets/focus.webp" alt="Focus Time Tracker" width="1802" height="1215" loading="lazy" decoding="async"></div>
           <figcaption>fig.03 — 统计页：每小时分布与近 7 天趋势</figcaption>
         </figure>
       </div>
@@ -423,7 +424,7 @@ footer{border-top:2px solid var(--ink);margin-top:90px;padding:24px 0 44px}
       <thead>
         <tr><th>NO</th><th>项目</th><th>一句话</th><th>栈</th><th>自有代码</th><th>状态</th><th>年</th></tr>
       </thead>
-      <tbody><tr data-cat="research"><td class="t-no">01</td><td class="t-name"><a href="https://github.com/Qiongkura/BeamNG-autopilot" target="_blank" rel="noopener">beamng-autopilot ↗</a></td><td class="t-desc">BeamNG 自动驾驶研究</td><td class="t-stack">Python · BeamNGpy · PyTorch</td><td class="t-loc">165.9k</td><td class="t-status" class="t-status hot">研究中</td><td class="t-stack">2026</td></tr><tr data-cat="tools"><td class="t-no">02</td><td class="t-name"><a href="https://github.com/Qiongkura/audiotransfer" target="_blank" rel="noopener">audiotransfer ↗</a></td><td class="t-desc">歌曲 → 主旋律 → STM32 固件</td><td class="t-stack">Python · Demucs · RMVPE</td><td class="t-loc">8.3k</td><td class="t-status">v0.5.0</td><td class="t-stack">2026</td></tr><tr data-cat="tools"><td class="t-no">03</td><td class="t-name"><a href="https://github.com/Qiongkura/Focus-time-tracker" target="_blank" rel="noopener">focus-time-tracker ↗</a></td><td class="t-desc">屏幕使用时间统计</td><td class="t-stack">Python · Win32 · SQLite</td><td class="t-loc">7.4k</td><td class="t-status">成熟</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">04</td><td class="t-name"><a href="https://github.com/Qiongkura/my-profile" target="_blank" rel="noopener">my-profile ↗</a></td><td class="t-desc">个人主页 qiongkura.xyz</td><td class="t-stack">JavaScript · 静态站</td><td class="t-loc">13.0k</td><td class="t-status">已上线</td><td class="t-stack">2026</td></tr><tr data-cat="embedded"><td class="t-no">05</td><td class="t-name"><a href="https://github.com/Qiongkura/SmartCar-STM32" target="_blank" rel="noopener">SmartCar / SmartCar-STM32 ↗</a></td><td class="t-desc">智能小车 + 遥控器</td><td class="t-stack">C · STM32F103 · PlatformIO</td><td class="t-loc">12.4k</td><td class="t-status">已完成</td><td class="t-stack">2026</td></tr><tr data-cat="tools"><td class="t-no">06</td><td class="t-name"><a href="https://github.com/Qiongkura/audio-visualizer" target="_blank" rel="noopener">audio-visualizer ↗</a></td><td class="t-desc">系统声音实时可视化</td><td class="t-stack">Python · WASAPI</td><td class="t-loc">2.4k</td><td class="t-status">exe 已发布</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">07</td><td class="t-name">netease-music-parser</td><td class="t-desc">网易云分享链接 → 播放卡片</td><td class="t-stack">JavaScript · 零依赖</td><td class="t-loc">9.3k</td><td class="t-status">可发布</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">08</td><td class="t-name">marble-machine</td><td class="t-desc">弹珠机 Canvas 游戏</td><td class="t-stack">JavaScript · 三端</td><td class="t-loc">3.0k</td><td class="t-status">三端可玩</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">09</td><td class="t-name">pc-maintenance-sim</td><td class="t-desc">3D 电脑维护教学游戏</td><td class="t-stack">JavaScript · Three.js</td><td class="t-loc">3.5k</td><td class="t-status">P0 原型</td><td class="t-stack">2026</td></tr><tr data-cat="embedded"><td class="t-no">10</td><td class="t-name">flightfix v64–v69</td><td class="t-desc">ESP32 迷你无人机飞控修改</td><td class="t-stack">Arduino · C++ · GPL3</td><td class="t-loc">2.5k</td><td class="t-status" class="t-status hot">调试中</td><td class="t-stack">2026</td></tr><tr data-cat="tools"><td class="t-no">11</td><td class="t-name">codeyear</td><td class="t-desc">本地 git 年度报告</td><td class="t-stack">Python · Pillow</td><td class="t-loc">2.0k</td><td class="t-status">v0.1</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">12</td><td class="t-name">digital-life-chat / exact</td><td class="t-desc">流浪地球风格终端 UI</td><td class="t-stack">CSS · JS</td><td class="t-loc">5.9k</td><td class="t-status">UI 实验</td><td class="t-stack">2026</td></tr><tr data-cat="embedded"><td class="t-no">13</td><td class="t-name">pcb / ultrasonic-ui</td><td class="t-desc">超声相控阵 PCB + 数据分析</td><td class="t-stack">Altium · Python</td><td class="t-loc">0.5k</td><td class="t-status">硬件 + 脚本</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">14</td><td class="t-name"><a href="https://github.com/Qiongkura/DQN-Reinforcement-Learning-Snake" target="_blank" rel="noopener">DQNsnake / autosnake ↗</a></td><td class="t-desc">Double DQN + PER 贪吃蛇</td><td class="t-stack">Python · Java · PyTorch</td><td class="t-loc">1.7k</td><td class="t-status">实验</td><td class="t-stack">2026</td></tr><tr data-cat="writing"><td class="t-no">15</td><td class="t-name">urban-novel-writer</td><td class="t-desc">300 万字小说创作工作台</td><td class="t-stack">Markdown · LLM 工作流</td><td class="t-loc">2.0k 文档</td><td class="t-status" class="t-status hot">写作中</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">16</td><td class="t-name">biotech_ppt</td><td class="t-desc">结课汇报 PPT 生成</td><td class="t-stack">JavaScript · pptxgenjs</td><td class="t-loc">0.6k</td><td class="t-status">完成</td><td class="t-stack">2026</td></tr><tr data-cat="tools"><td class="t-no">17</td><td class="t-name">beamng-dlss5-setup</td><td class="t-desc">DLSS5 配置与模型验证</td><td class="t-stack">Python</td><td class="t-loc">1.3k</td><td class="t-status">工具</td><td class="t-stack">2026</td></tr><tr data-cat="archive"><td class="t-no">18</td><td class="t-name">CodexWork / 副本仓</td><td class="t-desc">固件修复工作区与备份</td><td class="t-stack">C · Python</td><td class="t-loc">96.9k 副本</td><td class="t-status">归档候选</td><td class="t-stack">2026</td></tr></tbody>
+      <tbody><tr data-cat="research"><td class="t-no">01</td><td class="t-name"><a href="https://github.com/Qiongkura/BeamNG-autopilot" target="_blank" rel="noopener">beamng-autopilot ↗</a></td><td class="t-desc">BeamNG 自动驾驶研究</td><td class="t-stack">Python · BeamNGpy · PyTorch</td><td class="t-loc">165.9k</td><td class="t-status hot">研究中</td><td class="t-stack">2026</td></tr><tr data-cat="tools"><td class="t-no">02</td><td class="t-name"><a href="https://github.com/Qiongkura/audiotransfer" target="_blank" rel="noopener">audiotransfer ↗</a></td><td class="t-desc">歌曲 → 主旋律 → STM32 固件</td><td class="t-stack">Python · Demucs · RMVPE</td><td class="t-loc">8.3k</td><td class="t-status">v0.5.0</td><td class="t-stack">2026</td></tr><tr data-cat="tools"><td class="t-no">03</td><td class="t-name"><a href="https://github.com/Qiongkura/Focus-time-tracker" target="_blank" rel="noopener">focus-time-tracker ↗</a></td><td class="t-desc">屏幕使用时间统计</td><td class="t-stack">Python · Win32 · SQLite</td><td class="t-loc">7.4k</td><td class="t-status">成熟</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">04</td><td class="t-name"><a href="https://github.com/Qiongkura/my-profile" target="_blank" rel="noopener">my-profile ↗</a></td><td class="t-desc">个人主页 qiongkura.xyz</td><td class="t-stack">JavaScript · 静态站</td><td class="t-loc">13.0k</td><td class="t-status">已上线</td><td class="t-stack">2026</td></tr><tr data-cat="embedded"><td class="t-no">05</td><td class="t-name"><a href="https://github.com/Qiongkura/SmartCar-STM32" target="_blank" rel="noopener">SmartCar / SmartCar-STM32 ↗</a></td><td class="t-desc">智能小车 + 遥控器</td><td class="t-stack">C · STM32F103 · PlatformIO</td><td class="t-loc">12.4k</td><td class="t-status">已完成</td><td class="t-stack">2026</td></tr><tr data-cat="tools"><td class="t-no">06</td><td class="t-name"><a href="https://github.com/Qiongkura/audio-visualizer" target="_blank" rel="noopener">audio-visualizer ↗</a></td><td class="t-desc">系统声音实时可视化</td><td class="t-stack">Python · WASAPI</td><td class="t-loc">2.4k</td><td class="t-status">exe 已发布</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">07</td><td class="t-name">netease-music-parser</td><td class="t-desc">网易云分享链接 → 播放卡片</td><td class="t-stack">JavaScript · 零依赖</td><td class="t-loc">9.3k</td><td class="t-status">可发布</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">08</td><td class="t-name"><a href="/marble/">marble-machine ↗</a></td><td class="t-desc">弹珠机 Canvas 游戏</td><td class="t-stack">JavaScript · 三端</td><td class="t-loc">3.0k</td><td class="t-status">三端可玩</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">09</td><td class="t-name">pc-maintenance-sim</td><td class="t-desc">3D 电脑维护教学游戏</td><td class="t-stack">JavaScript · Three.js</td><td class="t-loc">3.5k</td><td class="t-status">P0 原型</td><td class="t-stack">2026</td></tr><tr data-cat="embedded"><td class="t-no">10</td><td class="t-name">flightfix v64–v69</td><td class="t-desc">ESP32 迷你无人机飞控修改</td><td class="t-stack">Arduino · C++ · GPL3</td><td class="t-loc">2.5k</td><td class="t-status hot">调试中</td><td class="t-stack">2026</td></tr><tr data-cat="tools"><td class="t-no">11</td><td class="t-name">codeyear</td><td class="t-desc">本地 git 年度报告</td><td class="t-stack">Python · Pillow</td><td class="t-loc">2.0k</td><td class="t-status">v0.1</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">12</td><td class="t-name">digital-life-chat / exact</td><td class="t-desc">流浪地球风格终端 UI</td><td class="t-stack">CSS · JS</td><td class="t-loc">5.9k</td><td class="t-status">UI 实验</td><td class="t-stack">2026</td></tr><tr data-cat="embedded"><td class="t-no">13</td><td class="t-name">pcb / ultrasonic-ui</td><td class="t-desc">超声相控阵 PCB + 数据分析</td><td class="t-stack">Altium · Python</td><td class="t-loc">0.5k</td><td class="t-status">硬件 + 脚本</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">14</td><td class="t-name"><a href="https://github.com/Qiongkura/DQN-Reinforcement-Learning-Snake" target="_blank" rel="noopener">DQNsnake / autosnake ↗</a></td><td class="t-desc">Double DQN + PER 贪吃蛇</td><td class="t-stack">Python · Java · PyTorch</td><td class="t-loc">1.7k</td><td class="t-status">实验</td><td class="t-stack">2026</td></tr><tr data-cat="writing"><td class="t-no">15</td><td class="t-name">urban-novel-writer</td><td class="t-desc">300 万字小说创作工作台</td><td class="t-stack">Markdown · LLM 工作流</td><td class="t-loc">2.0k 文档</td><td class="t-status hot">写作中</td><td class="t-stack">2026</td></tr><tr data-cat="web"><td class="t-no">16</td><td class="t-name">biotech_ppt</td><td class="t-desc">结课汇报 PPT 生成</td><td class="t-stack">JavaScript · pptxgenjs</td><td class="t-loc">0.6k</td><td class="t-status">完成</td><td class="t-stack">2026</td></tr><tr data-cat="tools"><td class="t-no">17</td><td class="t-name">beamng-dlss5-setup</td><td class="t-desc">DLSS5 配置与模型验证</td><td class="t-stack">Python</td><td class="t-loc">1.3k</td><td class="t-status">工具</td><td class="t-stack">2026</td></tr><tr data-cat="archive"><td class="t-no">18</td><td class="t-name">CodexWork / 副本仓</td><td class="t-desc">固件修复工作区与备份</td><td class="t-stack">C · Python</td><td class="t-loc">96.9k 副本</td><td class="t-status">归档候选</td><td class="t-stack">2026</td></tr></tbody>
     </table>
     <p class="index-note"><span id="row-count">18 / 18 项</span>
       · 自有代码 = 非空行，已剔除第三方库、生成工程与重复副本；仓库副本（CodexWork 等）不计入总量。</p>
@@ -508,7 +509,7 @@ footer{border-top:2px solid var(--ink);margin-top:90px;padding:24px 0 44px}
 <footer>
   <div class="foot-in">
     <span>QIONGKURA · 代码手账 2026</span>
-    <span>数据来自本机 git 历史 · 生成于 2026-11-02 · 未上传任何代码</span>
+    <span>数据来自本机 git 历史 · 生成于 2026-11-02 · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">粤ICP备2026176680号-1</a></span>
     <span><a href="https://qiongkura.xyz" target="_blank" rel="noopener">qiongkura.xyz</a> · <a href="https://github.com/Qiongkura" target="_blank" rel="noopener">GitHub ↗</a></span>
   </div>
 </footer>
@@ -528,14 +529,26 @@ footer{border-top:2px solid var(--ink);margin-top:90px;padding:24px 0 44px}
   };
   addEventListener('scroll', onScroll, {passive:true}); onScroll();
 
-  /* live clock */
+  /* live clock (paused when hidden) + dynamic heatmap today marker */
   const clock = $('#clock');
   const pad = n=> String(n).padStart(2,'0');
   const tick = ()=>{
     const d = new Date();
     clock.textContent = pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
   };
-  if(clock){ tick(); setInterval(tick, 1000); }
+  if(clock){
+    tick();
+    let clockTimer = setInterval(tick, 1000);
+    document.addEventListener('visibilitychange', ()=>{
+      if(document.hidden){ clearInterval(clockTimer); clockTimer = 0; }
+      else if(!clockTimer){ tick(); clockTimer = setInterval(tick, 1000); }
+    });
+  }
+  const now = new Date();
+  const todayIso = now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
+  $$('.heat .cell.today').forEach(c=>c.classList.remove('today'));
+  const todayCell = $('.heat .cell[title^="'+todayIso+'"]');
+  if(todayCell) todayCell.classList.add('today');
 
   /* reveal on scroll */
   const targets = $$('.rv, .rv-line, .sec-line');

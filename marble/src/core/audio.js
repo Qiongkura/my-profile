@@ -1,4 +1,4 @@
-/* 弹弹珠机 - 音频模块 (命名空间: MG.audio)
+/* 弹弹弹珠吧 - 音频模块 (命名空间: MG.audio)
  * 浏览器端: WebAudio 实时合成(无需任何音频文件)
  * 小游戏端: 播放 assets/sounds/*.wav (由 tools/gen-audio.js 生成)
  */
@@ -8,11 +8,13 @@
 
   var _platform = null;
   var _muted = false;
+  var _vol = 0.8;
   var _actx = null;
   var _master = null;
 
   function init(platform) {
     _platform = platform;
+    if (_platform) _platform.volume = _vol;
   }
 
   function ensureCtx() {
@@ -23,7 +25,7 @@
       try {
         _actx = new AC();
         _master = _actx.createGain();
-        _master.gain.value = 0.5;
+        _master.gain.value = _vol * 0.9;
         _master.connect(_actx.destination);
       } catch (e) { return null; }
     }
@@ -45,9 +47,12 @@
       osc.frequency.setValueAtTime(Math.max(1, o.f), t0);
       if (o.f2) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.f2), t0 + o.dur);
       g.gain.setValueAtTime(0.0001, t0);
-      g.gain.exponentialRampToValueAtTime(Math.max(0.001, o.vol || 0.3), t0 + 0.008);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.001, o.vol != null ? o.vol : 0.3), t0 + 0.008);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur);
       osc.connect(g); g.connect(_master);
+      osc.onended = function () {
+        try { osc.disconnect(); g.disconnect(); } catch (e) { }
+      };
       osc.start(t0); osc.stop(t0 + o.dur + 0.03);
     } catch (e) { /* ignore */ }
   }
@@ -63,13 +68,6 @@
       case 'bumper':
         tone({ f: 300, f2: 620, dur: 0.13, type: 'square', vol: 0.14 });
         tone({ f: 160, f2: 90, dur: 0.12, type: 'sine', vol: 0.3 });
-        break;
-      case 'mover':
-        tone({ f: 240, f2: 420, dur: 0.1, type: 'triangle', vol: 0.2 });
-        break;
-      case 'star':
-        tone({ f: 880, dur: 0.09, type: 'triangle', vol: 0.25 });
-        tone({ f: 1320, dur: 0.12, type: 'triangle', vol: 0.22, delay: 0.07 });
         break;
       case 'slot':
         tone({ f: 520, f2: 260, dur: 0.2, type: 'sine', vol: 0.35 });
@@ -104,17 +102,14 @@
           }
         })();
         break;
-      case 'bonus':
-        tone({ f: 700, f2: 1200, dur: 0.16, type: 'triangle', vol: 0.25 });
-        tone({ f: 1000, f2: 1600, dur: 0.18, type: 'triangle', vol: 0.2, delay: 0.1 });
-        break;
     }
   }
 
   function play(name, o) {
-    if (_muted) return;
+    if (_muted || _vol <= 0.001) return;
     if (_platform && _platform.isMinigame) {
-      _platform.playSound(name, (o && o.vol) || 1);
+      var v = (o && o.vol != null) ? o.vol : 1;
+      _platform.playSound(name, v);
     } else {
       synth(name, o);
     }
@@ -124,30 +119,14 @@
   function toggleMuted() { _muted = !_muted; return _muted; }
   function isMuted() { return _muted; }
 
-  /* 背景音乐音符(芯片音) */
-  function note(freq, dur, type, vol) {
-    var a = ensureCtx();
-    if (!a) return;
-    try {
-      var t0 = a.currentTime;
-      var osc = a.createOscillator();
-      var g = a.createGain();
-      osc.type = type || 'square';
-      osc.frequency.setValueAtTime(Math.max(1, freq), t0);
-      g.gain.setValueAtTime(0.0001, t0);
-      g.gain.exponentialRampToValueAtTime(Math.max(0.001, vol || 0.05), t0 + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      osc.connect(g); g.connect(_master);
-      osc.start(t0); osc.stop(t0 + dur + 0.03);
-    } catch (e) { }
-  }
-
-  function ready() { return !!_actx; }
-
-  /* 主音量(0..1):控制音效合成与增益 */
+  /* 主音量(0..1):同步控制 WebAudio 主增益与小游戏端音效缩放 */
   function setVolume(v) {
+    _vol = Math.max(0, Math.min(1, v));
     if (_master) {
-      try { _master.gain.value = Math.max(0, Math.min(1, v)) * 0.9; } catch (e) { }
+      try { _master.gain.value = _vol * 0.9; } catch (e) { }
+    }
+    if (_platform) {
+      _platform.volume = _vol;
     }
   }
 
@@ -155,8 +134,6 @@
     init: init,
     unlock: unlock,
     play: play,
-    note: note,
-    ready: ready,
     setVolume: setVolume,
     setMuted: setMuted,
     toggleMuted: toggleMuted,
